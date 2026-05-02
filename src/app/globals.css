@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  /* 🎨 Paleta kolorów z Figmy */
+  --color-primary: #287d88;
+  --color-secondary: #033f63;
+  --color-yellow: #f2d967;
+  --color-white: #ffffff;
+  --color-white-glass: #ffffff4d;
+  --color-base: #ffffff;
+
+  /* Zmienne globalne dla motywu (Wymuszony Light Mode) */
+  --background: var(--color-base);
+  --foreground: var(--color-secondary);
+}
+
+@theme inline {
+  /* Mapowanie tła i tekstu */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Rejestracja kolorów dla Tailwinda */
+  --color-brand-primary: var(--color-primary);
+  --color-brand-secondary: var(--color-secondary);
+  --color-brand-yellow: var(--color-yellow);
+  --color-brand-white: var(--color-white);
+  --color-brand-white-glass: var(--color-white-glass);
+
+  /* Gradient główny */
+  --background-image-gradient-main: linear-gradient(
+    to bottom,
+    #dafbff 0%,
+    #ffffff 100%
+  );
+
+  /* Fonty z Figmy */
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Montserrat", sans-serif;
+
+  /* Typografia */
+  --text-heading: 3.5rem; /* 56px */
+  --text-heading--line-height: 1.2;
+  --text-heading--letter-spacing: -0.0625rem;
+
+  --text-heading-sec: 3rem; /* 48px */
+  --text-heading-sec--line-height: 1.2;
+
+  --text-subheading: 2.25rem; /* 36px */
+  --text-subheading--line-height: 1.2;
+
+  --text-paragraph: 1rem; /* 16px */
+  --text-paragraph--line-height: 1.7;
+}
+
+/* src/app/globals.css (na samym dole) */
+@layer utilities {
+  .container {
+    @apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full;
+  }
+  .font-montserrat {
+    font-family: var(--font-body) !important;
+  }
+
+  .font-jakarta {
+    font-family: var(--font-heading) !important;
+  }
+  .mask-shape-1 {
+    mask-image: url("/shapes/shape_1.svg");
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    -webkit-mask-image: url("/shapes/shape_1.svg");
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+  }
+
+  .mask-shape-2 {
+    mask-image: url("/shapes/shape_2.svg");
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    -webkit-mask-image: url("/shapes/shape_2.svg");
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+  }
+}
+
+/* Globalny reset stylów dla Body */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* Komponenty użytkowe (DRY) */
+@layer components {
+  .typography-heading {
+    @apply font-heading text-heading font-bold;
+  }
+  .typography-heading-sec {
+    @apply font-heading text-heading-sec font-bold;
+  }
+  .typography-subheading {
+    @apply font-heading text-subheading font-semibold;
+  }
+  .typography-paragraph {
+    @apply font-body text-paragraph font-normal;
+  }
+
+  /* Zoptymalizowany Loader (tylko jedna, właściwa wersja) */
+  .btn-loader {
+    width: 24px;
+    aspect-ratio: 1;
+    display: grid;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    border-right-color: currentColor;
+    animation: l15 1s infinite linear;
+  }
+
+  .btn-loader::before,
+  .btn-loader::after {
+    content: "";
+    grid-area: 1/1;
+    margin: 2px;
+    border: inherit;
+    border-radius: 50%;
+    animation: l15 2s infinite;
+  }
+
+  .btn-loader::after {
+    margin: 5px;
+    animation-duration: 3s;
+  }
+}
+
+@keyframes l15 {
+  100% {
+    transform: rotate(1turn);
+  }
+}
