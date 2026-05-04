@@ -9,11 +9,9 @@ export default function SiteLayout({
 }) {
   return (
     // bg-gradient-main pochodzi z globalnego CSS (linear-gradient dołączony z Twoich tokenów)
-    <div className="min-h-screen flex flex-col relative bg-gradient-to-b from-[#DAFBFF] to-[#FFFFFF]/0 ">
-      <Navbar />
-      <div className=" bg-red"></div>
+    <div className="min-h-screen flex flex-col relative  ">
       {/* Pading-top kompensuje absolutne pozycjonowanie Navbara. pt-24 (96px) to bezpieczny start */}
-      <main className="flex-1 pt-24">{children}</main>
+      {children}
 
       {/* <Footer /> */}
     </div>

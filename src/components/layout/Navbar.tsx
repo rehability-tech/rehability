@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
   { label: "Start", href: "/" },
@@ -34,10 +35,14 @@ export function Navbar() {
       setIsPending(false);
     }
   };
-
+  const path = usePathname();
+  console.log(path);
+  const isGabinetRoute = path === "/gabinet";
   return (
-    <header className="absolute top-0 left-0 right-0 z-50 w-full py-4">
-      <div className="container flex items-center justify-between">
+    <header className={`absolute top-0 left-0 right-0 z-50 w-full py-4  `}>
+      <div
+        className={`container flex items-center justify-between ${isGabinetRoute && "bg-white/30 py-3 px-6 rounded-full backdrop-blur-2xl"} `}
+      >
         <Link
           href="/"
           className="flex items-center gap-2 focus-visible:outline-none z-[101]"

@@ -1,16 +1,24 @@
-import React from "react";
+"use client";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
+  const path = usePathname();
+  const isGabinet = path === "/gabinet" || path === "/w-budowie";
+
+  console.log(isGabinet);
+
   return (
-    <footer className="w-full -mt-120 -z-10 max-[1078px]:-mt-70 overflow-x-clip ">
+    <footer
+      className={`w-full -mt-120 -z-10 max-[1078px]:-mt-70 overflow-x-clip ${isGabinet && "!mt-0"} `}
+    >
       {/* GŁÓWNY BLOK FOOTERA */}
       <div className="relative flex w-full max-w-[1440px] mx-auto min-h-[700px] max-[1078px]:min-h-[auto] pt-[300px] max-[1078px]:pt-32 pb-12 max-[1078px]:pb-8 px-20 max-[1078px]:px-10 max-[600px]:px-6 flex-col justify-end">
         {/* === TŁO SVG === */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-full flex justify-center items-end z-0">
           <svg
-            className="w-full h-full min-w-[1400px] min-h-[600px] max-[1078px]:min-h-[900px] max-[599px]:min-h-[1200px] max-[450px]:min-h-[1400px]"
+            className={`w-full h-full min-w-[1400px] min-h-[600px] max-[1078px]:min-h-[900px] max-[599px]:min-h-[1200px] max-[450px]:min-h-[1400px] ${isGabinet && "!h-[600px]"} `}
             viewBox="0 0 1420 594"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
