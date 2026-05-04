@@ -106,7 +106,7 @@ body {
     @apply font-heading text-subheading font-semibold;
   }
   .typography-paragraph {
-    @apply font-body text-paragraph font-normal;
+    @apply font-body text-paragraph font-normal leading-[170%];
   }
 
   /* Zoptymalizowany Loader (tylko jedna, właściwa wersja) */
@@ -139,5 +139,37 @@ body {
 @keyframes l15 {
   100% {
     transform: rotate(1turn);
+  }
+}
+@layer utilities {
+  .animate-scroll-y {
+    animation: scroll-y var(--duration, 40s) linear infinite;
+  }
+  .animate-scroll-y-reverse {
+    animation: scroll-y-reverse var(--duration, 40s) linear infinite;
+  }
+}
+
+/* Wstrzymywanie po najechaniu na prawą kolumnę */
+.pause-on-hover:hover .animate-scroll-y,
+.pause-on-hover:hover .animate-scroll-y-reverse {
+  animation-play-state: paused !important;
+}
+
+@keyframes scroll-y {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-y-reverse {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
   }
 }

@@ -64,7 +64,7 @@ const RelaxBlock = () => (
     </div>
     <HeroBadge
       text="Strefa wellness i masażu"
-      className="absolute top-8 -right-12 max-[1024px]:top-24 z-20 max-[1024px]:-right-12"
+      className="absolute top-8 -right-12 max-[1024px]:top-24 z-20 max-[1024px]:-right-12 max-[450px]:right-0 max-[450px]:bottom-6 max-[450px]:top-42 "
       icon={<FlowerLotusIcon size={20} />}
     />
   </div>
@@ -107,7 +107,7 @@ const BottomTextBlock = () => (
 // --- 2. GŁÓWNY KOMPONENT ---
 export function HeroSection() {
   return (
-    <section className="relative pt-8 max-[1024px]:pt-24 pb-24 max-[1024px]:pb-16 overflow-hidden bg-gradient-main">
+    <section className="relative pt-8 max-[1024px]:pt-24  overflow-hidden ">
       {/* WIDOK MOBILE (Działa do 1024px) */}
       <div className="container flex-col gap-10 relative z-10 items-center hidden max-[1024px]:flex">
         <HeaderBlock />

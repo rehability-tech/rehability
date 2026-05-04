@@ -7,7 +7,7 @@ const fontHeading = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap", // Zapobiega Layout Shift (CLS)
-  weight: ["700", "800"],
+  weight: ["600", "500", "700", "800"],
 });
 
 const fontBody = Montserrat({
