@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { MagnifyingGlassPlus, X } from "@phosphor-icons/react/dist/ssr";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 const GALLERY_IMAGES = [
   {
     id: 1,
     src: "/images/gabinet/hero/gabinet_1.jpg",
     alt: "Gabinet widok 1",
-    // Na desktopie pionowe, poniżej 1024px standardowy prostokąt
     aspect: "aspect-[3/4] max-[1024px]:aspect-[4/3]",
     mt: "mt-0",
   },
@@ -18,7 +18,6 @@ const GALLERY_IMAGES = [
     src: "/images/gabinet/hero/gabinet_2.jpg",
     alt: "Gabinet widok 2",
     aspect: "aspect-[4/3] max-[1024px]:aspect-[4/3]",
-    // Na desktopie zjeżdża w dół o 60px, poniżej 1024px wyrównuje się do zera
     mt: "mt-[60px] max-[1024px]:mt-0",
   },
   {
@@ -26,7 +25,6 @@ const GALLERY_IMAGES = [
     src: "/images/gabinet/hero/gabinet_3.jpg",
     alt: "Gabinet widok 3",
     aspect: "aspect-[3/3] max-[1024px]:aspect-[4/3]",
-    // Na desktopie zjeżdża w dół o 20px, poniżej 1024px wyrównuje się do zera
     mt: "mt-[20px] max-[1024px]:mt-0",
   },
   {
@@ -34,10 +32,44 @@ const GALLERY_IMAGES = [
     src: "/images/gabinet/hero/gabinet_4.jpg",
     alt: "Gabinet widok 4",
     aspect: "aspect-[4/5] max-[1024px]:aspect-[4/3]",
-    // Na desktopie zjeżdża w dół o 10px, poniżej 1024px wyrównuje się do zera
     mt: "mt-[10px] max-[1024px]:mt-0",
   },
 ];
+
+// === DEFINICJE ANIMACJI ===
+const heroContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.2, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const galleryContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+  },
+};
+
+const galleryItemVariants: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+  },
+};
 
 export function GabinetHero() {
   const [lightbox, setLightbox] = useState({
@@ -82,16 +114,27 @@ export function GabinetHero() {
         </div>
 
         {/* Zawartość Hero */}
-        <div className="relative z-20 container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center text-center text-white">
-          <h1 className="font-jakarta font-bold text-[64px] max-[1024px]:text-[48px] max-[768px]:text-[40px] mb-6 drop-shadow-md">
+        <motion.div
+          className="relative z-20 container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center text-center text-white"
+          variants={heroContainerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.h1
+            variants={fadeUpVariants}
+            className="font-jakarta font-bold text-[64px] max-[1024px]:text-[48px] max-[768px]:text-[40px] mb-6 drop-shadow-md"
+          >
             Gabinet
-          </h1>
-          <p className="font-montserrat font-medium text-[16px] max-[1024px]:text-[16px] max-[768px]:text-[15px] max-w-[800px] leading-[160%] text-white/90">
+          </motion.h1>
+          <motion.p
+            variants={fadeUpVariants}
+            className="font-montserrat font-medium text-[16px] max-[1024px]:text-[16px] max-[768px]:text-[15px] max-w-[800px] leading-[160%] text-white/90"
+          >
             Precyzyjna diagnostyka, nowoczesna terapia manualna i holistyczna
             praca z ciałem. Zaufaj naszym ekspertom i odzyskaj pełną sprawność w
             komfortowej przestrzeni naszego gabinetu.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         {/* Asymetryczna fala SVG */}
         <div className="absolute bottom-0 left-0 w-full leading-none z-10 text-slate-50">
@@ -107,12 +150,18 @@ export function GabinetHero() {
       </section>
 
       {/* === SEKACJA GALERII === */}
-      {/* max-[1024px]:-mt-[100px] sprawia, że cały równy układ wyraźnie nachodzi na Hero */}
-      <section className="relative z-30 container mx-auto px-4 max-[1024px]:px-6 -mt-[180px] max-[1024px]:-mt-[100px] max-[768px]:-mt-[80px] mb-24 max-[1024px]:mb-16">
-        <div className="grid grid-cols-4 max-[1024px]:grid-cols-2 max-[600px]:grid-cols-1 gap-6 max-[1024px]:gap-4 items-start">
+      <section className="relative z-30 container mx-auto px-4 max-[1024px]:px-6 -mt-[180px] max-[1024px]:-mt-[100px] max-[768px]:-mt-[80px] mb-50 ">
+        <motion.div
+          className="grid grid-cols-4 max-[1024px]:grid-cols-2 max-[600px]:grid-cols-1 gap-6 max-[1024px]:gap-4 items-start"
+          variants={galleryContainerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {GALLERY_IMAGES.map((img) => (
-            <div
+            <motion.div
               key={img.id}
+              variants={galleryItemVariants}
               onClick={() => openLightbox(img.src)}
               className={`relative w-full ${img.aspect} ${img.mt} rounded-[32px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.15)] group cursor-pointer`}
             >
@@ -133,46 +182,52 @@ export function GabinetHero() {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
-      {/* === LIGHTBOX (Pełnoekranowy podgląd) === */}
-      <div
-        className={`fixed inset-0 z-[100] bg-white/20 backdrop-blur-md flex items-center justify-center p-4 max-[768px]:p-2 transition-all duration-500 ease-out ${
-          lightbox.isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-        onClick={closeLightbox}
-      >
-        <button
-          onClick={closeLightbox}
-          className={`absolute cursor-pointer top-6 right-6 z-[110] w-12 h-12 bg-black/5 hover:bg-black/10 border border-black/10 backdrop-blur-md rounded-full flex items-center justify-center text-[#fff] transition-all duration-500 delay-100 ${
-            lightbox.isOpen
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 -translate-y-4"
-          }`}
-          aria-label="Zamknij"
-        >
-          <X size={24} weight="bold" />
-        </button>
+      {/* === LIGHTBOX (Pełnoekranowy podgląd z AnimatePresence) === */}
+      <AnimatePresence>
+        {lightbox.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="fixed inset-0 z-[100] bg-white/20 backdrop-blur-md flex items-center justify-center p-4 max-[768px]:p-2"
+            onClick={closeLightbox}
+          >
+            <motion.button
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              onClick={closeLightbox}
+              className="absolute cursor-pointer top-6 right-6 z-[110] w-12 h-12 bg-black/5 hover:bg-black/10 border border-black/10 backdrop-blur-md rounded-full flex items-center justify-center text-[#fff] transition-colors duration-300"
+              aria-label="Zamknij"
+            >
+              <X size={24} weight="bold" />
+            </motion.button>
 
-        <div
-          className={`relative w-full max-w-[1200px] h-full max-h-[85vh] rounded-[24px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)] transition-all duration-500 delay-75 ease-out ${
-            lightbox.isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Image
-            src={lightbox.src}
-            fill
-            className="object-contain"
-            alt="Pełny podgląd"
-          />
-        </div>
-      </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+              className="relative w-full max-w-[1200px] h-full max-h-[85vh] rounded-[24px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={lightbox.src}
+                fill
+                className="object-contain"
+                alt="Pełny podgląd"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

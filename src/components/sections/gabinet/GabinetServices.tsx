@@ -42,7 +42,7 @@ export default function GabinetServices() {
   const [activeTab, setActiveTab] = useState<ServiceTab>("masaze");
 
   return (
-    <>
+    <div className="-mt-8">
       <GabinetControls activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Przekazujemy stan do obu sekcji, aby wiedziały co wyrenderować */}
@@ -56,6 +56,6 @@ export default function GabinetServices() {
         items={GABINET_FAQ_DATA}
       />
       <GabinetContact />
-    </>
+    </div>
   );
 }

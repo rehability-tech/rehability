@@ -18,6 +18,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isPending, setIsPending] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const path = usePathname();
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -35,13 +36,20 @@ export function Navbar() {
       setIsPending(false);
     }
   };
-  const path = usePathname();
-  console.log(path);
-  const isGabinetRoute = path === "/gabinet";
+  const currentPathname = path.split("/");
+
+  const isGabinetRoute =
+    path === "/gabinet" ||
+    path === "/campy" ||
+    path === `/campy/${currentPathname[2]}`;
+
   return (
-    <header className={`absolute top-0 left-0 right-0 z-50 w-full py-4  `}>
+    <header className={`absolute top-0 left-0 right-0 z-50 w-full py-4`}>
       <div
-        className={`container flex items-center justify-between ${isGabinetRoute && "bg-white/30 py-3 px-6 rounded-full backdrop-blur-2xl"} `}
+        className={`container flex items-center justify-between ${
+          isGabinetRoute &&
+          "bg-white/70 py-3 px-6 rounded-full backdrop-blur-2xl"
+        } `}
       >
         <Link
           href="/"
@@ -56,18 +64,43 @@ export function Navbar() {
           />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
-          <ul className="flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="typography-paragraph text-brand-secondary hover:text-brand-primary transition-colors focus-visible:outline-none focus-visible:underline"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+        {/* === NAWIGACJA DESKTOP === */}
+        <nav className="hidden md:flex items-center gap-2">
+          <ul className="flex items-center">
+            {NAV_LINKS.map((link) => {
+              const isActive = path === link.href;
+
+              return (
+                <li key={link.href} className="relative">
+                  <Link
+                    href={link.href}
+                    // ZMIANA: Biały tekst dla aktywnego linku
+                    className={`relative z-10 px-4 py-2 typography-paragraph transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-full
+                      ${
+                        isActive
+                          ? "text-white font-semibold"
+                          : "text-brand-secondary hover:text-brand-primary"
+                      }`}
+                  >
+                    {link.label}
+                  </Link>
+
+                  {/* ZMIANA: Pełne tło brand-primary i delikatny cień dla pigułki */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-brand-primary shadow-md rounded-full z-0"
+                      initial={false}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -81,7 +114,7 @@ export function Navbar() {
           </Button>
         </div>
 
-        {/* PRZYCISK MENU - KSZTAŁT KROPLI */}
+        {/* === PRZYCISK MENU MOBILE === */}
         <button
           className="md:hidden flex flex-col justify-center items-center w-12 h-12 gap-1.5 z-[101] bg-brand-primary rounded-tl-full rounded-bl-full rounded-br-full rounded-tr-[2px] shadow-sm transition-all hover:bg-brand-primary/90"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -114,6 +147,7 @@ export function Navbar() {
         </button>
       </div>
 
+      {/* === NAWIGACJA MOBILE (MENU ROZWIJANE) === */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -124,41 +158,52 @@ export function Navbar() {
             className="fixed inset-0 z-[100] flex flex-col bg-white px-6 py-4 md:hidden overflow-y-auto"
           >
             <div className="mt-20 flex flex-col flex-1">
-              <nav className="flex flex-col gap-4">
-                {NAV_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between font-montserrat font-medium text-[18px] text-brand-secondary py-2"
-                  >
-                    {link.label}
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-gray-400"
-                    >
-                      <path
-                        d="M9 18L15 12L9 6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Link>
-                ))}
+              <nav className="flex flex-col gap-2">
+                {NAV_LINKS.map((link) => {
+                  const isActive = path === link.href;
 
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      // ZMIANA: Dodano solidne tło i biały tekst do aktywnej zakładki na mobile
+                      className={`flex items-center justify-between font-montserrat text-[18px] py-3 px-4 rounded-xl transition-all ${
+                        isActive
+                          ? "bg-brand-primary text-white font-bold shadow-md"
+                          : "text-brand-secondary font-medium hover:bg-gray-50"
+                      }`}
+                    >
+                      {link.label}
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        // ZMIANA: Biała strzałka na aktywnym kafelku
+                        className={isActive ? "text-white" : "text-gray-400"}
+                      >
+                        <path
+                          d="M9 18L15 12L9 6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </Link>
+                  );
+                })}
+
+                {/* Link VOD */}
                 <Link
                   href={"/panel-kursanta"}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between font-montserrat text-[18px] text-brand-primary py-2 font-semibold"
+                  className="flex items-center justify-between font-montserrat text-[18px] text-brand-primary py-3 px-4 font-semibold mt-4 border-t border-gray-100"
                 >
                   Platforma VOD
-                  <div className="flex items-center justify-center rounded-full -mr-1 h-8 w-8 bg-brand-primary">
+                  <div className="flex items-center justify-center rounded-full -mr-1 h-8 w-8 bg-brand-primary shadow-sm">
                     <svg
                       width="20"
                       height="20"
@@ -180,7 +225,7 @@ export function Navbar() {
               </nav>
             </div>
 
-            <div className="mt-auto pt-8 pb-4 flex items-center justify-between text-[14px] font-montserrat font-medium text-gray-400">
+            <div className="mt-auto pt-8 pb-4 flex items-center justify-between text-[14px] font-montserrat font-medium text-gray-400 px-4">
               <Link
                 href="#"
                 className="hover:text-brand-primary transition-colors"

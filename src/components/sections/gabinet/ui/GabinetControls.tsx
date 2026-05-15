@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { motion, Variants } from "framer-motion";
 
 // 1. Definiujemy typ
 export type ServiceTab = "fizjoterapia" | "masaze";
@@ -12,17 +13,42 @@ interface GabinetServicesProps {
   setActiveTab: (tab: ServiceTab) => void;
 }
 
-// 3. TUTAJ JEST KLUCZ: Zwróć uwagę na wąsy {} wokół activeTab i setActiveTab!
+// === DEFINICJE ANIMACJI ===
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+// 3. Komponent
 export function GabinetControls({
   activeTab,
   setActiveTab,
 }: GabinetServicesProps) {
   return (
-    <section className="container mx-auto px-4 max-[1024px]:px-6 pb-24 max-[1024px]:pb-16 mt-8 max-[1024px]:mt-4 flex flex-col items-center">
-      {/* Kontener na dwa kafelki - Ściśle scentrowany Flexbox */}
-      <div className="flex flex-row-reverse max-[768px]:flex-col justify-center items-start gap-4 max-[1024px]:gap-6 max-[768px]:gap-8 min-h-[350px]">
+    <section className="container mx-auto px-4 max-[1024px]:px-6 pb-24 max-[1024px]:pb-16 mt-8 max-[1024px]:mt-4 flex flex-col items-center overflow-hidden">
+      {/* Kontener na dwa kafelki - Zanimowany z Framer Motion */}
+      <motion.div
+        className="flex flex-row-reverse max-[768px]:flex-col justify-center items-start gap-4 max-[1024px]:gap-6 max-[768px]:gap-8 min-h-[350px]"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+      >
         {/* === KAFELEK 1: Fizjoterapia === */}
-        <button
+        <motion.button
+          variants={cardVariants}
           onClick={() => setActiveTab("fizjoterapia")}
           className={`relative block min-w-[300px] h-[300px] max-[1024px]:w-[280px] max-[1024px]:h-[270px] max-[768px]:w-full max-[768px]:max-w-[350px] overflow-hidden transition-all duration-500 ease-in-out ${
             activeTab === "fizjoterapia"
@@ -33,7 +59,6 @@ export function GabinetControls({
             borderRadius: "160px 160px 160px 0px",
           }}
         >
-          {/* Zdjęcie z DODANYM ROZMYCIEM na nieaktywnym stanie */}
           <Image
             src="/images/gabinet/controls/fizjoterapia.jpg"
             fill
@@ -64,10 +89,11 @@ export function GabinetControls({
               Fizjoterapia
             </h3>
           </div>
-        </button>
+        </motion.button>
 
         {/* === KAFELEK 2: Masaże i relax === */}
-        <button
+        <motion.button
+          variants={cardVariants}
           onClick={() => setActiveTab("masaze")}
           className={`relative block w-[320px] h-[300px] max-[1024px]:w-[280px] max-[1024px]:h-[270px] max-[768px]:w-full max-[768px]:max-w-[350px] overflow-hidden transition-all duration-500 ease-in-out ${
             activeTab === "masaze"
@@ -78,7 +104,6 @@ export function GabinetControls({
             borderRadius: "160px 160px 0px 160px",
           }}
         >
-          {/* Zdjęcie z DODANYM ROZMYCIEM na nieaktywnym stanie */}
           <Image
             src="/images/gabinet/controls/masaże_relax.jpg"
             fill
@@ -110,8 +135,8 @@ export function GabinetControls({
               <br />i relax
             </h3>
           </div>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </section>
   );
 }

@@ -5,6 +5,44 @@ import { useCallback, useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import useEmblaCarousel from "embla-carousel-react";
 import { Tag } from "../ui/Tag";
+import { motion, Variants } from "framer-motion";
+
+// --- DEFINICJE ANIMACJI ---
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const fadeRightVariants: Variants = {
+  hidden: { opacity: 0, x: -40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const imagePopVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.9, y: 30 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 },
+  },
+};
 
 export function AboutSection() {
   const TEAM_MEMBERS = [
@@ -36,7 +74,6 @@ export function AboutSection() {
     containScroll: "trimSnaps",
   });
 
-  // Dodane stany do obsługi kropek (paginacji)
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
   const [prevBtnEnabled, setPrevBtnEnabled] = useState(false);
@@ -71,32 +108,40 @@ export function AboutSection() {
     if (!emblaApi) return;
     const castOnInit = () => {
       onInit();
-    };
-    castOnInit();
-    const castSelect = () => {
       onSelect();
     };
-    castSelect();
-
+    castOnInit();
     emblaApi.on("reInit", onInit);
     emblaApi.on("reInit", onSelect);
     emblaApi.on("select", onSelect);
   }, [emblaApi, onInit, onSelect]);
 
   return (
-    <section className="relative overflow-hidden py-24 max-[1024px]:py-16">
-      <div className="container relative z-10 mx-auto px-4 max-[1024px]:px-6">
+    <section className="relative overflow-hidden pb-12">
+      <motion.div
+        className="container relative z-10 mx-auto px-4 max-[1024px]:px-6"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {/* === GÓRNA CZĘŚĆ (TEKSTY) === */}
         <div className="grid grid-cols-12 gap-8 lg:gap-12 mb-10 max-[1024px]:grid-cols-1 max-[640px]:text-center">
-          <div className="col-span-5 flex flex-col items-start max-[640px]:items-center max-[640px]:col-span-7 max-[640px]:self-center w-full justify-self-center">
+          <motion.div
+            variants={fadeUpVariants}
+            className="col-span-5 flex flex-col items-start max-[640px]:items-center max-[640px]:col-span-7 max-[640px]:self-center w-full justify-self-center"
+          >
             <Tag label="o nas" />
             <h2 className="typography-subheading font-semibold text-brand-secondary max-[1024px]:text-[36px] leading-[120%]">
               Nowoczesne podejście <br className="hidden lg:block" />
               <span className="text-brand-primary">do twojego zdrowia</span>
             </h2>
-          </div>
+          </motion.div>
 
-          <div className="col-span-7 grid grid-cols-2 gap-8 max-[640px]:grid-cols-1 mt-2 lg:mt-12">
+          <motion.div
+            variants={fadeUpVariants}
+            className="col-span-7 grid grid-cols-2 gap-8 max-[640px]:grid-cols-1 mt-2 lg:mt-12"
+          >
             <p className="typography-paragraph text-brand-secondary/80 leading-[170%] text-[15px]">
               W Rehability nasza fizjoterapia to więcej niż ulga w bólu.
               Stosujemy nowoczesną terapię manualną, przywracając Ci pełną
@@ -107,12 +152,15 @@ export function AboutSection() {
               problemu i tworzymy spersonalizowany plan rehabilitacji, idealnie
               dopasowany do Twojego stylu życia.
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* === ŚRODKOWA CZĘŚĆ (ZDJĘCIA) === */}
         <div className="relative w-full max-w-[800px] mx-auto flex max-[640px]:flex-col max-[640px]:items-center sm:justify-end sm:items-end h-auto sm:h-[350px] lg:h-[420px]">
-          <div className="relative w-full max-[640px]:h-[260px] sm:w-[85%] lg:w-[80%] sm:h-[85%] lg:h-[90%] rounded-[32px] overflow-hidden shadow-sm">
+          <motion.div
+            variants={fadeRightVariants}
+            className="relative w-full max-[640px]:h-[260px] sm:w-[85%] lg:w-[80%] sm:h-[85%] lg:h-[90%] rounded-[32px] overflow-hidden shadow-sm"
+          >
             <Image
               src="/images/about/szlolenie_dla_fizjoterapeutów.jpg"
               fill
@@ -120,9 +168,10 @@ export function AboutSection() {
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 80vw"
             />
-          </div>
+          </motion.div>
 
-          <div
+          <motion.div
+            variants={imagePopVariants}
             className="
             z-10 overflow-hidden rounded-[32px] border-[#F4F8FA] shadow-lg
             max-[640px]:relative max-[640px]:w-[85%] max-[640px]:h-[220px] max-[640px]:-mt-12 max-[640px]:border-[8px]
@@ -136,11 +185,11 @@ export function AboutSection() {
               className="object-cover"
               sizes="(max-width: 1024px) 50vw, 40vw"
             />
-          </div>
+          </motion.div>
         </div>
 
         {/* === ZESPÓŁ (EMBLA CAROUSEL) === */}
-        <div className="mt-8 pt-20">
+        <motion.div variants={fadeUpVariants} className="mt-8 pt-20">
           <div className="max-w-[600px] mb-12 max-[640px]:mx-auto max-[640px]:text-center max-[640px]:flex max-[640px]:flex-col max-[640px]:items-center">
             <h2 className="typography-heading-sec font-semibold text-brand-secondary text-[36px] mb-4">
               <span className="text-brand-primary">Poznaj</span> nasz zespół
@@ -161,12 +210,10 @@ export function AboutSection() {
             />
 
             <div className="overflow-hidden" ref={emblaRef}>
-              {/* ZMIANA: ml dostosowane dla breakpointu 850px */}
               <div className="flex touch-pan-y -ml-4 min-[850px]:-ml-[62px]">
                 {TEAM_MEMBERS.map((member, index) => (
                   <div
                     key={index}
-                    // ZMIANA: Wymuszenie w-full poniżej 850px, aby pokazywało 1 kartę na raz. Powyżej: stara logika zachowana.
                     className="flex-none min-w-0 pl-4 w-full min-[850px]:pl-[62px] min-[850px]:w-[calc(335px+62px)] flex justify-center"
                   >
                     <div className="w-full max-w-[335px] h-[415px] relative bg-[#C1DCDF] rounded-[24px] overflow-hidden flex flex-col items-center justify-end pb-6 shadow-sm">
@@ -246,8 +293,8 @@ export function AboutSection() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

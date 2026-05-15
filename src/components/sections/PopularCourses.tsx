@@ -10,6 +10,7 @@ import {
 import useEmblaCarousel from "embla-carousel-react";
 import { CourseCard } from "../ui/CourseCard";
 import { Button } from "../ui/Button";
+import { motion, Variants } from "framer-motion";
 
 // === MOCKUP DANYCH KURSÓW ===
 const MOCK_COURSES = [
@@ -44,6 +45,24 @@ const MOCK_COURSES = [
     price: 149,
   },
 ];
+
+// === DEFINICJE ANIMACJI ===
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
 
 export function PopularCourses() {
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -99,11 +118,20 @@ export function PopularCourses() {
   }, [emblaApi, onInit, onSelect]);
 
   return (
-    <section className="py-24 max-[1024px]:py-16 overflow-hidden">
-      <div className="container mx-auto px-4 max-[1024px]:px-6">
+    <section className="overflow-hidden">
+      <motion.div
+        className="container mx-auto px-4 max-[1024px]:px-6"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {/* === GÓRNA CZĘŚĆ (NAGŁÓWKI I OPIS) === */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-16 items-start">
-          <div className="flex flex-col items-start max-[1024px]:items-center max-[1024px]:text-center">
+          <motion.div
+            variants={fadeUpVariants}
+            className="flex flex-col items-start max-[1024px]:items-center max-[1024px]:text-center"
+          >
             <h2 className="typography-subheading font-semibold text-brand-secondary text-[36px] leading-[120%] mb-8">
               Najczęściej wybierane kursy <br className="hidden lg:block" />
               przez <span className="text-brand-primary">fizjoterapeutów</span>
@@ -112,20 +140,23 @@ export function PopularCourses() {
             <Button className="max-[1024px]:hidden" showArrow>
               Zobacz wszystkie
             </Button>
-          </div>
+          </motion.div>
 
-          <div className="max-[1024px]:text-center">
+          <motion.div
+            variants={fadeUpVariants}
+            className="max-[1024px]:text-center"
+          >
             <p className="typography-paragraph text-brand-secondary/80 leading-[170%] text-[15px] md:text-[16px] max-w-[550px] max-[1024px]:mx-auto">
               Ucz się tak, jak lubisz. Zyskaj wygodny dostęp do wszystkich
               kursów z fizjoterapii na smartfonie, tablecie i komputerze. Śledź
               swoje postępy, pobieraj skrypty PDF i wracaj do lekcji wideo z
               dowolnego miejsca – w gabinecie, w domu lub w drodze.
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* === DOLNA CZĘŚĆ (KARUZELA EMBLA) === */}
-        <div className="relative w-full">
+        <motion.div variants={fadeUpVariants} className="relative w-full">
           {/* ZMIANA: Dodano max-[900px]:hidden - gradient nie pokazuje się na małych ekranach */}
           <div
             className={`absolute -right-4 max-[1024px]:-right-6 top-0 bottom-0 w-32 sm:w-48 bg-gradient-to-l from-white from-20% via-white/80 to-transparent z-10 pointer-events-none transition-opacity duration-500 min-[1160px]:hidden max-[900px]:hidden ${
@@ -153,10 +184,13 @@ export function PopularCourses() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* === KONTROLKI (KROPKI I STRZAŁKI) === */}
-        <div className="flex flex-col items-center gap-6 mt-10 min-[1160px]:hidden">
+        <motion.div
+          variants={fadeUpVariants}
+          className="flex flex-col items-center gap-6 mt-10 min-[1160px]:hidden"
+        >
           {/* KROPKI */}
           <div className="flex items-center justify-center gap-2">
             {scrollSnaps.map((_, index) => (
@@ -201,8 +235,8 @@ export function PopularCourses() {
           <div className="hidden max-[1024px]:block mt-4">
             <Button showArrow>Zobacz wszystkie</Button>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

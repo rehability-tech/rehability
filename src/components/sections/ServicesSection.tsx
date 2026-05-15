@@ -1,9 +1,9 @@
-import Image from "next/image";
-import Link from "next/link"; // Przydatne do przycisków
-import { Button } from "../ui/Button";
+"use client";
 
-// === DANE SEKCJI ===
-// Trzymanie danych w tablicy ułatwia zarządzanie i pozwala na zgrabne renderowanie
+import Image from "next/image";
+import { Button } from "../ui/Button"; // Zmień na poprawną ścieżkę, np. @/components/ui/Button
+import { motion, Variants } from "framer-motion";
+
 const SERVICES = [
   {
     title: "Fizjoterapia i Rehabilitacja",
@@ -14,18 +14,16 @@ const SERVICES = [
       "Zastosowanie nowoczesnych metod, w tym osteopatii i treningu medycznego.",
     ],
     buttonText: "Umów wizytę",
-    buttonLink: "#",
   },
   {
     title: "Masaże i Terapia Manualna",
-    image: "/images/services/masaże.jpg", // Uwaga na polskie znaki w nazwach plików, serwery czasami ich nie lubią! Warto zmienić na masaze.jpg
+    image: "/images/services/masaże.jpg",
     bullets: [
       "Głęboki relaks i skuteczne uwalnianie skumulowanych napięć mięśniowych.",
       "Przyspieszona regeneracja organizmu po urazach i przeciążeniach.",
       "Holistyczne podejście do ciała, poprawiające ogólne samopoczucie.",
     ],
     buttonText: "Sprawdź ofertę zabiegów",
-    buttonLink: "#",
   },
   {
     title: "Szkolenia VOD",
@@ -36,7 +34,6 @@ const SERVICES = [
       "Nowoczesne techniki terapii tłumaczone krok po kroku przez ekspertów",
     ],
     buttonText: "Poznaj platformę VOD",
-    buttonLink: "#",
   },
   {
     title: "Campy",
@@ -47,20 +44,50 @@ const SERVICES = [
       "Budowanie wartościowych relacji i wymiana branżowych doświadczeń.",
     ],
     buttonText: "Zobacz nadchodzące terminy",
-    buttonLink: "#",
   },
 ];
 
+const rowVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const fadeRightVariants: Variants = {
+  hidden: { opacity: 0, x: -30 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const fadeLeftVariants: Variants = {
+  hidden: { opacity: 0, x: 30 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export function ServicesSection() {
   return (
-    <section className=" overflow-hidden">
-      {/* Kontener ograniczony do 900px zgodnie z prośbą */}
-      <div className="container ">
-        {/* Lista usług */}
+    <section className="overflow-hidden">
+      <div className="container">
         <div className="flex flex-col gap-16 md:gap-24 w-full max-[768px]:!gap-38">
           {SERVICES.map((service, index) => {
-            // === LOGIKA ŚCIĘTYCH NAROŻNIKÓW ===
-
             const alignClass =
               index === 0
                 ? "self-start"
@@ -69,6 +96,7 @@ export function ServicesSection() {
                   : index === 2
                     ? "self-end"
                     : "self-start";
+
             const imageRadiusClass =
               index === 0
                 ? "rounded-[150px] rounded-br-none"
@@ -78,14 +106,23 @@ export function ServicesSection() {
                     ? "rounded-[150px] rounded-bl-none"
                     : "rounded-[150px] rounded-tr-none";
 
+            // Zdjęcie wjeżdża z prawej lub z lewej w zależności od strony, po której stoi
+            const imageVariants =
+              index === 0 || index === 3 ? fadeRightVariants : fadeLeftVariants;
+
             return (
-              <div
+              // Zawijamy mapowany element w motion.div, by reagował na pojawienie się na ekranie niezależnie od innych!
+              <motion.div
                 key={index}
                 className={`flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12 max-w-[900px] ${alignClass} max-[768px]:!self-center `}
+                variants={rowVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
               >
                 {/* === ZDJĘCIE === */}
-                <div
-                  // Zablokowane wymiary 300x289 zgodnie z Figmą
+                <motion.div
+                  variants={imageVariants}
                   className={`relative shrink-0 w-[260px] h-[250px] md:w-[300px] md:h-[289px] overflow-hidden shadow-sm ${imageRadiusClass}`}
                 >
                   <Image
@@ -95,36 +132,39 @@ export function ServicesSection() {
                     className="object-cover"
                     sizes="(max-width: 768px) 260px, 300px"
                   />
-                </div>
+                </motion.div>
 
                 {/* === TEKSTY I LISTA === */}
                 <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left mt-4 md:mt-0">
-                  {/* Tytuł Usługi */}
-                  <h3 className="font-montserrat font-semibold text-[26px] md:text-[28px] text-brand-primary mb-5">
+                  <motion.h3
+                    variants={fadeUpVariants}
+                    className="font-montserrat font-semibold text-[26px] md:text-[28px] text-brand-primary mb-5"
+                  >
                     {service.title}
-                  </h3>
+                  </motion.h3>
 
-                  {/* Punkty (Bullets) */}
-                  <ul className="flex flex-col gap-3 mb-8 max-[768px]:max-w-[400px]">
+                  <motion.ul
+                    variants={fadeUpVariants}
+                    className="flex flex-col gap-3 mb-8 max-[768px]:max-w-[400px]"
+                  >
                     {service.bullets.map((bullet, i) => (
                       <li
                         key={i}
-                        // ZMIANA: Zmiana z 'flex items-start' na blokowy tekst na mobile, żeby wycentrowanie zadziałało
                         className="text-left max-[768px]:text-center md:flex md:items-start md:gap-3"
                       >
-                        {/* ZMIANA: Ukrycie kropki poniżej 768px za pomocą max-[768px]:hidden */}
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary/40 shrink-0 mt-2 max-[768px]:hidden" />
                         <span className="typography-paragraph text-brand-secondary/80 leading-[170%] text-[14px] md:text-[15px] block">
                           {bullet}
                         </span>
                       </li>
                     ))}
-                  </ul>
+                  </motion.ul>
 
-                  {/* Przycisk */}
-                  <Button>{service.buttonText}</Button>
+                  <motion.div variants={fadeUpVariants}>
+                    <Button showArrow>{service.buttonText}</Button>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

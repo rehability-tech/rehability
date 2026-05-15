@@ -21,10 +21,10 @@ export const metadata = {
 // POPRAWKA: Musi być "export default" i zwracać prawidłowy JSX
 export default function HomePage() {
   return (
-    <main className="flex-1 pt-24">
+    <main className="flex-1 pt-30">
       <Navbar />
 
-      <div className="flex flex-col gap-[156px] max-[1024px]:gap-[200px]">
+      <div className="flex flex-col gap-50 max-[1024px]:gap-72 ">
         <HeroSection />
         <SocialProofSection />
         <AboutSection />

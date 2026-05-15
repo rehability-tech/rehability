@@ -9,12 +9,9 @@ import {
   GraduationCap,
 } from "@phosphor-icons/react/dist/ssr";
 import React from "react";
+import { motion, Variants } from "framer-motion";
 
 // --- TYPY PRISMA ---
-// Gdy zrobisz "npx prisma generate", możesz usunąć ten interfejs
-// i odkomentować poniższą linijkę:
-// import { Review } from "@prisma/client";
-
 export interface Review {
   id: string;
   name: string;
@@ -23,7 +20,7 @@ export interface Review {
   createdAt: Date;
 }
 
-// --- DANE MOCKOWANE (Zastąpisz to pobieraniem z bazy) ---
+// --- DANE MOCKOWANE ---
 const REVIEWS: Review[] = Array.from({ length: 6 }).map((_, index) => ({
   id: `ck-${Math.random().toString(36).substr(2, 9)}`,
   name: "Krzysztof Sz",
@@ -32,45 +29,107 @@ const REVIEWS: Review[] = Array.from({ length: 6 }).map((_, index) => ({
   createdAt: new Date(),
 }));
 
+// --- DEFINICJE ANIMACJI (Framer Motion) ---
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15, // Odstęp czasowy między pojawianiem się kolejnych elementów
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }, // Elegancka krzywa przejścia
+  },
+};
+
+const fadeInVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 1, ease: "easeOut" },
+  },
+};
+
+const badgePopVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.8, y: 20 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 150, damping: 15 }, // Efekt "sprężynki"
+  },
+};
+
 export function SocialProofSection() {
   return (
-    <section className="relative py-24 max-[1200px]:px-3">
+    <section className="relative py-24 max-[1200px]:px-3 pb-0">
       {/* TŁO MORSKIE */}
       <div className="absolute top-0 left-0 right-0 h-[500px] max-[1024px]:h-[800px] bg-brand-primary rounded-[40px] z-0 shadow-lg max-w-[1400px] mx-auto" />
 
       {/* KONTENER (1200px) */}
       <div className="container relative z-10 !p-1 max-[1024px]:text-center">
-        <div className="grid grid-cols-12 max-[1024px]:grid-cols-1 gap-8 -mt-5 max-[1024px]:p-6 max-[450px]:p-0">
+        {/* motion.div odpala całą sekwencję, gdy kontener pojawi się w oknie przeglądarki */}
+        <motion.div
+          className="grid grid-cols-12 max-[1024px]:grid-cols-1 gap-8 -mt-5 max-[1024px]:p-6 max-[450px]:p-0"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+        >
           {/* LEWA KOLUMNA (7/12) */}
           <div className="col-span-6 flex flex-col">
-            <h2 className="typography-heading-sec font-semibold text-white max-[1024px]:text-[40px]">
+            <motion.h2
+              variants={fadeUpVariants}
+              className="typography-heading-sec font-semibold text-white max-[1024px]:text-[40px]"
+            >
               Ekspertyza <br /> potwierdzona wynikami.
-            </h2>
-            <p className="typography-paragraph text-white/90 mt-10 max-w-[550px] leading-[170%] max-[1024px]:self-center">
+            </motion.h2>
+            <motion.p
+              variants={fadeUpVariants}
+              className="typography-paragraph text-white/90 mt-10 max-w-[550px] leading-[170%] max-[1024px]:self-center"
+            >
               Od lat przywracamy pacjentom ruch bez bólu, a fizjoterapeutom
               przekazujemy wiedzę, która zmienia ich praktykę gabinetową. Za
               naszymi metodami stoją setki udokumentowanych historii i realne
               efekty.
-            </p>
+            </motion.p>
 
-            {/* Plakietki (Pills) ze statystykami */}
-            <div className="flex flex-wrap gap-6 mt-4 mb-24 max-[1024px]:mb-16 max-[1024px]:justify-center max-[1024px]:mt-12 max-[440px]:hidden">
-              <StatBadge
-                value="5.0"
-                label="Średnia ocena na Booksy"
-                imageSrc="/images/hero/fizjoterapia_hero.jpg"
-                icon="/logotypy/booksy-logotype.svg"
-              />
-              <StatBadge
-                value="500+"
-                label="Przeszkolonych fizjoterapeutów"
-                imageSrc="/images/hero/campy_hero.jpg"
-                icon={GraduationCap}
-              />
-            </div>
+            {/* Plakietki (Pills) ze statystykami - widoczne na desktop */}
+            <motion.div
+              variants={fadeUpVariants}
+              className="flex flex-wrap gap-6 mt-4 mb-24 max-[1024px]:mb-16 max-[1024px]:justify-center max-[1024px]:mt-12 max-[440px]:hidden"
+            >
+              <motion.div variants={badgePopVariants}>
+                <StatBadge
+                  value="5.0"
+                  label="Średnia ocena na Booksy"
+                  imageSrc="/images/hero/fizjoterapia_hero.jpg"
+                  icon="/logotypy/booksy-logotype.svg"
+                />
+              </motion.div>
+              <motion.div variants={badgePopVariants}>
+                <StatBadge
+                  value="500+"
+                  label="Przeszkolonych fizjoterapeutów"
+                  imageSrc="/images/hero/campy_hero.jpg"
+                  icon={GraduationCap}
+                />
+              </motion.div>
+            </motion.div>
 
-            {/* Dolna sekcja (poza tłem) */}
-            <div className="mt-auto max-[1024px]:hidden">
+            {/* Dolna sekcja (poza tłem) - widoczna na desktop */}
+            <motion.div
+              variants={fadeUpVariants}
+              className="mt-auto max-[1024px]:hidden"
+            >
               <h2 className="typography-heading-sec text-brand-secondary max-[1024px]:text-[36px]">
                 Rozwiń swój warsztat <br /> diagnostyczny.
               </h2>
@@ -82,11 +141,14 @@ export function SocialProofSection() {
               <Button showArrow variant="primary">
                 Poznaj strefę edukacji
               </Button>
-            </div>
+            </motion.div>
           </div>
 
           {/* PRAWA KOLUMNA (Nieskończone Opinie) */}
-          <div className="col-span-6 h-[750px] max-[1024px]:h-[600px] relative max-[1024px]:mt-2 pause-on-hover">
+          <motion.div
+            variants={fadeInVariants}
+            className="col-span-6 h-[750px] max-[1024px]:h-[600px] relative max-[1024px]:mt-2 pause-on-hover"
+          >
             {/* Maska z wydłużonym gradientem */}
             <div
               className="absolute inset-0 overflow-hidden pointer-events-auto"
@@ -141,26 +203,36 @@ export function SocialProofSection() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Pillsy Mobile (Ukryte na desktopie) */}
-          <div className="flex-wrap gap-6 mt-4 mb-24 max-[1024px]:mb-16 max-[1024px]:justify-center max-[1024px]:mt-12 hidden max-[440px]:flex col-span-6">
-            <StatBadge
-              value="5.0"
-              label="Średnia ocena na Booksy"
-              imageSrc="/images/hero/fizjoterapia_hero.jpg"
-              icon="/logotypy/booksy-logotype.svg"
-            />
-            <StatBadge
-              value="500+"
-              label="Przeszkolonych fizjoterapeutów"
-              imageSrc="/images/hero/campy_hero.jpg"
-              icon={GraduationCap}
-            />
-          </div>
+          <motion.div
+            variants={fadeUpVariants}
+            className="flex-wrap gap-6 mt-4 mb-24 max-[1024px]:mb-16 max-[1024px]:justify-center max-[1024px]:mt-12 hidden max-[440px]:flex col-span-6"
+          >
+            <motion.div variants={badgePopVariants}>
+              <StatBadge
+                value="5.0"
+                label="Średnia ocena na Booksy"
+                imageSrc="/images/hero/fizjoterapia_hero.jpg"
+                icon="/logotypy/booksy-logotype.svg"
+              />
+            </motion.div>
+            <motion.div variants={badgePopVariants}>
+              <StatBadge
+                value="500+"
+                label="Przeszkolonych fizjoterapeutów"
+                imageSrc="/images/hero/campy_hero.jpg"
+                icon={GraduationCap}
+              />
+            </motion.div>
+          </motion.div>
 
           {/* Dolna sekcja (widoczna tylko na mobile) */}
-          <div className="mt-12 hidden max-[1024px]:flex flex-col items-center text-center w-full col-span-6">
+          <motion.div
+            variants={fadeUpVariants}
+            className="mt-12 hidden max-[1024px]:flex flex-col items-center text-center w-full col-span-6"
+          >
             <h2 className="typography-heading-sec text-brand-secondary text-[36px]">
               Rozwiń swój warsztat <br /> diagnostyczny.
             </h2>
@@ -172,8 +244,8 @@ export function SocialProofSection() {
             <Button showArrow variant="primary">
               Poznaj strefę edukacji
             </Button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

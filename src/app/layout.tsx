@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
+import { DebugNav } from "@/components/DebugNav";
 
 // 1. Optymalizacja czcionek z Google Fonts (zmienne CSS zgodne z Twoim @theme)
 const fontHeading = Plus_Jakarta_Sans({
@@ -77,7 +78,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen  ">
-        {/* Header/Nav można dodać tutaj */}
+        <DebugNav />
         <main>{children}</main>
         {/* Footer można dodać tutaj */}
       </body>

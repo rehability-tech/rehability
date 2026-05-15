@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { SealCheckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 interface SpecjalisciProps {
   activeTab: "fizjoterapia" | "masaze";
@@ -159,6 +160,24 @@ const SPECIALISTS = [
   },
 ];
 
+// === DEFINICJE ANIMACJI ===
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpItem: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export function SpecjalisciSection({ activeTab }: SpecjalisciProps) {
   // Filtrujemy specjalistów na podstawie wybranej zakładki (activeTab)
   const filteredSpecialists = SPECIALISTS.filter(
@@ -166,116 +185,145 @@ export function SpecjalisciSection({ activeTab }: SpecjalisciProps) {
   );
 
   return (
-    <section className="container mx-auto px-4 max-[1024px]:px-6 ">
-      <h2 className="font-jakarta font-bold text-[64px] max-[1024px]:text-[48px] max-[768px]:text-[40px] text-[#0B3B4C] text-center mb-24 max-[1024px]:mb-16">
+    <section className="container mx-auto px-4 max-[1024px]:px-6 mb-50 max-[1024px]:mb-72 overflow-hidden">
+      <motion.h2
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="font-jakarta font-bold text-[64px] max-[1024px]:text-[48px] max-[768px]:text-[40px] text-[#0B3B4C] text-center mb-24 max-[1024px]:mb-16"
+      >
         Specjaliści
-      </h2>
+      </motion.h2>
 
-      <div className="flex flex-col gap-32 max-[1024px]:gap-24">
-        {filteredSpecialists.map((spec) => {
-          const isTextLeft = spec.layout === "text-left";
+      {/* AnimatePresence odpowiada za płynne przejście przy zmianie zakładki */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab} // Zmiana klucza wyzwala animację exit -> initial -> animate
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -30 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col gap-32 max-[1024px]:gap-24"
+        >
+          {filteredSpecialists.map((spec) => {
+            const isTextLeft = spec.layout === "text-left";
 
-          return (
-            <div
-              key={spec.id}
-              className="flex flex-col w-full max-w-[1200px] mx-auto transition-opacity duration-500"
-            >
-              {/* TOP: Zdjęcie, Tekst i Punktory */}
-              <div className="flex flex-row max-[1024px]:flex-col items-center gap-12 max-[1024px]:gap-10">
-                <div
-                  className={`flex-1 flex flex-col max-[1024px]:text-center max-[1024px]:items-center ${isTextLeft ? "order-1 max-[1024px]:order-2" : "order-3 max-[1024px]:order-2"}`}
-                >
-                  <h3 className="font-jakarta font-semibold text-[40px] max-[768px]:text-[32px] text-[#287D88] leading-tight">
-                    {spec.name}
-                  </h3>
-                  <p className="font-montserrat font-medium text-[20px] max-[768px]:text-[18px] text-[#0B3B4C] mt-2 mb-6">
-                    {spec.role}
-                  </p>
-                  <p className="font-montserrat font-normal text-[15px] text-[#0B3B4C]/80 leading-[170%]">
-                    {spec.description}
-                  </p>
-                </div>
-
-                {/* ZDJĘCIE */}
-                <div className="order-2 max-[1024px]:order-1 shrink-0 flex justify-center">
-                  <Image
-                    src={spec.imageSrc}
-                    width={350}
-                    height={400}
-                    className="w-[350px] max-[768px]:w-[280px] h-auto object-contain"
-                    alt={spec.name}
-                  />
-                </div>
-
-                {/* PUNKTORY */}
-                <div
-                  className={`flex-1 flex flex-col gap-4 ${isTextLeft ? "order-3 max-[1024px]:order-3" : "order-1 max-[1024px]:order-3"}`}
-                >
-                  {spec.bullets.map((bullet, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-[#287D88] text-white rounded-[20px] p-5 max-[768px]:p-4 flex items-start gap-4 shadow-md"
-                    >
-                      <SealCheckIcon
-                        size={21}
-                        weight="fill"
-                        className="text-white shrink-0 mt-0.5"
-                      />
-                      <p className="font-montserrat font-normal text-[14px] leading-[150%]">
-                        {bullet}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* BOTTOM: Karty Usług */}
-              <div className="flex flex-row max-[1024px]:flex-col justify-center max-[1024px]:items-center gap-6 mt-16 max-[1024px]:mt-12 items-stretch">
-                {spec.services.map((service, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 min-w-[280px] max-w-[640px]   bg-[#ECF6F6] rounded-[28px] overflow-hidden flex flex-col shadow-sm border border-[#287D88]/5 relative group cursor-pointer transition-shadow hover:shadow-md"
+            return (
+              <motion.div
+                key={spec.id}
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+                className="flex flex-col w-full max-w-[1200px] mx-auto"
+              >
+                {/* TOP: Zdjęcie, Tekst i Punktory */}
+                <div className="flex flex-row max-[1024px]:flex-col items-center gap-12 max-[1024px]:gap-10">
+                  <motion.div
+                    variants={fadeUpItem}
+                    className={`flex-1 flex flex-col max-[1024px]:text-center max-[1024px]:items-center ${isTextLeft ? "order-1 max-[1024px]:order-2" : "order-3 max-[1024px]:order-2"}`}
                   >
-                    <div className="p-8 max-[768px]:p-6 flex-grow flex flex-col">
-                      <h4 className="font-jakarta font-semibold text-[20px] text-[#0B3B4C] mb-4 leading-tight">
-                        {service.title}
-                      </h4>
-                      <p className="font-montserrat font-light text-[13px] text-[#0B3B4C]/70 leading-[170%]">
-                        {service.desc}
-                      </p>
-                    </div>
-                    <div className="px-8 max-[768px]:px-6 pb-8 max-[768px]:pb-6 mt-auto">
-                      <div className="bg-[#287D88] rounded-full pl-6 pr-3 py-1 flex justify-between items-center text-white transition-colors group-hover:bg-[#1f666f] rounded-tr-none">
-                        <div className="flex items-center gap-1">
-                          <span className="font-jakarta font-bold text-[16px]">
-                            {service.price}
-                          </span>
-                          <span className="text-white/40 text-[14px]">|</span>
-                          <span className="font-montserrat font-light text-[13px]">
-                            {service.time}
-                          </span>
-                        </div>
-                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
-                          <ArrowRight
-                            size={16}
-                            weight="bold"
-                            className="text-[#287D88]"
-                          />
+                    <h3 className="font-jakarta font-semibold text-[40px] max-[768px]:text-[32px] text-[#287D88] leading-tight">
+                      {spec.name}
+                    </h3>
+                    <p className="font-montserrat font-medium text-[20px] max-[768px]:text-[18px] text-[#0B3B4C] mt-2 mb-6">
+                      {spec.role}
+                    </p>
+                    <p className="font-montserrat font-normal text-[15px] text-[#0B3B4C]/80 leading-[170%]">
+                      {spec.description}
+                    </p>
+                  </motion.div>
+
+                  {/* ZDJĘCIE */}
+                  <motion.div
+                    variants={fadeUpItem}
+                    className="order-2 max-[1024px]:order-1 shrink-0 flex justify-center"
+                  >
+                    <Image
+                      src={spec.imageSrc}
+                      width={350}
+                      height={400}
+                      className="w-[350px] max-[768px]:w-[280px] h-auto object-contain"
+                      alt={spec.name}
+                    />
+                  </motion.div>
+
+                  {/* PUNKTORY */}
+                  <motion.div
+                    variants={fadeUpItem}
+                    className={`flex-1 flex flex-col gap-4 w-full ${isTextLeft ? "order-3 max-[1024px]:order-3" : "order-1 max-[1024px]:order-3"}`}
+                  >
+                    {spec.bullets.map((bullet, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#287D88] text-white rounded-[20px] p-5 max-[768px]:p-4 flex items-start gap-4 shadow-md"
+                      >
+                        <SealCheckIcon
+                          size={21}
+                          weight="fill"
+                          className="text-white shrink-0 mt-0.5"
+                        />
+                        <p className="font-montserrat font-normal text-[14px] leading-[150%]">
+                          {bullet}
+                        </p>
+                      </div>
+                    ))}
+                  </motion.div>
+                </div>
+
+                {/* BOTTOM: Karty Usług */}
+                <div className="flex flex-row max-[1024px]:flex-col justify-center max-[1024px]:items-center gap-6 mt-16 max-[1024px]:mt-12 items-stretch">
+                  {spec.services.map((service, idx) => (
+                    <motion.div
+                      key={idx}
+                      variants={fadeUpItem}
+                      className="flex-1 min-w-[280px] max-w-[640px] w-full bg-[#ECF6F6] rounded-[28px] overflow-hidden flex flex-col shadow-sm border border-[#287D88]/5 relative group cursor-pointer transition-shadow hover:shadow-md"
+                    >
+                      <div className="p-8 max-[768px]:p-6 flex-grow flex flex-col">
+                        <h4 className="font-jakarta font-semibold text-[20px] text-[#0B3B4C] mb-4 leading-tight">
+                          {service.title}
+                        </h4>
+                        <p className="font-montserrat font-light text-[13px] text-[#0B3B4C]/70 leading-[170%]">
+                          {service.desc}
+                        </p>
+                      </div>
+                      <div className="px-8 max-[768px]:px-6 pb-8 max-[768px]:pb-6 mt-auto">
+                        <div className="bg-[#287D88] rounded-full pl-6 pr-3 py-1 flex justify-between items-center text-white transition-colors group-hover:bg-[#1f666f] rounded-tr-none">
+                          <div className="flex items-center gap-1">
+                            <span className="font-jakarta font-bold text-[16px]">
+                              {service.price}
+                            </span>
+                            <span className="text-white/40 text-[14px]">|</span>
+                            <span className="font-montserrat font-light text-[13px]">
+                              {service.time}
+                            </span>
+                          </div>
+                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
+                            <ArrowRight
+                              size={16}
+                              weight="bold"
+                              className="text-[#287D88]"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
 
-              {/* BOTTOM: Przycisk CTA Zarezerwuj sesję z idealnym kształtem z projektu */}
-              <div className="mt-12 flex justify-center">
-                <Button showArrow>{spec.ctaText}</Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                {/* BOTTOM: Przycisk CTA Zarezerwuj sesję z idealnym kształtem z projektu */}
+                <motion.div
+                  variants={fadeUpItem}
+                  className="mt-12 flex justify-center"
+                >
+                  <Button showArrow>{spec.ctaText}</Button>
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
     </section>
   );
 }

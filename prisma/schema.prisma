@@ -4,12 +4,13 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+   url      = env("DATABASE_URL")
 }
 model Review {
   id        String   @id @default(cuid())
@@ -17,4 +18,57 @@ model Review {
   text      String   @db.Text
   rating    Int
   createdAt DateTime @default(now())
+}
+model Camp {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // --- KROK 1: Dane podstawowe ---
+  title        String
+  location     String
+  startDate    DateTime
+  endDate      DateTime
+  capacity     Int
+  
+  // Finanse
+  price        Decimal
+  deposit      Decimal
+
+  // --- KROK 2: Treść wyjazdu (NOWE POLE) ---
+  subtitle     String?  // Opcjonalny podtytuł
+  tags         String[] // Tablica tagów, np. ["Joga", "Góry", "Relaks"]
+  heroImage    String?  // Link do głównego zdjęcia
+  description  String?  @db.Text // Główny opis (jeśli masz taki poza blokami)
+  services    CampService[]
+  // TO JEST NAJWAŻNIEJSZE: Tu wpadnie cały nasz Drag&Drop z TipTapem!
+  blocks       Json?    @default("[]") 
+
+  // --- Systemowe i AI ---
+  lastAiPrompt String?  @db.Text 
+  lastStage    String   @default("dane-podstawowe")
+  isFeatured   Boolean  @default(false)
+  status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+}
+
+model ExtraService {
+  id          String   @id @default(cuid())
+  name        String   
+  duration    Int      // <--- ZMIANA: Ze String na Int
+  price       Decimal  
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+}
+model CampService {
+  id          String   @id @default(cuid())
+  name        String   // np. "Masaż klasyczny"
+  duration    Int      // Czas w minutach
+  price       Decimal  // Cena
+  description String?  @db.Text
+  
+  // Relacja zwrotna do Campa
+  campId      String
+  camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
 }

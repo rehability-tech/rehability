@@ -1,0 +1,235 @@
+"use client";
+
+import React, { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import Autocomplete from "react-google-autocomplete";
+import DatePicker, { ReactDatePickerProps } from "react-datepicker";
+import { CalendarBlank } from "@phosphor-icons/react/dist/ssr";
+
+// ==========================================
+// 1. KOMPONENT ŁADOWANIA AI (STAŁY GLOW + DELIKATNY SHIMMER)
+// ==========================================
+function AiInputLoader({ isLoading }: { isLoading?: boolean }) {
+  // Czas trwania pełnego cyklu animacji
+  const shimmerDuration = 2.5;
+  // Ilość bloków (smug)
+  const numBlocks = 3;
+
+  return (
+    <AnimatePresence>
+      {isLoading && (
+        <motion.div
+          key="loader-main-overlay"
+          // Płynne pojawianie się
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          // --- GŁÓWNA WARSTWA (Z-20): KONTROLA KRAWĘDZI I STAŁY GLOW ---
+          className={cn(
+            "absolute inset-0 z-20 cursor-default rounded-[12px] overflow-hidden",
+            // Szklany efekt usunięty, jak w Twoim kodzie
+            "",
+            // --- STAŁY, SUBTELNY CIEŃ NA ZEWNĄTRZ ---
+            "shadow-[0_0_12px_7px_rgba(40,125,136,0.3)]",
+          )}
+        >
+          {/* --- 3 DELIKATNE SHIMMERY W ŚRODKU (ANIMOWANE SMUGI) --- */}
+          {[...Array(numBlocks)].map((_, i) => (
+            <motion.div
+              key={`shimmer-block-${i}`}
+              initial={{ left: "-100%" }} // Start przed lewą krawędzią
+              animate={{ left: "100%" }} // Koniec za prawą krawędzią
+              transition={{
+                repeat: Infinity,
+                duration: shimmerDuration,
+                ease: "linear",
+                // Przesunięcie w czasie każdej kolejnej smugi
+                delay: i * (shimmerDuration / numBlocks),
+              }}
+              // Zmieniona szerokość na 60%, żeby smugi miały między sobą odstęp
+              className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
+            />
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ==========================================
+// 2. STANDARDOWY INPUT (Tekst, Liczby)
+// ==========================================
+export interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
+  helperText?: string;
+  containerClassName?: string;
+}
+
+export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
+  (
+    {
+      label,
+      icon,
+      isLoading,
+      helperText,
+      containerClassName,
+      required,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
+    return (
+      <div className={cn("flex flex-col gap-1.5", containerClassName)}>
+        <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
+          {label} {required && <span className="text-brand-primary">*</span>}
+        </label>
+        {/* Kontener z-0, żeby warstwy ładowania działały */}
+        <div className="relative z-0">
+          {icon && (
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 z-30">
+              {icon}
+            </div>
+          )}
+          <input
+            ref={ref}
+            // Zablokowany podczas ładowania
+            disabled={disabled || isLoading}
+            className={cn(
+              // Input jest z-10 (między blaskiem cienia a frontalną warstwą skanera)
+              "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pr-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+              icon ? "pl-10" : "pl-4",
+              // Styl disabled
+              (disabled || isLoading) && "opacity-80 text-gray-500",
+            )}
+            {...props}
+          />
+          {/* Komponent ładujący */}
+          <AiInputLoader isLoading={isLoading} />
+        </div>
+        {helperText && (
+          <span className="text-xs text-gray-400">{helperText}</span>
+        )}
+      </div>
+    );
+  },
+);
+FormInput.displayName = "FormInput";
+
+// ==========================================
+// 3. INPUT LOKALIZACJI (Google Autocomplete)
+// ==========================================
+export interface FormLocationInputProps {
+  label: string;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
+  helperText?: string;
+  required?: boolean;
+  containerClassName?: string;
+  defaultValue?: string;
+  onPlaceSelected: (place: any) => void;
+  placeholder?: string;
+}
+
+export function FormLocationInput({
+  label,
+  icon,
+  isLoading,
+  helperText,
+  required,
+  containerClassName,
+  defaultValue,
+  onPlaceSelected,
+  placeholder,
+}: FormLocationInputProps) {
+  return (
+    <div className={cn("flex flex-col gap-1.5", containerClassName)}>
+      <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
+        {label} {required && <span className="text-brand-primary">*</span>}
+      </label>
+      <div className="relative z-0">
+        {icon && (
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 z-30">
+            {icon}
+          </div>
+        )}
+        <Autocomplete
+          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+          onPlaceSelected={onPlaceSelected}
+          options={{
+            types: ["establishment", "geocode"],
+            componentRestrictions: { country: "pl" },
+          }}
+          placeholder={placeholder}
+          defaultValue={defaultValue}
+          disabled={isLoading}
+          className={cn(
+            "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pr-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+            icon ? "pl-10" : "pl-4",
+            isLoading && "opacity-80 text-gray-500",
+          )}
+        />
+        <AiInputLoader isLoading={isLoading} />
+      </div>
+      {helperText && (
+        <span className="text-xs text-gray-400">{helperText}</span>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// 4. INPUT DATY (React DatePicker)
+// ==========================================
+export interface FormDatePickerProps extends Omit<
+  ReactDatePickerProps,
+  "onChange"
+> {
+  label: string;
+  isLoading?: boolean;
+  required?: boolean;
+  containerClassName?: string;
+  onChange: (date: Date | null) => void;
+}
+
+export function FormDatePicker({
+  label,
+  isLoading,
+  required,
+  containerClassName,
+  onChange,
+  ...props
+}: FormDatePickerProps) {
+  return (
+    <div className={cn("flex flex-col gap-1.5", containerClassName)}>
+      <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
+        {label} {required && <span className="text-brand-primary">*</span>}
+      </label>
+      <div className="relative z-0">
+        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 z-30">
+          <CalendarBlank size={18} />
+        </div>
+        <DatePicker
+          onChange={onChange}
+          locale="pl"
+          dateFormat="dd MMMM yyyy"
+          autoComplete="off"
+          disabled={isLoading}
+          className={cn(
+            "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pl-10 pr-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+            isLoading
+              ? "cursor-default opacity-80 text-gray-500"
+              : "cursor-pointer",
+          )}
+          wrapperClassName="w-full"
+          {...props}
+        />
+        <AiInputLoader isLoading={isLoading} />
+      </div>
+    </div>
+  );
+}

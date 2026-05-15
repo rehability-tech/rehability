@@ -16,9 +16,11 @@ export interface ButtonProps extends Omit<
 > {
   variant?: "primary" | "secondary";
   isLoading?: boolean;
-  showArrow?: boolean;
+  showArrow?: boolean; // Zostawiamy dla kompatybilności wstecznej
+  rightIcon?: React.ReactNode; // Dowolna ikonka za tekstem
   href?: string;
   newTab?: boolean;
+  disabled?: boolean; // Jawne zdefiniowanie propa disabled
   children?: React.ReactNode;
 }
 
@@ -32,13 +34,18 @@ export const Button = forwardRef<
       variant = "primary",
       isLoading = false,
       showArrow,
+      rightIcon,
       href,
       newTab,
+      disabled = false, // Wyciągamy disabled
       children,
       ...props
     },
     ref,
   ) => {
+    // Określamy, czy przycisk jest zablokowany (ręcznie wyłączony lub w trakcie ładowania)
+    const isDisabled = disabled || isLoading;
+
     // Wyciągamy wspólne właściwości animacji i stylów
     const commonProps = {
       initial: false,
@@ -53,16 +60,27 @@ export const Button = forwardRef<
         delay: isLoading ? 0.2 : 0,
       },
       className: cn(
-        "relative inline-flex items-center justify-center h-[43px] cursor-pointer overflow-hidden",
-        "font-montserrat font-medium text-[15px]",
+        "relative inline-flex items-center justify-center h-[43px] overflow-hidden",
+        "font-montserrat font-medium text-[15px] transition-colors",
         "rounded-tl-[24px] rounded-tr-[2px] rounded-br-[24px] rounded-bl-[24px]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:pointer-events-none disabled:opacity-80",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
         {
           "bg-brand-primary text-white hover:bg-brand-primary/90":
-            variant === "primary",
+            variant === "primary" && !isDisabled,
           "bg-brand-secondary text-white hover:bg-brand-secondary/90":
-            variant === "secondary",
+            variant === "secondary" && !isDisabled,
+
+          // STYLE DLA STANU DISABLED
+          "opacity-50 pointer-events-none cursor-not-allowed": disabled,
+          "pointer-events-none": isLoading, // Tylko blokada kliknięcia, bez opacity przy samym loaderze
+
+          // Trzymamy bazowe kolory, żeby po zablokowaniu nie stracił tła
+          "bg-brand-primary text-white": variant === "primary" && isDisabled,
+          "bg-brand-secondary text-white":
+            variant === "secondary" && isDisabled,
         },
+        // Jeśli nie jest zablokowany, ustawiamy cursor-pointer
+        !isDisabled && "cursor-pointer",
         className,
       ),
     };
@@ -91,9 +109,19 @@ export const Button = forwardRef<
             duration: 0.2,
             delay: isLoading ? 0 : 0.3,
           }}
-          className="flex items-center justify-center gap-[16px] whitespace-nowrap"
+          className="flex items-center justify-center whitespace-nowrap"
         >
+          {/* Tekst przycisku */}
           <span>{children}</span>
+
+          {/* Renderowanie opcjonalnej customowej ikonki po prawej */}
+          {rightIcon && !showArrow && (
+            <span className="flex items-center justify-center ml-2">
+              {rightIcon}
+            </span>
+          )}
+
+          {/* Zostawiamy starą logikę strzałki */}
           {showArrow && <ArrowIcon />}
         </motion.div>
       </>
@@ -107,6 +135,9 @@ export const Button = forwardRef<
           ref={ref as any}
           target={newTab ? "_blank" : undefined}
           rel={newTab ? "noopener noreferrer" : undefined}
+          // Dodajemy ręczne blokowanie kliknięcia na linku dla pewności
+          aria-disabled={isDisabled}
+          tabIndex={isDisabled ? -1 : undefined}
           {...commonProps}
           {...(props as any)}
         >
@@ -119,7 +150,7 @@ export const Button = forwardRef<
     return (
       <motion.button
         ref={ref as any}
-        disabled={isLoading || props.disabled}
+        disabled={isDisabled}
         {...commonProps}
         {...(props as any)}
       >
@@ -133,7 +164,7 @@ Button.displayName = "Button";
 function ArrowIcon() {
   return (
     <div
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-brand-primary"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-brand-primary ml-2"
       aria-hidden="true"
     >
       <svg

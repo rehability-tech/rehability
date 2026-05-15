@@ -26,7 +26,7 @@ export function FAQ({ titlePrefix, titleHighlight, items }: FAQProps) {
   };
 
   return (
-    <section className="py-64 max-[1024px]:py-16 overflow-hidden">
+    <section className="overflow-hidden  mb-50 max-[1024px]:mb-72">
       <div className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center">
         {/* === NAGŁÓWEK === */}
         <div className="flex flex-col items-center text-center mb-16">

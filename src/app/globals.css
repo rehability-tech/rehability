@@ -108,7 +108,18 @@ body {
   .typography-paragraph {
     @apply font-body text-paragraph font-normal leading-[170%];
   }
+  .tiptap p,
+  .tiptap h1,
+  .tiptap h2,
+  .tiptap h3 {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 
+  .tiptap {
+    /* Usuwamy zarysy focusa dla czystości edytora */
+    outline: none !important;
+  }
   /* Zoptymalizowany Loader (tylko jedna, właściwa wersja) */
   .btn-loader {
     width: 24px;
@@ -148,6 +159,51 @@ body {
   .animate-scroll-y-reverse {
     animation: scroll-y-reverse var(--duration, 40s) linear infinite;
   }
+
+  /* --- NAPRAWIONE STYLE DLA REACT DATEPICKER --- */
+  /* Używamy standardowego CSS zamiast @apply z !important, żeby Tailwind v4 nie narzekał */
+  div.react-datepicker__header {
+    background-color: var(--color-white) !important;
+    border-bottom: 1px solid #f3f4f6 !important; /* gray-100 */
+    padding-top: 0.75rem !important; /* pt-3 */
+  }
+
+  /* Kontener całego kalendarza */
+  div.react-datepicker {
+    font-family: var(--font-body) !important;
+    border: 1px solid #e5e7eb !important; /* gray-200 */
+    border-radius: 0.75rem !important; /* rounded-xl */
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1) !important; /* shadow-md */
+  }
+
+  /* Style dla wybranych dni */
+  div.react-datepicker__day--selected,
+  div.react-datepicker__day--in-selecting-range,
+  div.react-datepicker__day--in-range {
+    background-color: var(--color-primary) !important; /* bg-brand-primary */
+    color: var(--color-white) !important;
+    border-radius: 0.5rem !important; /* rounded-lg */
+  }
+
+  /* Focus z klawiatury */
+  div.react-datepicker__day--keyboard-selected {
+    background-color: rgba(
+      40,
+      125,
+      136,
+      0.2
+    ) !important; /* bg-brand-primary/20 */
+    color: var(--color-secondary) !important; /* text-[#0B3B4C] */
+    border-radius: 0.5rem !important; /* rounded-lg */
+  }
+
+  /* Usunięcie outline focusa */
+  div.react-datepicker:focus-visible {
+    outline: 2px solid transparent !important; /* outline-none */
+    outline-offset: 2px !important;
+  }
 }
 
 /* Wstrzymywanie po najechaniu na prawą kolumnę */
@@ -172,4 +228,15 @@ body {
   100% {
     transform: translateY(0%);
   }
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }

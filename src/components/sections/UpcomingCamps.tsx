@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { AsteriskSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
+import { motion } from "framer-motion";
 
 // ==========================================
 // 1. DANE DLA DESKTOPU (Siatka 4x2 = 8 bloków) | Od 900px
@@ -147,20 +148,23 @@ export function UpcomingCamps() {
     : MASK_BLOCKS_MOBILE;
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative pt-24 pb-16 md:pb-32 max-[1024px]:pt-16 overflow-hidden"
-    >
+    <section ref={sectionRef} className="relative  overflow-hidden">
       <div className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center">
-        {/* === NAGŁÓWEK === */}
-        <div className="flex flex-col items-center text-center mb-12 md:mb-16 transition-opacity duration-500">
+        {/* === NAGŁÓWEK - ZAANIMOWANY FRAMER MOTION === */}
+        <motion.div
+          className="flex flex-col items-center text-center mb-12 md:mb-16"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
           <h2 className="typography-subheading font-semibold text-brand-secondary text-[36px] md:text-[42px] lg:text-[48px] leading-[120%] mb-4">
             Zasługujesz na <span className="text-brand-primary">reset</span>
           </h2>
           <p className="font-montserrat font-medium text-brand-primary/80 text-[16px] md:text-[18px]">
             Dołącz do naszego najbliższego wyjazdu
           </p>
-        </div>
+        </motion.div>
 
         {/* === KONTENER NA ZDJĘCIE I ELEMENTY === */}
         <div className="relative w-full max-w-[1000px] mx-auto flex flex-col items-center">
@@ -222,7 +226,6 @@ export function UpcomingCamps() {
                 return (
                   <div
                     key={block.id}
-                    // Na najmniejszych ekranach używamy aspect-square dla zachowania proporcji kostki
                     className={`w-full aspect-square overflow-hidden transition-all duration-700 ease-in-out ${block.radius}`}
                     style={{
                       backgroundImage: "url('/images/static/camp.png')",
@@ -311,7 +314,7 @@ export function UpcomingCamps() {
                 className={`w-[130px] h-[130px] md:w-[160px] md:h-[160px] rounded-[111px] rounded-tr-none bg-brand-primary/80 md:bg-brand-primary/70 backdrop-blur-md shadow-xl flex flex-col items-center justify-center text-center relative border border-white/20 p-2 transform hover:scale-105 transition-transform ${i === 0 && "max-[470px]:!rounded-br-none max-[470px]:!rounded-[111px] "} ${i === 1 && "max-[470px]:!rounded-bl-none max-[470px]:!rounded-[111px] "} ${i === 2 && " max-[470px]:!rounded-[111px]  "}`}
               >
                 <div
-                  className={`absolute top-1 right-1 w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#1b5c65] flex items-center justify-center shadow-inner ${i === 2 && " max-[470px]:left-1/2 -translate-x-1/2 "} ${i === 0 && "!bottom-1 top-auto"} ${i === 1 && "!bottom-1 top-auto left-1"}`}
+                  className={`absolute top-1 right-1 w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#1b5c65] flex items-center justify-center shadow-inner ${i === 2 && " max-[470px]:left-1/2 max-[470px]:-translate-x-1/2 "} ${i === 0 && "max-[470px]:!bottom-1 max-[470px]:top-auto"} ${i === 1 && "max-[470px]:!bottom-1 max-[470px]:top-auto max-[470px]:left-1"}`}
                 >
                   {info.icon}
                 </div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, Minus } from "@phosphor-icons/react/dist/ssr";
+import { motion, Variants } from "framer-motion";
 
 // === DANE FAQ ===
 const FAQ_DATA = [
@@ -36,6 +37,24 @@ const FAQ_DATA = [
   },
 ];
 
+// === DEFINICJE ANIMACJI ===
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
@@ -44,15 +63,24 @@ export function FAQSection() {
   };
 
   return (
-    <section className="py-24 max-[1024px]:py-16 overflow-hidden">
-      <div className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center">
+    <section className="overflow-hidden">
+      <motion.div
+        className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {/* === NAGŁÓWEK === */}
-        <div className="flex flex-col items-center text-center mb-16">
+        <motion.div
+          variants={fadeUpVariants}
+          className="flex flex-col items-center text-center mb-16"
+        >
           <h2 className="typography-subheading font-semibold text-brand-secondary text-[36px] md:text-[48px] leading-[120%]">
             Najczęściej zadawane{" "}
             <span className="text-brand-primary">pytania</span>
           </h2>
-        </div>
+        </motion.div>
 
         {/* === LISTA FAQ === */}
         <div className="w-full max-w-[900px] flex flex-col">
@@ -61,10 +89,10 @@ export function FAQSection() {
             const formattedNumber = String(index + 1).padStart(2, "0");
 
             return (
-              <div
+              <motion.div
                 key={index}
+                variants={fadeUpVariants}
                 onClick={() => toggleFAQ(index)}
-                // Główny kontener: flex-col poniżej 600px, flex-row powyżej 600px
                 className={`flex flex-col min-[600px]:flex-row min-[600px]:items-start gap-4 min-[600px]:gap-10 py-6 md:py-10 cursor-pointer border-b border-brand-secondary/20 group transition-colors ${
                   index === 0 ? "border-t" : ""
                 }`}
@@ -74,8 +102,6 @@ export function FAQSection() {
                   <div className="font-jakarta font-bold text-[40px] min-[600px]:text-[48px] min-[600px]:self-center leading-none text-[#0B3B4C] min-[600px]:mt-1">
                     {formattedNumber}
                   </div>
-
-                  {/* PRZYCISK MOBILE (widoczny tylko poniżej 600px) */}
                   <button
                     className="min-[600px]:hidden w-8 h-8 shrink-0 rounded-full bg-[#287D88] text-white flex items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out"
                     aria-label={isOpen ? "Zwiń odpowiedź" : "Rozwiń odpowiedź"}
@@ -92,7 +118,7 @@ export function FAQSection() {
                   </button>
                 </div>
 
-                {/* 2. TREŚĆ (Pytanie + Odpowiedź) */}
+                {/* 2. TREŚĆ */}
                 <div className="flex-1 flex flex-col w-full">
                   <h3
                     className={`font-montserrat font-semibold text-[16px] md:text-[18px] leading-[140%] transition-colors duration-300 ${
@@ -119,7 +145,7 @@ export function FAQSection() {
                   </div>
                 </div>
 
-                {/* 3. PRZYCISK DESKTOP (widoczny tylko powyżej 600px) */}
+                {/* 3. PRZYCISK DESKTOP */}
                 <button
                   className="hidden min-[600px]:flex w-10 h-10 self-center shrink-0 rounded-full bg-[#287D88] text-white items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out mt-1"
                   aria-label={isOpen ? "Zwiń odpowiedź" : "Rozwiń odpowiedź"}
@@ -134,11 +160,11 @@ export function FAQSection() {
                     )}
                   </div>
                 </button>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
