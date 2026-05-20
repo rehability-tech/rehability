@@ -23,7 +23,7 @@ const getInitials = (name?: string | null) => {
 
 export default function AdminTopbar({ user }: AdminTopbarProps) {
   return (
-    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-gray-100 px-10 py-4 flex items-center justify-between shadow-sm">
+    <header className="sticky top-0 z-100 bg-white/90 backdrop-blur-md border-b border-gray-100 px-10 py-4 flex items-center justify-between shadow-sm">
       {/* Puste miejsce po lewej (usunięty hamburger menu dla mobile) */}
       <div></div>
 

@@ -49,7 +49,7 @@ function PodsumowanieContent() {
   const id = searchParams.get("id");
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishing] = useState(false);
   const [camp, setCamp] = useState<any>(null);
   const [mainTab, setMainTab] = useState<"dane" | "design">("dane");
 
@@ -84,33 +84,8 @@ function PodsumowanieContent() {
     return () => abortController.abort();
   }, [id, router]);
 
-  const handlePublishCamp = async () => {
-    if (!id) return;
-    setIsPublishing(true);
-    const loadingToast = toast.loading("Zapisywanie i publikowanie wyjazdu...");
-
-    try {
-      const response = await fetch(`/api/admin/campy/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "PUBLISHED",
-          lastStage: "podsumowanie",
-        }),
-      });
-
-      if (!response.ok) throw new Error("Błąd aktualizacji statusu");
-
-      toast.success("Camp został pomyślnie zapisany i opublikowany!", {
-        id: loadingToast,
-      });
-      router.push("/admin/campy");
-    } catch (error) {
-      console.error(error);
-      toast.error("Wystąpił błąd podczas zatwierdzania.", { id: loadingToast });
-    } finally {
-      setIsPublishing(false);
-    }
+  const handlePublishCamp = () => {
+    router.push("/admin/campy");
   };
 
   const handlePreview = () => {

@@ -3,7 +3,7 @@
 import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import Autocomplete from "react-google-autocomplete";
+import { usePlacesWidget } from "react-google-autocomplete";
 import DatePicker, { DatePickerProps } from "react-datepicker";
 import { CalendarBlank } from "@phosphor-icons/react/dist/ssr";
 interface CustomDatePickerProps {
@@ -156,6 +156,15 @@ export function FormLocationInput({
   onPlaceSelected,
   placeholder,
 }: FormLocationInputProps) {
+  const { ref } = usePlacesWidget<HTMLInputElement>({
+    apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    onPlaceSelected,
+    options: {
+      types: ["establishment", "geocode"],
+      componentRestrictions: { country: "pl" },
+    },
+  });
+
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
       <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
@@ -167,16 +176,13 @@ export function FormLocationInput({
             {icon}
           </div>
         )}
-        <Autocomplete
-          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-          onPlaceSelected={onPlaceSelected}
-          options={{
-            types: ["establishment", "geocode"],
-            componentRestrictions: { country: "pl" },
-          }}
+        <input
+          ref={ref}
+          type="text"
           placeholder={placeholder}
           defaultValue={defaultValue}
           disabled={isLoading}
+          autoComplete="off"
           className={cn(
             "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pr-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
             icon ? "pl-10" : "pl-4",
