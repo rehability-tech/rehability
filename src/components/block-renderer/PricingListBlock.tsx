@@ -10,7 +10,7 @@ export default function PricingListBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 w-full">
+    <div className="max-w-3xl px-4 w-full">
       <div className="flex flex-col gap-2 w-full">
         {content.items.map((item: any, idx: number) => (
           <div
