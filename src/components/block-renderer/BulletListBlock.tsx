@@ -12,22 +12,23 @@ export default function BulletListBlock({ content }: { content: any }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 w-full my-6">
-      <ul className="flex flex-col gap-4">
+      <div className="w-full flex flex-col gap-3">
         {content.items.map((item: any, idx: number) => (
-          <li key={item.id || idx} className="flex items-start gap-4">
-            <div className="mt-0.5 shrink-0">
-              <CheckCircle
-                size={22}
-                weight="fill"
-                className="text-brand-primary"
-              />
-            </div>
-            <div className="font-montserrat text-gray-600 leading-relaxed text-[15px] md:text-base">
+          <div
+            key={item.id || idx}
+            className="flex items-start gap-4 w-full"
+          >
+            <CheckCircle
+              size={24}
+              weight="fill"
+              className="text-[#287D88] shrink-0 mt-1"
+            />
+            <div className="flex-1 w-full text-gray-600 font-montserrat text-base leading-[1.7]">
               {parse(item.text || "")}
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
