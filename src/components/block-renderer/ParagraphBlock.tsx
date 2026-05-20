@@ -5,7 +5,7 @@ export default function ParagraphBlock({ content }: { content: any }) {
   if (!content?.text) return null;
 
   return (
-    <div className="prose prose-lg prose-p:text-gray-600 prose-p:font-montserrat prose-p:leading-relaxed max-w-3xl mx-auto px-4 text-center mt-4 mb-6">
+    <div className="text-gray-600 font-montserrat text-base leading-[1.7]">
       {parse(content.text)}
     </div>
   );

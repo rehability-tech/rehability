@@ -5,8 +5,8 @@ export default function HeadingBlock({ content }: { content: any }) {
   if (!content?.text) return null;
 
   return (
-    <h2 className="text-3xl md:text-[38px] font-jakarta font-bold text-[#0B3B4C] leading-tight text-center max-w-3xl mx-auto px-4">
+    <div className="text-2xl md:text-3xl font-jakarta font-bold text-[#0B3B4C] leading-[1.2]">
       {parse(content.text)}
-    </h2>
+    </div>
   );
 }
