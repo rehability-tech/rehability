@@ -44,6 +44,8 @@ export const campSchema = z.object({
     })
     .min(0, "Zadatek nie może być ujemny"),
 
+  description: z.string().optional(),
+
   lastAiPrompt: z.string().optional(),
 
   // Dodane opcjonalne pole na zapisywanie aktualnego kroku kreatora

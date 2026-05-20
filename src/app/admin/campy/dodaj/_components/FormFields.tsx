@@ -131,7 +131,57 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 FormInput.displayName = "FormInput";
 
 // ==========================================
-// 3. INPUT LOKALIZACJI (Google Autocomplete)
+// 3. TEXTAREA (Długi tekst)
+// ==========================================
+export interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  isLoading?: boolean;
+  helperText?: string;
+  containerClassName?: string;
+}
+
+export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
+  (
+    {
+      label,
+      isLoading,
+      helperText,
+      containerClassName,
+      required,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
+    return (
+      <div className={cn("flex flex-col gap-1.5", containerClassName)}>
+        <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
+          {label} {required && <span className="text-brand-primary">*</span>}
+        </label>
+        <div className="relative z-0">
+          <textarea
+            ref={ref}
+            disabled={disabled || isLoading}
+            rows={5}
+            className={cn(
+              "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors resize-y min-h-[120px]",
+              (disabled || isLoading) && "opacity-80 text-gray-500",
+            )}
+            {...props}
+          />
+          <AiInputLoader isLoading={isLoading} />
+        </div>
+        {helperText && (
+          <span className="text-xs text-gray-400">{helperText}</span>
+        )}
+      </div>
+    );
+  },
+);
+FormTextarea.displayName = "FormTextarea";
+
+// ==========================================
+// 4. INPUT LOKALIZACJI (Google Autocomplete)
 // ==========================================
 export interface FormLocationInputProps {
   label: string;

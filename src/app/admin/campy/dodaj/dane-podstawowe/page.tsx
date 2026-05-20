@@ -20,6 +20,7 @@ import {
   FormDatePicker,
   FormInput,
   FormLocationInput,
+  FormTextarea,
 } from "../_components/FormFields";
 import AiGeneratorModal, {
   AiGeneratedData,
@@ -51,6 +52,7 @@ function BasicDataFormContent() {
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
 
+  const [description, setDescription] = useState("");
   const [lastAiPrompt, setLastAiPrompt] = useState("");
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isGeneratingData, setIsGeneratingData] = useState(false);
@@ -74,6 +76,7 @@ function BasicDataFormContent() {
           setCapacity(data.capacity?.toString() || "");
           setPrice(data.price?.toString() || "");
           setDeposit(data.deposit?.toString() || "");
+          setDescription(data.description || "");
           setLastAiPrompt(data.lastAiPrompt || "");
           setMapUrl(data.mapUrl || "");
 
@@ -122,6 +125,7 @@ function BasicDataFormContent() {
       const data: AiGeneratedData = await response.json();
 
       setTitle(data.title || "");
+      if (data.description) setDescription(data.description);
       setCapacity(data.capacity || "");
       if (data.price) setPrice(data.price);
       if (data.deposit) setDeposit(data.deposit);
@@ -161,7 +165,8 @@ function BasicDataFormContent() {
         body: JSON.stringify({
           id: editId,
           title,
-          location: locationObjectString, // Wysyłamy zserializowany obiekt
+          description,
+          location: locationObjectString,
           mapUrl,
           startDate,
           endDate,
@@ -238,6 +243,17 @@ function BasicDataFormContent() {
               autoComplete="off"
               isLoading={isGeneratingData}
               containerClassName="md:col-span-2"
+            />
+
+            <FormTextarea
+              label="Krótki opis wyjazdu"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Opisz w kilku zdaniach czego uczestniczki mogą się spodziewać — klimat, aktywności, wyjątkowe momenty..."
+              name="campDescription"
+              isLoading={isGeneratingData}
+              containerClassName="md:col-span-2"
+              rows={4}
             />
 
             <FormDatePicker
@@ -323,10 +339,15 @@ function BasicDataFormContent() {
               icon={<MapTrifold size={18} />}
               placeholder="Wyszukaj dokładny adres / obiekt w Google..."
               onPlaceSelected={(place) => {
+                // 1. ZABEZPIECZENIE: Zapobiega crashom, gdy user wciśnie Enter bez wyboru opcji z listy
+                if (!place) return;
+
                 const placeId = place.place_id;
 
                 if (placeId) {
                   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+                  // 2. POPRAWKA URL: Oficjalny endpoint Google Maps Embed API
                   const embedIframeUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=place_id:${placeId}`;
 
                   setMapUrl(embedIframeUrl);

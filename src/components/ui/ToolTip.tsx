@@ -5,7 +5,7 @@ type TooltipPosition = "top" | "bottom" | "left" | "right";
 
 interface TooltipProps {
   children: React.ReactNode;
-  content: string;
+  content: React.ReactNode;
   className?: string;
   position?: TooltipPosition;
   forceOpen?: boolean; // <-- Dodano nowy opcjonalny prop
@@ -47,9 +47,9 @@ export function Tooltip({
           forceOpen ? "flex" : "hidden group-hover/tooltip:flex",
         )}
       >
-        <span className="bg-[#0B3B4C] text-white text-[11px] font-medium px-3 py-1.5 rounded-md shadow-lg text-center leading-relaxed relative z-10">
+        <div className="bg-[#0B3B4C] text-white text-[11px] font-medium px-3 py-1.5 rounded-md shadow-lg text-center leading-relaxed relative z-10">
           {content}
-        </span>
+        </div>
         {/* Mały trójkącik pod spodem */}
         <div
           className={cn(

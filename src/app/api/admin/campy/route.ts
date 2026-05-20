@@ -1,22 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/requireAdmin"; // <-- Import bramkarza
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 
-// Zapobiegamy mocnemu cache'owaniu przez Next.js, żeby lista zawsze była świeża po dodaniu nowego campa
+// TO JEST KLUCZOWE - wymusza pobieranie świeżych danych przy każdym odświeżeniu
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1. ZABEZPIECZENIE: Autoryzacja Admina
     const { isAuthorized, response } = await requireAdmin();
     if (!isAuthorized) return response as NextResponse;
 
-    // 2. POBIERANIE DANYCH
     const camps = await prisma.camp.findMany({
-      orderBy: {
-        createdAt: "desc", // Najnowsze na górze
-      },
-      // Pobieramy tylko te pola, których potrzebujemy do listy (optymalizacja)
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         title: true,
@@ -27,16 +22,15 @@ export async function GET() {
         capacity: true,
         isFeatured: true,
         lastStage: true,
-        heroImage: true, // <--- ZMIANA: imageUrl zmienione na heroImage
+        heroImage: true,
+        mapUrl: true,
+        blocks: true, // <--- Upewnij się, że to tutaj jest!
       },
     });
 
     return NextResponse.json(camps);
   } catch (error) {
-    console.error("Błąd pobierania campów:", error);
-    return NextResponse.json(
-      { error: "Nie udało się pobrać listy wyjazdów" },
-      { status: 500 },
-    );
+    console.error(error);
+    return NextResponse.json({ error: "Błąd" }, { status: 500 });
   }
 }

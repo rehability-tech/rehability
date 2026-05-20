@@ -148,6 +148,7 @@ export async function POST(req: Request) {
         systemInstruction = `Jesteś asystentem AI. Na podstawie opisu wygeneruj DOKŁADNY obiekt JSON:
         {
           "title": "Krótki tytuł (max 4 słowa)",
+          "description": "Angażujący, krótki opis wyjazdu (2-4 zdania, max 400 znaków). Napisz językiem korzyści, budząc emocje i ciekawość.",
           "locationName": "Nazwa obiektu / hotelu (np. Holiday Sky Park, Willa Janina)",
           "locationCity": "Sama miejscowość (np. Jarnołtówek, Zakopane)",
           "capacity": "Liczba miejsc (string)",

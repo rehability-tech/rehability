@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 import { CampCard } from "./dodaj/edytor-tresci/_components/CampCard";
 import { FeaturedCampZone } from "./_components/FeaturedCampZone";
-import { toast } from "sonner";
 import { Camp } from "@/generated/prisma";
 
 type FilterStatus = "ALL" | "PUBLISHED" | "DRAFT" | "ARCHIVED";
@@ -17,34 +16,21 @@ export default function AdminCampyList() {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
-  // --- PUBLIKOWANIE ---
-  const handlePublish = async (id: string) => {
-    // 1. Aktualizacja optymistyczna (zmieniamy status w UI od razu)
-    setCamps((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: "PUBLISHED" } : c)),
-    );
-    toast.success("Wyjazd został pomyślnie opublikowany!");
 
-    try {
-      // 2. Wysłanie zapytania do bazy danych
-      const response = await fetch("/api/admin/campy/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-
-      if (!response.ok) throw new Error("Błąd");
-    } catch (error) {
-      toast.error("Wystąpił błąd serwera. Odśwież stronę.");
-      // Tu ewentualnie można cofnąć status do DRAFT, jeśli API zgłosi błąd
-    }
-  };
   useEffect(() => {
     const fetchCamps = async () => {
       try {
-        const response = await fetch("/api/admin/campy");
+        // Zamiast: const response = await fetch("/api/admin/campy");
+        const response = await fetch(
+          `/api/admin/campy?t=${new Date().getTime()}`,
+          {
+            cache: "no-store", // Wyłączamy cache Next.js dla tego konkretnego zapytania
+          },
+        );
         if (!response.ok) throw new Error("Błąd pobierania");
         const data = await response.json();
+        console.log("Data from campy response", data);
+
         setCamps(data);
       } catch (error) {
         console.error(error);
@@ -55,7 +41,13 @@ export default function AdminCampyList() {
     fetchCamps();
   }, []);
 
-  // Handler aktualizujący lokalny stan po opuszczeniu kafelka w strefie Drag&Drop
+  // Prosty updater lokalny wywoływany przez kartę, żeby zniknęła z danej zakładki po edycji
+  const handleUpdateLocalStatus = (id: string, newStatus: string) => {
+    setCamps((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c)),
+    );
+  };
+
   const handleUpdateFeaturedLocally = (campId: string | null) => {
     setCamps((prevCamps) =>
       prevCamps.map((camp) => ({
@@ -65,14 +57,11 @@ export default function AdminCampyList() {
     );
   };
 
-  // Zapisywanie ID do e.dataTransfer, gdy zaczynamy przeciągać kartę na liście
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     e.dataTransfer.setData("campId", id);
   };
 
-  // --- FILTROWANIE ---
   const featuredCamp = camps.find((c) => c.isFeatured);
-
   const filteredListCamps = camps.filter((c) => {
     if (c.isFeatured) return false;
     if (filterStatus === "ALL") return true;
@@ -103,7 +92,6 @@ export default function AdminCampyList() {
         </Button>
       </header>
 
-      {/* --- STREFA WYRÓŻNIONA (Zewnętrzny komponent) --- */}
       {!isLoading && (
         <FeaturedCampZone
           featuredCamp={featuredCamp}
@@ -111,13 +99,12 @@ export default function AdminCampyList() {
         />
       )}
 
-      {/* --- FILTRY STATUSÓW --- */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
         {[
           { label: "Wszystkie", value: "ALL" },
           { label: "Aktywne", value: "PUBLISHED" },
           { label: "Szkice", value: "DRAFT" },
-          { label: "Zakończone", value: "ARCHIVED" },
+          { label: "Archiwalne", value: "ARCHIVED" },
         ].map((filter) => (
           <button
             key={filter.value}
@@ -134,7 +121,6 @@ export default function AdminCampyList() {
         ))}
       </div>
 
-      {/* --- LISTA CAMPÓW --- */}
       <div className="flex flex-col gap-4 relative min-h-[300px]">
         {isLoading && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm rounded-[24px]">
@@ -167,7 +153,7 @@ export default function AdminCampyList() {
                 key={camp.id}
                 camp={camp}
                 onDragStart={handleDragStart}
-                onPublish={handlePublish} // <--- DODANO TO
+                onChangeStatus={handleUpdateLocalStatus} // Przekazujemy CZYSTY lokalny updater
               />
             ))}
           </AnimatePresence>

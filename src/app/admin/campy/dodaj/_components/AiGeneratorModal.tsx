@@ -8,14 +8,14 @@ import { cn } from "@/lib/utils";
 
 export interface AiGeneratedData {
   title?: string;
-  locationName?: string; // <-- NOWE POLE
-  locationCity?: string; // <-- NOWE POLE
+  description?: string;
+  locationName?: string;
+  locationCity?: string;
   capacity?: string;
   price?: string;
   deposit?: string;
   startDate?: string;
   endDate?: string;
-  // (upewnij się, że usunąłeś stare pole "location?: string;")
 }
 
 interface AiGeneratorModalProps {

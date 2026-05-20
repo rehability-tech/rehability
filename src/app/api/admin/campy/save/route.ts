@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       capacity: validatedData.capacity,
       price: validatedData.price,
       deposit: validatedData.deposit,
+      description: validatedData.description,
       lastAiPrompt: validatedData.lastAiPrompt,
       lastStage: lastStage || "dane-podstawowe",
     };
