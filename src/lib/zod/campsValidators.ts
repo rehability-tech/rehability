@@ -2,9 +2,21 @@ import { z } from "zod";
 
 export const campSchema = z.object({
   title: z.string().min(3, "Tytuł musi mieć co najmniej 3 znaki"),
-  location: z.string().optional().default(""),
 
-  // W z.coerce używamy po prostu 'message'
+  // Oczekujemy stringa, ale dodajemy .refine(), żeby upewnić się, że to poprawny JSON z wymaganymi kluczami
+  location: z.string().refine((val) => {
+    try {
+      const parsed = JSON.parse(val);
+      // Sprawdzamy czy zdekodowany obiekt ma klucze name i city
+      return typeof parsed.name === "string" && typeof parsed.city === "string";
+    } catch {
+      return false;
+    }
+  }, "Lokalizacja musi zawierać nazwę obiektu i miasto"),
+
+  // Dodane pole na URL mapy
+  mapUrl: z.string().optional().default(""),
+
   startDate: z.coerce.date({
     message: "Podaj prawidłową datę rozpoczęcia",
   }),
@@ -13,7 +25,6 @@ export const campSchema = z.object({
     message: "Podaj prawidłową datę zakończenia",
   }),
 
-  // Dodałem 'message' też do liczb, w razie gdyby użytkownik wpisał tekst zamiast cyfr
   capacity: z.coerce
     .number({
       message: "Podaj prawidłową liczbę miejsc",
@@ -34,4 +45,7 @@ export const campSchema = z.object({
     .min(0, "Zadatek nie może być ujemny"),
 
   lastAiPrompt: z.string().optional(),
+
+  // Dodane opcjonalne pole na zapisywanie aktualnego kroku kreatora
+  lastStage: z.string().optional(),
 });

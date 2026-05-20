@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-import { CampCard } from "@/components/sections/admin/campy/CampCard";
+import { CampCard } from "@/components/sections/admin/editor/CampCard";
 import { FeaturedCampZone } from "@/components/sections/admin/campy/FeaturedCampZone";
 import { toast } from "sonner";
 import { Camp } from "@/generated/prisma";

@@ -11,10 +11,16 @@ import {
   X,
   Question,
   ArrowsOutLineVertical,
+  YoutubeLogo,
+  Image as ImageIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { BlockType } from "@/app/admin/campy/dodaj/edytor-tresci/page";
 import { Tooltip } from "@/components/ui/ToolTip";
-import { ListBulletsIcon, QuestionIcon } from "@phosphor-icons/react";
+import {
+  ListBulletsIcon,
+  MapTrifold,
+  QuestionIcon,
+} from "@phosphor-icons/react";
 
 interface BlockAdderProps {
   onAddBlock: (type: BlockType) => void;
@@ -22,7 +28,6 @@ interface BlockAdderProps {
 
 export default function BlockAdder({ onAddBlock }: BlockAdderProps) {
   const [isOpen, setIsOpen] = useState(false);
-
   const blockOptions: {
     type: BlockType;
     label: string;
@@ -66,16 +71,37 @@ export default function BlockAdder({ onAddBlock }: BlockAdderProps) {
       icon: <Money size={20} />,
     },
     {
-      type: "spacer",
-      label: "Przerwa",
-      desc: "Pusty odstęp między blokami",
-      icon: <ArrowsOutLineVertical size={20} />,
-    },
-    {
       type: "faq",
       label: "FAQ",
       desc: "Lista pytań i odpowiedzi",
       icon: <QuestionIcon size={20} />,
+    },
+    // --- BLOKI MULTIMEDIALNE ---
+    {
+      type: "videoEmbed",
+      label: "Wideo",
+      desc: "Odtwarzacz YouTube",
+      icon: <YoutubeLogo size={20} />,
+    },
+    {
+      type: "inlineImage",
+      label: "Zdjęcie",
+      desc: "Pojedynczy obrazek",
+      icon: <ImageIcon size={20} />,
+    },
+    // --- NOWY BLOK MAPY ---
+    {
+      type: "map",
+      label: "Mapa dojazdu",
+      desc: "Mapa z bazy danych",
+      icon: <MapTrifold size={20} />, // Pamiętaj o imporcie z @phosphor-icons/react
+    },
+    // --------------------------------
+    {
+      type: "spacer",
+      label: "Przerwa",
+      desc: "Pusty odstęp między blokami",
+      icon: <ArrowsOutLineVertical size={20} />,
     },
   ];
 
@@ -121,7 +147,7 @@ export default function BlockAdder({ onAddBlock }: BlockAdderProps) {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {blockOptions.map((opt) => (
               <button
                 key={opt.type}

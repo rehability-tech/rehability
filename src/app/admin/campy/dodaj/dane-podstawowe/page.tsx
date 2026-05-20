@@ -27,6 +27,7 @@ import AiGeneratorModal, {
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Buildings, MapTrifold } from "@phosphor-icons/react";
 
 registerLocale("pl", pl);
 
@@ -36,10 +37,14 @@ registerLocale("pl", pl);
 function BasicDataFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("id"); // Pobieramy ID z URL
+  const editId = searchParams.get("id");
 
   const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
+  // --- NOWE STANY DLA LOKALIZACJI ---
+  const [locationName, setLocationName] = useState("");
+  const [locationCity, setLocationCity] = useState("");
+  const [mapUrl, setMapUrl] = useState("");
+
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [capacity, setCapacity] = useState("");
@@ -50,8 +55,6 @@ function BasicDataFormContent() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isGeneratingData, setIsGeneratingData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // NOWY STAN: do pokazywania loadera podczas pobierania danych do edycji
   const [isFetchingData, setIsFetchingData] = useState(false);
 
   // --- POBIERANIE DANYCH DO EDYCJI ---
@@ -60,21 +63,31 @@ function BasicDataFormContent() {
       const fetchCampData = async () => {
         setIsFetchingData(true);
         try {
-          // Musimy stworzyć ten endpoint za chwilę!
           const response = await fetch(`/api/admin/campy/${editId}`);
           if (!response.ok) throw new Error("Błąd pobierania danych");
 
           const data = await response.json();
 
-          // Wypełniamy formularz danymi z bazy
           setTitle(data.title || "");
-          setLocation(data.location || "");
           setStartDate(data.startDate ? new Date(data.startDate) : null);
           setEndDate(data.endDate ? new Date(data.endDate) : null);
           setCapacity(data.capacity?.toString() || "");
           setPrice(data.price?.toString() || "");
           setDeposit(data.deposit?.toString() || "");
           setLastAiPrompt(data.lastAiPrompt || "");
+          setMapUrl(data.mapUrl || "");
+
+          // Dekodowanie lokalizacji zapisanego jako JSON String
+          if (data.location) {
+            try {
+              const parsedLocation = JSON.parse(data.location);
+              setLocationName(parsedLocation.name || "");
+              setLocationCity(parsedLocation.city || "");
+            } catch (e) {
+              // Fallback, jeśli wcześniej było to zapisane jako zwykły string
+              setLocationName(data.location);
+            }
+          }
         } catch (error) {
           console.error(error);
           toast.error("Nie udało się załadować danych wyjazdu.");
@@ -109,12 +122,15 @@ function BasicDataFormContent() {
       const data: AiGeneratedData = await response.json();
 
       setTitle(data.title || "");
-      setLocation(data.location || "");
       setCapacity(data.capacity || "");
       if (data.price) setPrice(data.price);
       if (data.deposit) setDeposit(data.deposit);
       if (data.startDate) setStartDate(new Date(data.startDate));
       if (data.endDate) setEndDate(new Date(data.endDate));
+
+      // Nowy kod na froncie
+      if (data.locationName) setLocationName(data.locationName);
+      if (data.locationCity) setLocationCity(data.locationCity);
 
       toast.success("Dane zostały pomyślnie wygenerowane!");
     } catch (error) {
@@ -131,35 +147,35 @@ function BasicDataFormContent() {
   // --- ZAPISYWANIE DANYCH ---
   const handleSaveAndNext = async () => {
     setIsSaving(true);
-    const loadingMessage = editId
-      ? "Aktualizowanie danych..."
-      : "Zapisywanie danych wyjazdu...";
-    const loadingToast = toast.loading(loadingMessage);
+
+    // Pakujemy nazwę i miasto do jednego stringa JSON (aby pasowało do schematu Prisma)
+    const locationObjectString = JSON.stringify({
+      name: locationName,
+      city: locationCity,
+    });
 
     try {
       const response = await fetch("/api/admin/campy/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editId, // WAŻNE: Przekazujemy ID, żeby backend wiedział, że to aktualizacja!
+          id: editId,
           title,
-          location,
+          location: locationObjectString, // Wysyłamy zserializowany obiekt
+          mapUrl,
           startDate,
           endDate,
           capacity,
           price,
           deposit,
           lastAiPrompt,
-          lastStage: "edytor-tresci", // WAŻNE: Aktualizujemy stage na następny krok
+          lastStage: "edytor-tresci",
         }),
       });
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Błąd zapisu");
 
-      toast.success("Dane zapisane!", { id: loadingToast });
-
-      // Przechodzimy do kolejnego kroku przekazując ID zapisanego/zaktualizowanego campa
       router.push(
         `/admin/campy/dodaj/edytor-tresci?id=${result.campId || editId}`,
       );
@@ -167,9 +183,7 @@ function BasicDataFormContent() {
       const errorMessage =
         error instanceof Error ? error.message : "Nie udało się zapisać danych";
 
-      toast.error(errorMessage, {
-        id: loadingToast,
-      });
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -205,7 +219,8 @@ function BasicDataFormContent() {
 
       <AiPromoBanner onOpenModal={() => setIsAiModalOpen(true)} />
 
-      <form className="flex flex-col gap-8 relative z-0">
+      <form className="flex flex-col gap-10 relative z-0">
+        {/* SEKCJA 1: INFORMACJE OGÓLNE */}
         <section>
           <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
             Informacje ogólne
@@ -221,19 +236,6 @@ function BasicDataFormContent() {
               placeholder="np. Między nami kobietami - Wiosenny Reset"
               name="campTitle"
               autoComplete="off"
-              isLoading={isGeneratingData}
-              containerClassName="md:col-span-2"
-            />
-
-            <FormLocationInput
-              label="Lokalizacja"
-              required
-              icon={<MapPin size={18} />}
-              defaultValue={location}
-              onPlaceSelected={(place) =>
-                setLocation(place.formatted_address || "")
-              }
-              placeholder="Zacznij wpisywać nazwę hotelu lub adres..."
               isLoading={isGeneratingData}
               containerClassName="md:col-span-2"
             />
@@ -277,10 +279,84 @@ function BasicDataFormContent() {
               name="campCapacity"
               autoComplete="off"
               isLoading={isGeneratingData}
+              containerClassName="md:col-span-2"
             />
           </div>
         </section>
 
+        {/* SEKCJA 2: LOKALIZACJA WYJAZDU (NOWA) */}
+        <section>
+          <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+            Lokalizacja wyjazdu
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <FormInput
+              label="Nazwa Obiektu (Marketingowa)"
+              required
+              icon={<Buildings size={18} />}
+              value={locationName}
+              onChange={(e) => setLocationName(e.target.value)}
+              placeholder="np. Holiday Sky Park"
+              name="campLocationName"
+              autoComplete="off"
+              isLoading={isGeneratingData}
+              helperText="Ta nazwa będzie wielką czcionką na kartach wyjazdu."
+            />
+
+            <FormInput
+              label="Miejscowość"
+              required
+              icon={<MapPin size={18} />}
+              value={locationCity}
+              onChange={(e) => setLocationCity(e.target.value)}
+              placeholder="np. Jarnołtówek"
+              name="campLocationCity"
+              autoComplete="off"
+              isLoading={isGeneratingData}
+            />
+          </div>
+
+          <div className="bg-brand-primary/[0.03] border border-brand-primary/10 rounded-[16px] p-5">
+            <FormLocationInput
+              label="Podepnij interaktywną mapę (Google Maps)"
+              icon={<MapTrifold size={18} />}
+              placeholder="Wyszukaj dokładny adres / obiekt w Google..."
+              onPlaceSelected={(place) => {
+                const placeId = place.place_id;
+
+                if (placeId) {
+                  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+                  const embedIframeUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=place_id:${placeId}`;
+
+                  setMapUrl(embedIframeUrl);
+
+                  // Magia: Inteligentne wyciąganie nazwy miejscowości z wyników Google!
+                  if (!locationCity && place.address_components) {
+                    const cityComponent = place.address_components.find(
+                      (c: any) =>
+                        c.types.includes("locality") ||
+                        c.types.includes("administrative_area_level_2"),
+                    );
+                    if (cityComponent) setLocationCity(cityComponent.long_name);
+                  }
+
+                  // Magia 2: Wyciąganie nazwy obiektu, jeśli go brakuje
+                  if (!locationName && place.name) {
+                    setLocationName(place.name);
+                  }
+                }
+              }}
+              helperText={
+                mapUrl
+                  ? "✅ Interaktywna mapa Google została pomyślnie powiązana."
+                  : "Wyszukaj to miejsce, aby klientki widziały precyzyjną mapę w szczegółach wyjazdu."
+              }
+            />
+          </div>
+        </section>
+
+        {/* SEKCJA 3: CENY I PŁATNOŚCI */}
         <section>
           <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
             Ceny i płatności
@@ -314,11 +390,12 @@ function BasicDataFormContent() {
               name="campDeposit"
               autoComplete="off"
               isLoading={isGeneratingData}
-              helperText="Kwota, którą uczestniczka opłaca przy rezerwacji miejsca w systemie."
+              helperText="Kwota, którą uczestniczka opłaca przy rezerwacji miejsca."
             />
           </div>
         </section>
 
+        {/* ZAPIS */}
         <div className="flex items-center justify-between pt-6 mt-4 border-t border-gray-100">
           <Link
             href="/admin/campy"
@@ -331,7 +408,7 @@ function BasicDataFormContent() {
           <Button
             onClick={handleSaveAndNext}
             isLoading={isSaving}
-            disabled={!title || isSaving}
+            disabled={!title || !locationName || isSaving}
             rightIcon={<CaretRight size={18} weight="bold" />}
           >
             Dalej: Edytor nakładek

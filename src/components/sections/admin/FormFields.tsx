@@ -4,9 +4,19 @@ import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Autocomplete from "react-google-autocomplete";
-import DatePicker, { ReactDatePickerProps } from "react-datepicker";
+import DatePicker, { DatePickerProps } from "react-datepicker";
 import { CalendarBlank } from "@phosphor-icons/react/dist/ssr";
-
+interface CustomDatePickerProps {
+  selected?: Date | null;
+  onChange: (date: Date | null) => void; // Sztywno ustalamy, że to pojedyncza data
+  icon?: React.ReactNode;
+  placeholderText?: string;
+  minDate?: Date;
+  disabled?: boolean;
+  // [key: string]: any pozwala nam w locie przekazywać do DatePickera inne, dowolne propsy
+  // bez konieczności walki z jego skomplikowanymi definicjami typów.
+  [key: string]: any;
+}
 // ==========================================
 // 1. KOMPONENT ŁADOWANIA AI (STAŁY GLOW + DELIKATNY SHIMMER)
 // ==========================================
@@ -185,10 +195,7 @@ export function FormLocationInput({
 // ==========================================
 // 4. INPUT DATY (React DatePicker)
 // ==========================================
-export interface FormDatePickerProps extends Omit<
-  ReactDatePickerProps,
-  "onChange"
-> {
+export interface FormDatePickerProps extends Omit<DatePickerProps, "onChange"> {
   label: string;
   isLoading?: boolean;
   required?: boolean;
@@ -203,7 +210,7 @@ export function FormDatePicker({
   containerClassName,
   onChange,
   ...props
-}: FormDatePickerProps) {
+}: CustomDatePickerProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
       <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">

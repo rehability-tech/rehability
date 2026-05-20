@@ -22,6 +22,7 @@ export default function RichTextInput({
   const editor = useEditor({
     extensions: [StarterKit, TextStyle, Color],
     content: value || "",
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },

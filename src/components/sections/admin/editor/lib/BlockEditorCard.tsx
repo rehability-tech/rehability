@@ -1,0 +1,212 @@
+"use client";
+
+import React, { memo } from "react";
+import {
+  useDragControls,
+  Reorder,
+  motion,
+  AnimatePresence,
+} from "framer-motion";
+import { cn } from "@/lib/utils";
+
+import {
+  Trash,
+  DotsSixVertical,
+  MapTrifold,
+} from "@phosphor-icons/react/dist/ssr";
+import RichTextInput from "./RichTextInput";
+import FaqBlock from "../blocks/FaqBlock";
+import FeaturesGridBlock from "../blocks/FeaturesGridBlock";
+import PricingListBlock from "../blocks/PricingListBlock";
+import VideoEmbedBlock from "../blocks/VideoEmbedBlock";
+import InlineImageBlock from "../blocks/InlineImageBlock";
+import BulletListBlock from "../blocks/BulletListBlock";
+
+import { CampBlock } from "../hooks/useCampAiGenerator";
+import MapBlock from "../blocks/MapBlock";
+
+// IMPORTY ROZDZIELONYCH BLOKÓW
+
+interface BlockEditorCardProps {
+  block: CampBlock;
+  onDelete: () => void;
+  onUpdate: (updatedBlock: CampBlock) => void;
+  campId: string;
+  mapUrl: string;
+}
+
+function BlockEditorCardBase({
+  block,
+  onDelete,
+  onUpdate,
+  campId,
+  mapUrl,
+}: BlockEditorCardProps) {
+  const dragControls = useDragControls();
+  const setContent = (newContent: any) =>
+    onUpdate({ ...block, content: newContent });
+
+  const renderContent = () => {
+    switch (block.type) {
+      // --- PODSTAWOWE, KRÓTKIE BLOKI ---
+      case "heading":
+        return (
+          <RichTextInput
+            value={block.content?.text || ""}
+            onChange={(text) => setContent({ text })}
+            className="text-2xl md:text-3xl font-jakarta font-bold text-[#0B3B4C] leading-[1.2]"
+          />
+        );
+      case "paragraph":
+        return (
+          <RichTextInput
+            value={block.content?.text || ""}
+            onChange={(text) => setContent({ text })}
+            className="text-gray-600 font-montserrat text-base leading-[1.7]"
+          />
+        );
+      case "highlight":
+        return (
+          <div className="w-full border-l-4 border-brand-primary pl-4 py-1">
+            <RichTextInput
+              value={block.content?.text || ""}
+              onChange={(text) => setContent({ text })}
+              className="font-jakarta font-medium text-lg text-[#0B3B4C] leading-relaxed"
+            />
+          </div>
+        );
+      case "spacer":
+        return (
+          <div className="w-full flex items-center justify-center h-16 border border-dashed border-brand-primary/20 rounded-lg bg-brand-primary/[0.02]">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-brand-primary/40">
+              Przerwa wizualna
+            </span>
+          </div>
+        );
+      case "map":
+        return <MapBlock mapUrl={mapUrl} />;
+
+      // --- WYDZIELONE, SKOMPLIKOWANE BLOKI ---
+      case "faq":
+        return <FaqBlock content={block.content} onChange={setContent} />;
+      case "featuresGrid":
+        return (
+          <FeaturesGridBlock content={block.content} onChange={setContent} />
+        );
+      case "pricingList":
+        return (
+          <PricingListBlock content={block.content} onChange={setContent} />
+        );
+      case "videoEmbed":
+        return (
+          <VideoEmbedBlock content={block.content} onChange={setContent} />
+        );
+      case "inlineImage":
+        return (
+          <InlineImageBlock
+            content={block.content}
+            onChange={setContent}
+            campId={campId}
+          />
+        );
+      case "bulletList":
+        return (
+          <BulletListBlock content={block.content} onChange={setContent} />
+        );
+
+      default:
+        return (
+          <div className="text-gray-400 text-sm">
+            Nieobsługiwany typ bloku: {block.type}
+          </div>
+        );
+    }
+  };
+
+  const shimmerDuration = 2.5;
+  const numBlocks = 3;
+
+  return (
+    <Reorder.Item
+      value={block}
+      id={block.id}
+      dragListener={false}
+      dragControls={dragControls}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={cn(
+        "relative group/element flex items-start w-full border border-transparent rounded-[20px] transition-colors",
+        block.isGenerating
+          ? "bg-white/50"
+          : "bg-white hover:bg-gray-50/80 hover:border-gray-100",
+      )}
+    >
+      <AnimatePresence>
+        {block.isGenerating && (
+          <motion.div
+            key="loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 rounded-[20px] overflow-hidden pointer-events-auto backdrop-blur-[2px] shadow-[0_0_15px_5px_rgba(40,125,136,0.2)] bg-white/30"
+          >
+            {/* Animacja Loadera (Shimmer) pozostaje bez zmian */}
+            {[...Array(numBlocks)].map((_, i) => (
+              <motion.div
+                key={`shimmer-${i}`}
+                initial={{ left: "-100%" }}
+                animate={{ left: "100%" }}
+                transition={{
+                  repeat: Infinity,
+                  duration: shimmerDuration,
+                  ease: "linear",
+                  delay: i * (shimmerDuration / numBlocks),
+                }}
+                className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!block.isGenerating && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/element:opacity-100 flex flex-row items-center gap-1 transition-opacity bg-white/95 backdrop-blur-md p-1 rounded-lg shadow-sm border border-gray-200 z-10">
+          <div
+            onPointerDown={(e) => dragControls.start(e)}
+            style={{ touchAction: "none" }}
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center"
+          >
+            <DotsSixVertical size={18} weight="bold" />
+          </div>
+          <div className="h-4 w-px bg-gray-200 mx-0.5" />
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors flex items-center justify-center"
+          >
+            <Trash size={18} weight="bold" />
+          </button>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "w-full pr-16 mt-1 transition-opacity duration-500",
+          block.isGenerating && "opacity-40 pointer-events-none",
+        )}
+      >
+        {renderContent()}
+      </div>
+    </Reorder.Item>
+  );
+}
+export default memo(BlockEditorCardBase, (prevProps, nextProps) => {
+  // Komponent przebuduje się TYLKO wtedy, gdy zmienią się JEGO dane,
+  // lub gdy AI zmieni jego status na "isGenerating".
+  return (
+    prevProps.block.id === nextProps.block.id &&
+    prevProps.block.isGenerating === nextProps.block.isGenerating &&
+    JSON.stringify(prevProps.block.content) ===
+      JSON.stringify(nextProps.block.content)
+  );
+});

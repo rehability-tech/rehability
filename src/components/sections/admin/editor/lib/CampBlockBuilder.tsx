@@ -1,24 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 // ZMIANA: Importujemy Reorder zamiast AnimatePresence
 import { Reorder } from "framer-motion";
 import BlockEditorCard from "./BlockEditorCard";
 import BlockAdder from "./BlockAdder";
-import {
-  CampBlock,
-  BlockType,
-} from "@/app/admin/campy/dodaj/edytor-tresci/page";
+import { BlockType, CampBlock } from "../hooks/useCampAiGenerator";
 
 interface CampBlocksBuilderProps {
   blocks: CampBlock[];
   onChange: (newBlocks: CampBlock[]) => void;
+  campId: string;
+  mapUrl: string;
 }
 
 export default function CampBlocksBuilder({
   blocks,
   onChange,
+  campId,
+  mapUrl,
 }: CampBlocksBuilderProps) {
+  const [localBlocks, setLocalBlocks] = useState<CampBlock[]>(blocks);
   const handleAddBlock = (type: BlockType) => {
     let defaultContent: any = null;
     switch (type) {
@@ -58,23 +60,33 @@ export default function CampBlocksBuilder({
   const handleUpdateBlock = (updatedBlock: CampBlock) => {
     onChange(blocks.map((b) => (b.id === updatedBlock.id ? updatedBlock : b)));
   };
-
+  // Dodaj to wewnątrz komponentu CampBlocksBuilder:
+  useEffect(() => {
+    setLocalBlocks(blocks);
+  }, [blocks]);
   return (
     <div className="w-full lg:pr-16">
       {/* ZMIANA: Reorder.Group automatycznie zarządza kolejnością.
           Kiedy zmienisz pozycję elementu, onReorder wywoła Twoje onChange z nowo ułożoną tablicą! */}
       <Reorder.Group
         axis="y"
-        values={blocks}
+        values={localBlocks}
         onReorder={onChange}
         className="flex flex-col gap-2"
       >
-        {blocks.map((block) => (
+        {localBlocks.map((block) => (
           <BlockEditorCard
-            key={block.id}
+            // ==========================================
+            // MAGIA: Zmieniamy klucz!
+            // Kiedy isGenerating zmienia się z true na false,
+            // React niszczy stary, pusty edytor i ładuje nowy, pełny tekstu!
+            // ==========================================
+            key={`${block.id}-${block.isGenerating ? "loading" : "ready"}`}
             block={block}
             onDelete={() => handleDeleteBlock(block.id)}
             onUpdate={handleUpdateBlock}
+            campId={campId}
+            mapUrl={mapUrl}
           />
         ))}
       </Reorder.Group>

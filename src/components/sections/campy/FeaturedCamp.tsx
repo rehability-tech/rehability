@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   CalendarBlank,
   MapPin,
@@ -10,6 +11,47 @@ import {
 import { Button } from "@/components/ui/Button";
 import { motion, Variants } from "framer-motion";
 import { Tag } from "@/components/ui/Tag";
+
+// --- FUNKCJE POMOCNICZE ---
+
+// Funkcja ładnie formatująca zakres dat
+const formatDateRange = (start: any, end: any) => {
+  if (!start) return "Wkrótce";
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+  const monthOptions: Intl.DateTimeFormatOptions = { month: "long" };
+
+  if (!endDate) {
+    return startDate.toLocaleDateString("pl-PL", {
+      day: "numeric",
+      ...monthOptions,
+      year: "numeric",
+    });
+  }
+  if (
+    startDate.getMonth() === endDate.getMonth() &&
+    startDate.getFullYear() === endDate.getFullYear()
+  ) {
+    return `${startDate.getDate()}–${endDate.getDate()}.${(startDate.getMonth() + 1).toString().padStart(2, "0")}.${startDate.getFullYear()}`;
+  }
+  return `${startDate.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} - ${endDate.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" })}`;
+};
+
+// Funkcja kolorująca ostatnie słowo w tytule na morski kolor
+const formatTitle = (title: string) => {
+  if (!title) return "";
+  const words = title.trim().split(" ");
+  if (words.length <= 1) return title;
+
+  const lastWord = words.pop();
+  return (
+    <>
+      {words.join(" ")} <span className="text-[#287D88]">{lastWord}</span>
+    </>
+  );
+};
+
+// --- ANIMACJE ---
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -28,7 +70,15 @@ const fadeUpVariants: Variants = {
   },
 };
 
-export function FeaturedCamp() {
+// --- INTERFEJS PROPSÓW ---
+interface FeaturedCampProps {
+  initialCamp: any;
+}
+
+export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
+  // Jeśli z jakiegoś powodu baza nie zwróci żadnego wyjazdu, po prostu ukrywamy tę sekcję
+  if (!initialCamp) return null;
+
   return (
     <section className="container mx-auto px-4 max-[1024px]:px-6 pt-24 pb-16 overflow-hidden">
       <motion.div
@@ -41,26 +91,22 @@ export function FeaturedCamp() {
         {/* LEWA KOLUMNA - Tekst i dane */}
         <div className="flex flex-col items-start max-[1024px]:items-center max-[1024px]:text-center">
           <motion.div variants={fadeUpVariants} className="">
-            <Tag label="zbliżajacy sie camp" />
+            <Tag label="zbliżający się camp" />
           </motion.div>
 
           <motion.h2
             variants={fadeUpVariants}
             className="font-jakarta font-semibold text-[48px] max-[768px]:text-[36px] text-[#0B3B4C] leading-[110%] mb-6"
           >
-            Między nami <span className="text-[#287D88]">kobietami</span>
+            {formatTitle(initialCamp.title)}
           </motion.h2>
 
           <motion.p
             variants={fadeUpVariants}
             className="font-montserrat text-[#0B3B4C]/80 text-[16px] leading-[170%] mb-10 max-w-[600px]"
           >
-            Zostaw codzienny pośpiech za sobą i podaruj sobie 4 dni głębokiego
-            resetu w otoczeniu natury. &quot;Między nami kobietami&quot; to
-            kameralny wyjazd stworzony po to, byś odzyskała wewnętrzny balans.
-            Czeka na Ciebie świadomy ruch, profesjonalne masaże i wspierająca
-            kobieca energia – wszystko pod czujnym okiem fizjoterapeuty i
-            dietetyka klinicznego. To Twój czas na oddech.
+            {initialCamp.subtitle ||
+              "Zostaw codzienny pośpiech za sobą i podaruj sobie czas głębokiego resetu w otoczeniu natury. Czeka na Ciebie świadomy ruch, profesjonalne masaże i wspierająca energia."}
           </motion.p>
 
           {/* MOBILNE ZDJĘCIE (Wyświetlane tylko poniżej 1024px, zaraz nad kółkami) */}
@@ -75,17 +121,17 @@ export function FeaturedCamp() {
             }}
             className="w-full hidden max-[1024px]:flex justify-center"
           >
-            <div className="relative w-full max-w-[400px] max-[768px]:max-w-[320px] aspect-square rounded-full overflow-hidden shadow-2xl rounded-tr-none">
+            <div className="relative w-full max-w-[400px] max-[768px]:max-w-[320px] aspect-square rounded-full overflow-hidden shadow-2xl rounded-tr-none bg-gray-100">
               <Image
-                src="/images/static/camp.png" // Zmień na docelowe zdjęcie
+                src={initialCamp.heroImage || "/images/static/camp.png"}
                 fill
                 className="object-cover"
-                alt="Między nami kobietami"
+                alt={initialCamp.title}
               />
             </div>
           </motion.div>
 
-          {/* KÓŁKA INFORMACYJNE (Z ujemnym marginesem na mobile, by nachodziły na zdjęcie) */}
+          {/* KÓŁKA INFORMACYJNE */}
           <motion.div
             variants={fadeUpVariants}
             className="flex flex-wrap gap-4 mb-10 justify-center min-[1025px]:justify-start relative z-10 max-[1024px]:-mt-12"
@@ -94,25 +140,30 @@ export function FeaturedCamp() {
               {
                 icon: <CalendarBlank size={18} weight="fill" />,
                 label: "Termin",
-                value: "28–31.05.2026",
-                sub: "4 dni pełne relaksu",
+                value: formatDateRange(
+                  initialCamp.startDate,
+                  initialCamp.endDate,
+                ),
+                sub: "Twój czas na oddech",
               },
               {
                 icon: <MapPin size={18} weight="fill" />,
                 label: "Lokalizacja",
-                value: "Holiday Sky Park",
-                sub: "Jarnołtówek",
+                value: initialCamp.location || "Wkrótce podamy",
+                sub: "Piękne otoczenie",
               },
               {
                 icon: <CreditCard size={18} weight="fill" />,
                 label: "Cena",
-                value: "od 499 zł / os.",
+                value: initialCamp.price
+                  ? `od ${initialCamp.price} zł / os.`
+                  : "Sprawdź detale",
                 sub: "Inwestycja w siebie",
               },
             ].map((item, i) => (
               <div
                 key={i}
-                className={`w-[145px] h-[145px] rounded-full rounded-tr-none backdrop-blur-md bg-[#287D88]/70 flex flex-col items-center justify-center text-center text-white p-3 shadow-md relative ${i === 0 ? "max-[1024px]:-mt-12" : i === 2 ? "max-[1024px]:-mt-12" : ""} max-[500px]:mt-0 `}
+                className={`w-[145px] h-[145px] rounded-full rounded-tr-none backdrop-blur-md bg-[#287D88]/90 flex flex-col items-center justify-center text-center text-white p-3 shadow-md relative ${i === 0 ? "max-[1024px]:-mt-12" : i === 2 ? "max-[1024px]:-mt-12" : ""} max-[500px]:mt-0 `}
               >
                 {/* Ikonka */}
                 <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#1b5c65] flex items-center justify-center shadow-inner">
@@ -122,7 +173,7 @@ export function FeaturedCamp() {
                 <span className="font-montserrat text-white/80 text-[11px] mb-1.5">
                   {item.label}
                 </span>
-                <span className="font-montserrat font-bold text-[14px] leading-tight mb-1">
+                <span className="font-montserrat font-bold text-[13px] leading-tight mb-1 px-2">
                   {item.value}
                 </span>
                 <span className="font-montserrat text-white/60 text-[10px]">
@@ -132,9 +183,11 @@ export function FeaturedCamp() {
             ))}
           </motion.div>
 
-          {/* PRZYCISK */}
+          {/* PRZYCISK Z DYNAMICZNYM LINKIEM */}
           <motion.div variants={fadeUpVariants} className="relative z-20">
-            <Button showArrow>Poznaj szczegóły</Button>
+            <Link href={`/oboz/${initialCamp.id}`}>
+              <Button showArrow>Poznaj szczegóły</Button>
+            </Link>
           </motion.div>
         </div>
 
@@ -150,12 +203,12 @@ export function FeaturedCamp() {
           }}
           className="w-full flex justify-center lg:justify-end max-[1024px]:hidden"
         >
-          <div className="relative w-full max-w-[500px] aspect-square rounded-full overflow-hidden shadow-2xl rounded-tr-none">
+          <div className="relative w-full max-w-[500px] aspect-square rounded-full overflow-hidden shadow-2xl rounded-tr-none bg-gray-100">
             <Image
-              src="/images/static/camp.png" // Zmień na docelowe zdjęcie
+              src={initialCamp.heroImage || "/images/static/camp.png"}
               fill
               className="object-cover"
-              alt="Między nami kobietami"
+              alt={initialCamp.title}
             />
           </div>
         </motion.div>

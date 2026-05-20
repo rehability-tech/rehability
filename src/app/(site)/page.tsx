@@ -5,7 +5,7 @@ import { AboutSection } from "@/components/sections/AboutSection";
 import { AppPresentation } from "@/components/sections/AppPresentation";
 import { ContactSection } from "@/components/sections/ContactSection";
 import { FAQSection } from "@/components/sections/FaqSection";
-import { Footer } from "@/components/sections/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { KnowledgeBase } from "@/components/sections/KnowledgeBase";
 import { PopularCourses } from "@/components/sections/PopularCourses";

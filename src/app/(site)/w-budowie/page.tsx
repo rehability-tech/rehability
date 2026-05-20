@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Wrench } from "@phosphor-icons/react/dist/ssr";
 import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { Footer } from "@/components/layout/Footer";
 
 export default function UnderConstructionPage() {
   return (

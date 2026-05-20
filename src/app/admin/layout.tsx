@@ -1,45 +1,46 @@
-"use client";
-
-import React, { useState } from "react";
-import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import React from "react";
 import AdminSidebar from "@/components/sections/admin/ui/AdminSideBar";
 import AdminTopbar from "@/components/sections/admin/ui/AdminTopbar";
 import { Toaster } from "sonner";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+// DODANO: Import funkcji redirect
+import { redirect } from "next/navigation";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Pobieranie sesji po stronie serwera
+  const session = await getServerSession(authOptions);
+
+  // --- GŁÓWNY CHECK BEZPIECZEŃSTWA ---
+  // Jeśli nie ma sesji (niezalogowany) ALBO rola to nie ADMIN -> wyrzucamy na logowanie
+  if (!session || session.user?.role !== "ADMIN") {
+    redirect("/logowanie");
+  }
+
+  const user = session.user;
 
   return (
-    // ZMIANA: Dodajemy CSS Grid. 1 kolumna domyślnie, 2 kolumny na 'md' (250px + reszta)
-    <div className="min-h-screen bg-white grid grid-cols-1 md:grid-cols-[250px_1fr] font-montserrat">
-      {/* KOMPONENT SIDEBARA */}
-      <AdminSidebar
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+    // Grid: na sztywno 250px dla sidebara, reszta dla kontentu
+    <div className="min-h-screen bg-white grid grid-cols-[250px_1fr] font-montserrat">
+      {/* KLIENCKI KOMPONENT SIDEBARA */}
+      <AdminSidebar />
 
       {/* GŁÓWNY KONTENER NA TREŚĆ */}
-      {/* ZMIANA: Usunęliśmy md:ml-[260px], bo Grid robi to za nas! */}
       <main className="flex flex-col min-w-0 min-h-screen">
-        {/* KOMPONENT TOPBARA */}
-        <AdminTopbar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+        {/* KLIENCKI KOMPONENT TOPBARA */}
+        <AdminTopbar user={user} />
         <Toaster richColors position="top-center" />
 
         {/* ZAWARTOŚĆ STRONY */}
-        <div className="max-w-[1400px] mx-auto w-full flex-1 ">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+        <div className="max-w-[1400px] mx-auto w-full flex-1">
+          {/* Tailwind animations */}
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             {children}
-          </motion.div>
+          </div>
         </div>
       </main>
     </div>

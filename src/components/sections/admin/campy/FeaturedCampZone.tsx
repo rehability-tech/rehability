@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Star, DotsSixVertical } from "@phosphor-icons/react/dist/ssr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CampCard, CampData } from "./CampCard";
+import { CampCard, CampData } from "../editor/CampCard";
 
 interface FeaturedCampZoneProps {
   featuredCamp: CampData | undefined;

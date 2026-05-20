@@ -1,7 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Gabinet | Rehability",

@@ -1,21 +1,27 @@
+import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Upewnij się, że ta ścieżka jest poprawna!
 
-// ============================================================================
-// SZKIELET NEXT-AUTH: Weryfikacja Admina
-// ============================================================================
 export async function requireAdmin() {
-  // TODO: Po wdrożeniu NextAuth podmień to na:
-  // const session = await getServerSession(authOptions);
-  // if (!session || session.user.role !== "ADMIN") {
-  //   return false;
-  // }
+  const session = await getServerSession(authOptions);
 
-  // Na ten moment symulujemy, że użytkownik to zawsze uwierzytelniony Admin
-  const isAuthorized = true;
-
-  if (!isAuthorized) {
-    throw new Error("Unauthorized");
+  // Sprawdzamy czy w ogóle jest sesja i czy rola to ADMIN
+  if (!session || session.user?.role !== "ADMIN") {
+    return {
+      isAuthorized: false,
+      // Gotowa odpowiedź 403 (Forbidden), którą od razu wyrzucisz z API
+      response: NextResponse.json(
+        { error: "Brak dostępu. Wymagane uprawnienia administratora." },
+        { status: 403 },
+      ),
+      session: null,
+    };
   }
 
-  return true;
+  // Jeśli wszystko gra, zwracamy zielone światło i pełną sesję (np. żeby wyciągnąć ID admina)
+  return {
+    isAuthorized: true,
+    response: null,
+    session: session,
+  };
 }

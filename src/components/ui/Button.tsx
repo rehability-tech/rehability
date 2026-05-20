@@ -17,10 +17,11 @@ export interface ButtonProps extends Omit<
   variant?: "primary" | "secondary";
   isLoading?: boolean;
   showArrow?: boolean; // Zostawiamy dla kompatybilności wstecznej
-  rightIcon?: React.ReactNode; // Dowolna ikonka za tekstem
+  leftIcon?: React.ReactNode; // DODANE: Ikonka przed tekstem
+  rightIcon?: React.ReactNode; // Ikonka za tekstem
   href?: string;
   newTab?: boolean;
-  disabled?: boolean; // Jawne zdefiniowanie propa disabled
+  disabled?: boolean;
   children?: React.ReactNode;
 }
 
@@ -34,10 +35,11 @@ export const Button = forwardRef<
       variant = "primary",
       isLoading = false,
       showArrow,
+      leftIcon, // DODANE: Wyciągnięcie z propsów
       rightIcon,
       href,
       newTab,
-      disabled = false, // Wyciągamy disabled
+      disabled = false,
       children,
       ...props
     },
@@ -111,6 +113,13 @@ export const Button = forwardRef<
           }}
           className="flex items-center justify-center whitespace-nowrap"
         >
+          {/* DODANE: Renderowanie opcjonalnej ikonki po lewej stronie tekstu */}
+          {leftIcon && (
+            <span className="flex items-center justify-center mr-2">
+              {leftIcon}
+            </span>
+          )}
+
           {/* Tekst przycisku */}
           <span>{children}</span>
 

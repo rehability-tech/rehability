@@ -12,6 +12,7 @@ datasource db {
   provider = "postgresql"
    url      = env("DATABASE_URL")
 }
+
 model Review {
   id        String   @id @default(cuid())
   name      String
@@ -19,6 +20,7 @@ model Review {
   rating    Int
   createdAt DateTime @default(now())
 }
+
 model Camp {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
@@ -30,17 +32,17 @@ model Camp {
   startDate    DateTime
   endDate      DateTime
   capacity     Int
-  
+  mapUrl    String?
   // Finanse
   price        Decimal
   deposit      Decimal
 
-  // --- KROK 2: Treść wyjazdu (NOWE POLE) ---
+  // --- KROK 2: Treść wyjazdu ---
   subtitle     String?  // Opcjonalny podtytuł
   tags         String[] // Tablica tagów, np. ["Joga", "Góry", "Relaks"]
   heroImage    String?  // Link do głównego zdjęcia
-  description  String?  @db.Text // Główny opis (jeśli masz taki poza blokami)
-  services    CampService[]
+  description  String?  @db.Text // Główny opis
+  services     CampService[]
   // TO JEST NAJWAŻNIEJSZE: Tu wpadnie cały nasz Drag&Drop z TipTapem!
   blocks       Json?    @default("[]") 
 
@@ -54,13 +56,13 @@ model Camp {
 model ExtraService {
   id          String   @id @default(cuid())
   name        String   
-  duration    Int      // <--- ZMIANA: Ze String na Int
+  duration    Int      // Czas w minutach
   price       Decimal  
   description String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
 }
+
 model CampService {
   id          String   @id @default(cuid())
   name        String   // np. "Masaż klasyczny"
@@ -71,4 +73,63 @@ model CampService {
   // Relacja zwrotna do Campa
   campId      String
   camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// AUTORYZACJA (NEXTAUTH)
+// ==========================================
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Zdefiniowany Enum Ról
+enum Role {
+  USER
+  ADMIN
+}
+
+// POJEDYNCZY, WŁAŚCIWY MODEL USERA
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  
+  role          Role      @default(USER) 
+  
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }

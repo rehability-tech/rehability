@@ -1,14 +1,36 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { z } from "zod";
+
+// ==========================================
+// SCHEMAT WALIDACJI (ZOD)
+// ==========================================
+const publishCampSchema = z.object({
+  id: z.string().min(1, "Brak ID Campa do opublikowania"),
+});
 
 export async function POST(req: Request) {
   try {
-    const { id } = await req.json();
+    // 1. ZABEZPIECZENIE: Autoryzacja Admina
+    const { isAuthorized, response } = await requireAdmin();
+    if (!isAuthorized) return response as NextResponse;
 
-    if (!id) {
-      return NextResponse.json({ error: "Brak ID" }, { status: 400 });
+    // 2. WALIDACJA: Body zapytania (Zod)
+    const body = await req.json();
+    const validatedBody = publishCampSchema.safeParse(body);
+
+    if (!validatedBody.success) {
+      return NextResponse.json(
+        { error: validatedBody.error.issues[0].message },
+        { status: 400 },
+      );
     }
 
+    // Wyciągamy bezpiecznie zwalidowane dane
+    const { id } = validatedBody.data;
+
+    // 3. LOGIKA BIZNESOWA: Aktualizacja statusu
     const camp = await prisma.camp.update({
       where: { id },
       data: { status: "PUBLISHED" },

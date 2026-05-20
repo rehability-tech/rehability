@@ -65,31 +65,32 @@ export function Navbar() {
         </Link>
 
         {/* === NAWIGACJA DESKTOP === */}
-        <nav className="hidden md:flex items-center gap-2">
-          <ul className="flex items-center">
+        <nav className="hidden md:flex items-center gap-6">
+          <ul className="flex items-center gap-4">
             {NAV_LINKS.map((link) => {
               const isActive = path === link.href;
 
               return (
-                <li key={link.href} className="relative">
+                <li
+                  key={link.href}
+                  className="relative flex flex-col items-center justify-center px-1 py-2"
+                >
                   <Link
                     href={link.href}
-                    // ZMIANA: Biały tekst dla aktywnego linku
-                    className={`relative z-10 px-4 py-2 typography-paragraph transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-full
-                      ${
-                        isActive
-                          ? "text-white font-semibold"
-                          : "text-brand-secondary hover:text-brand-primary"
-                      }`}
+                    className={`relative z-10 typography-paragraph transition-colors focus-visible:outline-none ${
+                      isActive
+                        ? "text-[#0B3B4C] font-semibold"
+                        : "text-gray-500 hover:text-[#0B3B4C] font-medium"
+                    }`}
                   >
                     {link.label}
                   </Link>
 
-                  {/* ZMIANA: Pełne tło brand-primary i delikatny cień dla pigułki */}
+                  {/* Nowy wskaźnik aktywnej zakładki - krótka linia */}
                   {isActive && (
                     <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 bg-brand-primary shadow-md rounded-full z-0"
+                      layoutId="nav-underline"
+                      className="absolute -bottom-1 h-[3px] w-5 bg-[#0B3B4C] rounded-full"
                       initial={false}
                       transition={{
                         type: "spring",
@@ -105,11 +106,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:block">
-          <Button
-            variant="primary"
-            isLoading={isPending}
-            onClick={handleVodClick}
-          >
+          <Button variant="primary" isLoading={isPending} href="/logowanie">
             Platforma VOD
           </Button>
         </div>
@@ -167,7 +164,6 @@ export function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      // ZMIANA: Dodano solidne tło i biały tekst do aktywnej zakładki na mobile
                       className={`flex items-center justify-between font-montserrat text-[18px] py-3 px-4 rounded-xl transition-all ${
                         isActive
                           ? "bg-brand-primary text-white font-bold shadow-md"
@@ -181,7 +177,6 @@ export function Navbar() {
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        // ZMIANA: Biała strzałka na aktywnym kafelku
                         className={isActive ? "text-white" : "text-gray-400"}
                       >
                         <path

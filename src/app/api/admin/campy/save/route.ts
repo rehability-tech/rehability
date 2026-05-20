@@ -1,13 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import { campSchema } from "@/lib/zod/campsValidators"; // Upewnij się, że w schemacie Zod też dopisałeś lastStage (opcjonalnie)
+import { campSchema } from "@/lib/zod/campsValidators";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 
 export async function POST(req: Request) {
   try {
+    // 1. ZABEZPIECZENIE: Autoryzacja Admina
+    const { isAuthorized, response } = await requireAdmin();
+    if (!isAuthorized) return response as NextResponse;
+
     const body = await req.json();
 
-    // 1. Walidacja Zod
-    const validatedData = campSchema.parse(body);
+    // 2. Oddzielamy metadane (id, lastStage) od danych do walidacji
+    const { id, lastStage, ...dataToValidate } = body;
+
+    // 3. Walidacja Zod - OD TEGO MOMENTU UŻYWAMY TYLKO validatedData
+    const validatedData = campSchema.parse(dataToValidate);
 
     // Walidacja logiki dat
     if (validatedData.endDate < validatedData.startDate) {
@@ -17,42 +25,33 @@ export async function POST(req: Request) {
       );
     }
 
-    // Wyciągamy id i lastStage (który może przyjść z frontu lub mieć wartość domyślną)
-    const { id, lastStage, ...data } = body;
+    // 4. PRZYGOTOWANIE OBIEKTU DANYCH
+    // Zod już zwalidował i przekonwertował (coerce) typy na Date i number!
+    const campData = {
+      title: validatedData.title,
+      location: validatedData.location,
+      mapUrl: validatedData.mapUrl,
+      startDate: validatedData.startDate,
+      endDate: validatedData.endDate,
+      capacity: validatedData.capacity,
+      price: validatedData.price,
+      deposit: validatedData.deposit,
+      lastAiPrompt: validatedData.lastAiPrompt,
+      lastStage: lastStage || "dane-podstawowe",
+    };
 
     let camp;
 
     if (id) {
-      // 2a. AKTUALIZACJA istniejącego campa
+      // 5a. AKTUALIZACJA
       camp = await prisma.camp.update({
         where: { id },
-        data: {
-          title: data.title,
-          location: data.location,
-          startDate: new Date(data.startDate),
-          endDate: new Date(data.endDate),
-          capacity: parseInt(data.capacity),
-          price: parseFloat(data.price),
-          deposit: parseFloat(data.deposit),
-          lastAiPrompt: data.lastAiPrompt,
-          // Jeśli front przesyła stage, aktualizujemy go
-          lastStage: lastStage || "dane-podstawowe",
-        },
+        data: campData,
       });
     } else {
-      // 2b. TWORZENIE nowego campa
+      // 5b. TWORZENIE
       camp = await prisma.camp.create({
-        data: {
-          title: data.title,
-          location: data.location,
-          startDate: new Date(data.startDate),
-          endDate: new Date(data.endDate),
-          capacity: parseInt(data.capacity),
-          price: parseFloat(data.price),
-          deposit: parseFloat(data.deposit),
-          lastAiPrompt: data.lastAiPrompt,
-          lastStage: lastStage || "dane-podstawowe",
-        },
+        data: campData,
       });
     }
 
@@ -61,15 +60,14 @@ export async function POST(req: Request) {
       campId: camp.id,
       lastStage: camp.lastStage,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Błąd zapisu campa:", error);
 
     // Obsługa błędów walidacji Zod
     if (error && typeof error === "object" && "issues" in error) {
-      return NextResponse.json(
-        { error: "Nieprawidłowe dane wejściowe" },
-        { status: 400 },
-      );
+      const errorMessage =
+        error.issues[0]?.message || "Nieprawidłowe dane wejściowe";
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
     return NextResponse.json(

@@ -1,11 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth/requireAdmin"; // <-- Import bramkarza
 
 // Zapobiegamy mocnemu cache'owaniu przez Next.js, żeby lista zawsze była świeża po dodaniu nowego campa
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    // 1. ZABEZPIECZENIE: Autoryzacja Admina
+    const { isAuthorized, response } = await requireAdmin();
+    if (!isAuthorized) return response as NextResponse;
+
+    // 2. POBIERANIE DANYCH
     const camps = await prisma.camp.findMany({
       orderBy: {
         createdAt: "desc", // Najnowsze na górze
