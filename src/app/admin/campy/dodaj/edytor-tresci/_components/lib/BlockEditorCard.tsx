@@ -14,13 +14,16 @@ import {
   DotsSixVertical,
   MapTrifold,
 } from "@phosphor-icons/react/dist/ssr";
-import RichTextInput from "./RichTextInput";
 import FaqBlock from "../blocks/FaqBlock";
 import FeaturesGridBlock from "../blocks/FeaturesGridBlock";
 import PricingListBlock from "../blocks/PricingListBlock";
 import VideoEmbedBlock from "../blocks/VideoEmbedBlock";
 import InlineImageBlock from "../blocks/InlineImageBlock";
 import BulletListBlock from "../blocks/BulletListBlock";
+import HeadingBlock from "../blocks/HeadingBlock";
+import ParagraphBlock from "../blocks/ParagraphBlock";
+import HighlightBlock from "../blocks/HighlightBlock";
+import SpacerBlock from "../blocks/SpacerBlock";
 
 import { CampBlock } from "../hooks/useCampAiGenerator";
 import MapBlock from "../blocks/MapBlock";
@@ -50,39 +53,17 @@ function BlockEditorCardBase({
     switch (block.type) {
       // --- PODSTAWOWE, KRÓTKIE BLOKI ---
       case "heading":
-        return (
-          <RichTextInput
-            value={block.content?.text || ""}
-            onChange={(text) => setContent({ text })}
-            className="text-2xl md:text-3xl font-jakarta font-bold text-[#0B3B4C] leading-[1.2]"
-          />
-        );
+        return <HeadingBlock content={block.content} onChange={setContent} />;
       case "paragraph":
         return (
-          <RichTextInput
-            value={block.content?.text || ""}
-            onChange={(text) => setContent({ text })}
-            className="text-gray-600 font-montserrat text-base leading-[1.7]"
-          />
+          <ParagraphBlock content={block.content} onChange={setContent} />
         );
       case "highlight":
         return (
-          <div className="w-full border-l-4 border-brand-primary pl-4 py-1">
-            <RichTextInput
-              value={block.content?.text || ""}
-              onChange={(text) => setContent({ text })}
-              className="font-jakarta font-medium text-lg text-[#0B3B4C] leading-relaxed"
-            />
-          </div>
+          <HighlightBlock content={block.content} onChange={setContent} />
         );
       case "spacer":
-        return (
-          <div className="w-full flex items-center justify-center h-16 border border-dashed border-brand-primary/20 rounded-lg bg-brand-primary/[0.02]">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-brand-primary/40">
-              Przerwa wizualna
-            </span>
-          </div>
-        );
+        return <SpacerBlock />;
       case "map":
         return <MapBlock mapUrl={mapUrl} />;
 
