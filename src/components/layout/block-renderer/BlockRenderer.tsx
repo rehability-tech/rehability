@@ -12,7 +12,7 @@ import FaqBlock from "./FaqBlock";
 import InlineImageBlock from "./InlineImageBlock";
 import VideoEmbedBlock from "./VideoEmbedBlock";
 import SpacerBlock from "./SpacerBlock";
-import { CampBlock } from "@/components/sections/admin/editor/hooks/useCampAiGenerator";
+import { CampBlock } from "@/app/admin/campy/dodaj/edytor-tresci/_components/hooks/useCampAiGenerator";
 import MapBlock from "./MapBlock";
 import HeroBlock from "./HeroBlock";
 

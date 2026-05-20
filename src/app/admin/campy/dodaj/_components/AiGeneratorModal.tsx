@@ -6,8 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-// src/components/sections/admin/AiGeneratorModal.tsx
-
 export interface AiGeneratedData {
   title?: string;
   locationName?: string; // <-- NOWE POLE

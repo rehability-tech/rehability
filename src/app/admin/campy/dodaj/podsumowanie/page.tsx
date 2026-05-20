@@ -15,8 +15,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence, Variants } from "framer-motion"; // <-- Import Variants
 
 import { Button } from "@/components/ui/Button";
-import DataPreviewTab from "@/components/sections/admin/campy/dodaj/podsumowanie/DataPreviewTab";
-import DesignPreviewTab from "@/components/sections/admin/campy/dodaj/podsumowanie/DesignPreviewTab";
+import DataPreviewTab from "./_components/DataPreviewTab";
+import DesignPreviewTab from "./_components/DesignPreviewTab";
 
 // --- KONFIGURACJA ANIMACJI ---
 // Typowanie jako : Variants naprawia błąd TS z `type: string` zamiast `type: "spring"`

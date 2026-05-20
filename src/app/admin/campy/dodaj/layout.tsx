@@ -1,4 +1,4 @@
-import CampCreatorStepper from "@/components/sections/admin/ui/CampCreatorStepper";
+import CampCreatorStepper from "./_components/CampCreatorStepper";
 import React from "react";
 
 export default function CampCreatorLayout({

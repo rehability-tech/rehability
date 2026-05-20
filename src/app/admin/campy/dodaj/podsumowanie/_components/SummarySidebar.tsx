@@ -1,4 +1,3 @@
-// src/components/sections/admin/campy/podsumowanie/SummarySidebar.tsx
 "use client";
 
 import React from "react";

@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 // Importy UI
-import EditableHero from "@/components/sections/admin/editor/EditableHero";
-import EditorToolbar from "@/components/sections/admin/editor/lib/EditorToolbar";
-import CampBlocksBuilder from "@/components/sections/admin/editor/lib/CampBlockBuilder";
-import AiGeneratorModal from "@/components/sections/admin/AiGeneratorModal";
-import { useCampContent } from "@/components/sections/admin/editor/hooks/useCampContent";
-import { useCampAiGenerator } from "@/components/sections/admin/editor/hooks/useCampAiGenerator";
+import EditableHero from "./_components/EditableHero";
+import EditorToolbar from "./_components/lib/EditorToolbar";
+import CampBlocksBuilder from "./_components/lib/CampBlockBuilder";
+import AiGeneratorModal from "../_components/AiGeneratorModal";
+import { useCampContent } from "./_components/hooks/useCampContent";
+import { useCampAiGenerator } from "./_components/hooks/useCampAiGenerator";
 
 // Helper do formatowania daty
 const formatDateRange = (start: any, end: any) => {

@@ -1,6 +1,6 @@
 import React from "react";
-import AdminSidebar from "@/components/sections/admin/ui/AdminSideBar";
-import AdminTopbar from "@/components/sections/admin/ui/AdminTopbar";
+import AdminSidebar from "./_components/AdminSideBar";
+import AdminTopbar from "./_components/AdminTopbar";
 import { Toaster } from "sonner";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";

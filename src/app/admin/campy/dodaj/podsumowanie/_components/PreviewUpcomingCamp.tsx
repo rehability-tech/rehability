@@ -200,7 +200,7 @@ export default function PreviewUpcomingCamps({
                     key={block.id}
                     className={`relative w-full aspect-square overflow-hidden transition-all duration-700 ease-in-out ${block.radius}`}
                   >
-                    {/* Ten kontener symuluje pełen rozmiar całej siatki (np. 400% x 200%), 
+                    {/* Ten kontener symuluje pełen rozmiar całej siatki (np. 400% x 200%),
                         a dzięki left/top przesuwa się tak, by w okienku znalazł się właściwy wycinek */}
                     <div
                       className="absolute"

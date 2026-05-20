@@ -20,10 +20,10 @@ import {
   FormDatePicker,
   FormInput,
   FormLocationInput,
-} from "@/components/sections/admin/FormFields";
+} from "../_components/FormFields";
 import AiGeneratorModal, {
   AiGeneratedData,
-} from "@/components/sections/admin/AiGeneratorModal";
+} from "../_components/AiGeneratorModal";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
