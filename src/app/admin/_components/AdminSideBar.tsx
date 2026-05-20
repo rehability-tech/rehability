@@ -19,6 +19,10 @@ import {
   ListNumbers,
   Image as ImageIcon,
   Article,
+  NewspaperClipping,
+  TextT,
+  MagnifyingGlass,
+  CalendarBlank,
 } from "@phosphor-icons/react/dist/ssr";
 
 export default function AdminSidebar() {
@@ -32,7 +36,15 @@ export default function AdminSidebar() {
   const isManagingCamp =
     isInsideCampContext && !isCreatingCamp && pathname !== "/admin/campy";
 
+  const isCreatingPost = pathname.startsWith("/admin/blog/dodaj");
+
   // ZMIANA: Dodano flagę `requiresId`, żeby wiedzieć, które kroki zablokować na starcie
+  const createPostSteps = [
+    { name: "1. Dane podst.",   href: "/admin/blog/dodaj/dane-podstawowe", icon: <ListNumbers size={16} />, requiresId: false },
+    { name: "2. Edytor treści", href: "/admin/blog/dodaj/edytor-tresci",   icon: <TextT size={16} />,       requiresId: true },
+    { name: "3. SEO",           href: "/admin/blog/dodaj/seo",             icon: <MagnifyingGlass size={16} />, requiresId: true },
+  ];
+
   const createCampSteps = [
     {
       name: "1. Dane podst.",
@@ -201,6 +213,63 @@ export default function AdminSidebar() {
                           <span className="text-[12px]">{step.name}</span>
                         </div>
                       </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* BLOG */}
+        <div className="flex flex-col mt-4">
+          <span className="px-3.5 text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1.5">
+            Treści
+          </span>
+
+          <Link href="/admin/blog">
+            <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] transition-all ${pathname === "/admin/blog" ? "bg-white text-brand-primary shadow-md font-semibold" : "text-white/70 hover:bg-white/10"}`}>
+              <NewspaperClipping size={20} weight={pathname === "/admin/blog" ? "fill" : "regular"} />
+              <span className="font-montserrat text-[13px] font-medium">Blog</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/blog/harmonogram">
+            <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] transition-all ${pathname === "/admin/blog/harmonogram" ? "bg-white text-brand-primary shadow-md font-semibold" : "text-white/70 hover:bg-white/10"}`}>
+              <CalendarBlank size={20} weight={pathname === "/admin/blog/harmonogram" ? "fill" : "regular"} />
+              <span className="font-montserrat text-[13px] font-medium">Harmonogram</span>
+            </div>
+          </Link>
+
+          {/* Kreator artykułu */}
+          {isCreatingPost && (
+            <div className="mt-1 flex flex-col animate-in slide-in-from-top-2 duration-300">
+              <span className="ml-[8px] pl-4 py-1 text-[10px] font-bold text-white uppercase tracking-wider">
+                Kreator artykułu
+              </span>
+              <div className="ml-[24px] flex flex-col border-l border-white/20 pb-2">
+                {createPostSteps.map((step) => {
+                  const isSubActive = pathname === step.href;
+                  const isDisabled  = step.requiresId && !campId;
+                  const targetHref  = campId ? `${step.href}?id=${campId}` : step.href;
+                  return (
+                    <div key={step.name} className="relative flex items-center mt-0.5">
+                      <div className="absolute -left-[1px] top-1/2 w-4 h-px bg-white/20" />
+                      {isDisabled ? (
+                        <div className="flex-1 ml-4 mr-2 opacity-40 cursor-not-allowed">
+                          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-white/50">
+                            {step.icon}
+                            <span className="text-[12px]">{step.name}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Link href={targetHref} className="flex-1 ml-4 mr-2">
+                          <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] transition-all ${isSubActive ? "bg-white text-brand-primary font-bold" : "text-white/50 hover:text-white"}`}>
+                            {step.icon}
+                            <span className="text-[12px]">{step.name}</span>
+                          </div>
+                        </Link>
+                      )}
                     </div>
                   );
                 })}

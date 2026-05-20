@@ -53,6 +53,52 @@ model Camp {
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
 }
 
+model Post {
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // --- KROK 1: Dane podstawowe ---
+  title           String
+  slug            String    @unique
+  excerpt         String?   @db.Text
+  coverImage      String?
+  category        String    @default("Ogólne")
+  tags            String[]
+  author          String    @default("Piotr Siemaszko")
+  readTime        Int?      // szacowany czas czytania w minutach
+
+  // --- KROK 2: Treść ---
+  content         Json?     @default("[]")
+
+  // --- KROK 3: SEO ---
+  metaTitle       String?
+  metaDescription String?   @db.Text
+  focusKeyword    String?
+  ogImage         String?
+  canonicalUrl    String?
+  noIndex         Boolean   @default(false)
+
+  // --- Systemowe ---
+  status          String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  publishedAt     DateTime?
+  lastStage       String    @default("dane-podstawowe")
+}
+
+model BlogScheduleEntry {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+
+  scheduledDate DateTime?
+  title         String
+  topic         String   @db.Text
+  category      String
+  keywords      String[]
+  status        String   @default("PLANNED") // PLANNED, IN_PROGRESS, PUBLISHED, SKIPPED
+
+  postId        String?
+}
+
 model ExtraService {
   id          String   @id @default(cuid())
   name        String   

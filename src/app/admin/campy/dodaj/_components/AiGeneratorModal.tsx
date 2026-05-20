@@ -24,6 +24,8 @@ interface AiGeneratorModalProps {
   onSubmit: (prompt: string, modelType: string) => void;
   prompt: string;
   setPrompt: (val: string) => void;
+  description?: string;
+  placeholder?: string;
 }
 
 const AI_MODELS = [
@@ -43,6 +45,8 @@ export default function AiGeneratorModal({
   onSubmit,
   prompt,
   setPrompt,
+  description,
+  placeholder,
 }: AiGeneratorModalProps) {
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -194,16 +198,15 @@ export default function AiGeneratorModal({
                   </div>
 
                   <p className="text-sm text-gray-500 font-montserrat mb-4">
-                    Opisz swój wyjazd. AI przygotuje dla Ciebie chwytliwy tytuł
-                    i dopasuje podstawowe informacje, takie jak lokalizacja czy
-                    ilość miejsc.
+                    {description ??
+                      "Opisz swój wyjazd. AI przygotuje dla Ciebie chwytliwy tytuł i dopasuje podstawowe informacje, takie jak lokalizacja czy ilość miejsc."}
                   </p>
 
                   <div className="relative">
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="np. Weekendowy wyjazd w góry dla 10 kobiet z jogą, winem i masażami w Jarnołtówku..."
+                      placeholder={placeholder ?? "np. Weekendowy wyjazd w góry dla 10 kobiet z jogą, winem i masażami w Jarnołtówku..."}
                       className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[16px] p-4 min-h-[120px] font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors resize-none"
                     />
                     <Sparkle

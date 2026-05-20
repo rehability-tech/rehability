@@ -159,6 +159,89 @@ export async function POST(req: Request) {
         }`;
         break;
 
+      // =======================================================================
+      // AGENT: PODSTAWOWE DANE BLOGA
+      // =======================================================================
+      // =======================================================================
+      // AGENT: PEŁNA TREŚĆ ARTYKUŁU BLOGOWEGO
+      // =======================================================================
+      // =======================================================================
+      // AGENT: ARCHITEKT BLOGA (Planista struktury artykułu)
+      // =======================================================================
+      case "generateBlogBlueprint":
+        systemInstruction = `Jesteś doświadczonym redaktorem bloga wellness i fizjoterapii dla kobiet.
+        Zaplanuj idealną strukturę artykułu blogowego, który angażuje czytelniczkę i dostarcza wartości.
+
+        DOSTĘPNE TYPY BLOKÓW (używaj TYLKO tych):
+        - heading: Nagłówek sekcji (H2/H3)
+        - paragraph: Akapit tekstu
+        - highlight: Wyróżniony cytat / mocna myśl
+        - bulletList: Lista punktowana (zalety, wskazówki, lista kroków)
+        - featuresGrid: Karty zalet z ikonkami (max 4-5 kart, krótkie opisy)
+        - inlineImage: Zdjęcie w treści (zostaw puste - redaktor doda sam)
+        - faq: Sekcja pytań i odpowiedzi
+        - spacer: Pusty odstęp między sekcjami
+        - videoEmbed: Osadzony film YouTube
+
+        ZASADY BUDOWY ARTYKUŁU:
+        1. Zacznij od angażującego akapitu bez nagłówka (paragraph)
+        2. Używaj "spacer" przed każdym nowym nagłówkiem (oprócz pierwszego)
+        3. Nie zostawiaj "gołego" nagłówka bez akapitu - zawsze heading -> paragraph -> opcjonalnie inny element
+        4. Minimum 5-8 bloków dla artykułu z wartością
+        5. Zakończ podsumowaniem lub wezwaniem do działania (paragraph lub highlight)
+
+        Zwróć DOKŁADNIE taki format JSON:
+        {
+          "blueprint": [
+            { "type": "...", "topic": "Szczegółowa instrukcja dla copywritera co ma napisać w tym bloku." }
+          ]
+        }`;
+        break;
+
+      case "generateBlogContent":
+        systemInstruction = `Jesteś doświadczonym copywriterem bloga wellness i fizjoterapii dla kobiet.
+        Napisz kompletny, angażujący artykuł blogowy w języku polskim.
+
+        WYMAGANIA:
+        1. Minimum 800 słów
+        2. Format HTML z tagami: <h2>, <h3>, <p>, <ul>, <li>, <strong>
+        3. Zacznij od wciągającego wstępu (akapit <p>, bez nagłówka na początku)
+        4. Co najmniej 3 sekcje z nagłówkami <h2>
+        5. Pisz językiem korzyści, bezpośrednio do czytelniczki (forma „ty")
+        6. Naturalnie wplataj słowa kluczowe (nie na siłę)
+        7. Zakończ inspirującym podsumowaniem lub wezwaniem do działania
+        8. NIE używaj tagów <html>, <head>, <body>, <article>
+
+        Zwróć TYLKO czysty HTML — żadnych dodatkowych komentarzy ani markdown.`;
+        break;
+
+      // =======================================================================
+      // AGENT: METADANE SEO ARTYKUŁU
+      // =======================================================================
+      case "generateBlogSeo":
+        systemInstruction = `Jesteś ekspertem SEO specjalizującym się w blogach wellness.
+        Na podstawie danych artykułu wygeneruj DOKŁADNY obiekt JSON:
+        {
+          "metaTitle": "Optymalny tytuł SEO, 50-60 znaków, zawiera główne słowo kluczowe",
+          "metaDescription": "Zachęcający opis 120-155 znaków, zawiera słowo kluczowe i call-to-action",
+          "focusKeyword": "Główna fraza kluczowa (2-4 słowa po polsku)"
+        }`;
+        break;
+
+      case "generateBlogBasicData":
+        systemInstruction = `Jesteś doświadczonym redaktorem bloga z branży zdrowia, fizjoterapii i wellness.
+        Na podstawie opisu artykułu wygeneruj DOKŁADNY obiekt JSON:
+        {
+          "title": "Chwytliwy tytuł artykułu (max 10 słów)",
+          "excerpt": "Krótki, zachęcający opis artykułu (2-3 zdania, max 300 znaków). Użyj języka korzyści.",
+          "categorySuggestions": ["Kategoria1", "Kategoria2"],
+          "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+        }
+
+        Dla pola "categorySuggestions" sugeruj 1-3 kategorie WYŁĄCZNIE z tej listy: ["Fizjoterapia", "Mindfulness", "Żywienie", "Ruch", "Camp Stories", "Terapia", "Ogólne"]. Nie wymyślaj własnych kategorii.
+        Dla pola "tags" generuj 4-6 krótkich słów kluczowych po polsku, małymi literami, bez spacji (używaj myślnika zamiast spacji).`;
+        break;
+
       default:
         return NextResponse.json(
           { error: "Nieznana akcja AI" },
@@ -173,15 +256,20 @@ export async function POST(req: Request) {
 
     const fullPrompt = `${systemInstruction}\n\n${finalUserText}`;
 
+    const isHtmlAction = action === "generateBlogContent";
+
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
-        responseMimeType: "application/json",
+        responseMimeType: isHtmlAction ? "text/plain" : "application/json",
       },
     });
 
     const responseText = result.response.text();
 
+    if (isHtmlAction) {
+      return NextResponse.json({ content: responseText });
+    }
     return NextResponse.json(JSON.parse(responseText));
   } catch (error) {
     console.error("Gemini API Error:", error);

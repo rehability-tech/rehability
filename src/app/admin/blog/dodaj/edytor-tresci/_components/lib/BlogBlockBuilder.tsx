@@ -1,0 +1,55 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Reorder } from "framer-motion";
+import BlogBlockEditorCard from "./BlogBlockEditorCard";
+import BlogBlockAdder from "./BlogBlockAdder";
+import { BlogBlock, BlogBlockType } from "../hooks/useBlogAiGenerator";
+
+interface BlogBlockBuilderProps {
+  blocks: BlogBlock[];
+  onChange: (newBlocks: BlogBlock[]) => void;
+}
+
+export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderProps) {
+  const [localBlocks, setLocalBlocks] = useState<BlogBlock[]>(blocks);
+
+  useEffect(() => {
+    setLocalBlocks(blocks);
+  }, [blocks]);
+
+  const handleAddBlock = (type: BlogBlockType) => {
+    let defaultContent: any = null;
+    switch (type) {
+      case "heading":      defaultContent = { text: "Nowy nagłówek" }; break;
+      case "paragraph":    defaultContent = { text: "" }; break;
+      case "highlight":    defaultContent = { text: "" }; break;
+      case "spacer":       defaultContent = {}; break;
+      case "bulletList":   defaultContent = { items: [{ id: crypto.randomUUID(), text: "<p>Nowy punkt...</p>" }] }; break;
+      case "faq":          defaultContent = { items: [{ id: crypto.randomUUID(), question: "", answer: "" }] }; break;
+      case "featuresGrid": defaultContent = { items: [{ id: crypto.randomUUID(), icon: "Sparkle", text: "Nowa zaleta" }] }; break;
+      case "inlineImage":  defaultContent = { url: "", alt: "" }; break;
+      case "videoEmbed":   defaultContent = { url: "" }; break;
+    }
+    onChange([...blocks, { id: crypto.randomUUID(), type, content: defaultContent }]);
+  };
+
+  const handleDeleteBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
+  const handleUpdateBlock = (updated: BlogBlock) => onChange(blocks.map((b) => (b.id === updated.id ? updated : b)));
+
+  return (
+    <div className="w-full lg:pr-16">
+      <Reorder.Group axis="y" values={localBlocks} onReorder={onChange} className="flex flex-col gap-2">
+        {localBlocks.map((block) => (
+          <BlogBlockEditorCard
+            key={`${block.id}-${block.isGenerating ? "loading" : "ready"}`}
+            block={block}
+            onDelete={() => handleDeleteBlock(block.id)}
+            onUpdate={handleUpdateBlock}
+          />
+        ))}
+      </Reorder.Group>
+      <BlogBlockAdder onAddBlock={handleAddBlock} />
+    </div>
+  );
+}

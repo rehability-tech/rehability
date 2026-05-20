@@ -3,7 +3,9 @@
     "allow": [
       "Bash(grep -v \"^\\\\.\\\\.$\")",
       "Bash(grep -v \"^\\\\.$\")",
-      "Bash(cd \"c:/Users/mkoci/Desktop/piotr_siemaszko/rehability\" && mkdir -p src/app/admin/campy/dodaj/edytor-tresci/_components && mv src/components/sections/admin/editor/* src/app/admin/campy/dodaj/edytor-tresci/_components/ && echo \"Step 4 done: editor folder contents moved\")"
+      "Bash(cd \"c:/Users/mkoci/Desktop/piotr_siemaszko/rehability\" && mkdir -p src/app/admin/campy/dodaj/edytor-tresci/_components && mv src/components/sections/admin/editor/* src/app/admin/campy/dodaj/edytor-tresci/_components/ && echo \"Step 4 done: editor folder contents moved\")",
+      "Bash(npx prisma *)",
+      "Bash(del \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\admin\\\\blog\\\\dodaj\\\\edytor-tresci\\\\_components\\\\BlogRichEditor.tsx\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\components\\sections\\admin\\editor"
