@@ -8,8 +8,8 @@ import {
   ArrowRight,
 } from "@phosphor-icons/react/dist/ssr";
 import useEmblaCarousel from "embla-carousel-react";
-import { CourseCard } from "../ui/CourseCard";
-import { Button } from "../ui/Button";
+import { CourseCard } from "@/components/ui/CourseCard";
+import { Button } from "@/components/ui/Button";
 import { motion, Variants } from "framer-motion";
 
 // === MOCKUP DANYCH KURSÓW ===

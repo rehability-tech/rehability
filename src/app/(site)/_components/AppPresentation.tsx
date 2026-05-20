@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Button } from "../ui/Button"; // Upewnij się, że masz tu dobrą ścieżkę
+import { Button } from "@/components/ui/Button";
 import { motion, Variants } from "framer-motion";
 
 // === KOMPONENT TAG ===

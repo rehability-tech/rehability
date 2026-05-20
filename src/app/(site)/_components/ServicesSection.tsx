@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Button } from "../ui/Button"; // Zmień na poprawną ścieżkę, np. @/components/ui/Button
+import { Button } from "@/components/ui/Button";
 import { motion, Variants } from "framer-motion";
 
 const SERVICES = [

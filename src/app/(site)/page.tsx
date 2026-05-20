@@ -1,17 +1,17 @@
 // app/(site)/page.tsx (lub src/app/(site)/page.tsx)
 
 import { Navbar } from "@/components/layout/Navbar";
-import { AboutSection } from "@/components/sections/AboutSection";
-import { AppPresentation } from "@/components/sections/AppPresentation";
-import { ContactSection } from "@/components/sections/ContactSection";
+import { AboutSection } from "./_components/AboutSection";
+import { AppPresentation } from "./_components/AppPresentation";
+import { ContactSection } from "./_components/ContactSection";
 import { FAQSection } from "@/components/sections/FaqSection";
 import { Footer } from "@/components/layout/Footer";
-import { HeroSection } from "@/components/sections/HeroSection";
-import { KnowledgeBase } from "@/components/sections/KnowledgeBase";
-import { PopularCourses } from "@/components/sections/PopularCourses";
-import { ServicesSection } from "@/components/sections/ServicesSection";
-import { SocialProofSection } from "@/components/sections/SocialProofSection";
-import { UpcomingCamps } from "@/components/sections/UpcomingCamps";
+import { HeroSection } from "./_components/HeroSection";
+import { KnowledgeBase } from "./_components/KnowledgeBase";
+import { PopularCourses } from "./_components/PopularCourses";
+import { ServicesSection } from "./_components/ServicesSection";
+import { SocialProofSection } from "./_components/SocialProofSection";
+import { UpcomingCamps } from "./_components/UpcomingCamps";
 
 // Opcjonalnie: Metadata - musi być nazwanym eksportem (export const), NIE default
 export const metadata = {

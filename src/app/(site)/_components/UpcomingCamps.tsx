@@ -8,7 +8,7 @@ import {
   CreditCard,
 } from "@phosphor-icons/react/dist/ssr";
 import { AsteriskSimpleIcon } from "@phosphor-icons/react";
-import { Button } from "../ui/Button";
+import { Button } from "@/components/ui/Button";
 import { motion } from "framer-motion";
 
 // ==========================================

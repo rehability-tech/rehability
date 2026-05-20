@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import useEmblaCarousel from "embla-carousel-react";
-import { Tag } from "../ui/Tag";
+import { Tag } from "@/components/ui/Tag";
 import { motion, Variants } from "framer-motion";
 
 // --- DEFINICJE ANIMACJI ---
