@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import BlockRenderer from "@/components/layout/block-renderer/BlockRenderer"; // Upewnij się, że ścieżka się zgadza
+import BlockRenderer from "@/components/block-renderer/BlockRenderer";
 import { TextAlignLeft } from "@phosphor-icons/react/dist/ssr";
-import HeroBlock from "@/components/layout/block-renderer/HeroBlock";
+import HeroBlock from "@/components/block-renderer/HeroBlock";
 
 interface DescriptionPreviewTabProps {
   camp: any;

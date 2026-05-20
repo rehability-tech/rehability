@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
-import { DebugNav } from "@/components/DebugNav";
+import { DebugNav } from "./_components/DebugNav";
 
 // 1. Optymalizacja czcionek z Google Fonts (zmienne CSS zgodne z Twoim @theme)
 const fontHeading = Plus_Jakarta_Sans({
