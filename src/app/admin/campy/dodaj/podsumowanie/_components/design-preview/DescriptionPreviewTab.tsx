@@ -10,14 +10,46 @@ interface DescriptionPreviewTabProps {
   viewMode?: "desktop" | "mobile";
 }
 
+const formatDateRange = (start: any, end: any): string => {
+  if (!start) return "Wkrótce";
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+
+  if (!endDate) {
+    return startDate.toLocaleDateString("pl-PL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+  if (
+    startDate.getMonth() === endDate.getMonth() &&
+    startDate.getFullYear() === endDate.getFullYear()
+  ) {
+    return `${startDate.getDate()}–${endDate.getDate()}.${(
+      startDate.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}.${startDate.getFullYear()}`;
+  }
+  return `${startDate.toLocaleDateString("pl-PL", {
+    day: "numeric",
+    month: "short",
+  })} - ${endDate.toLocaleDateString("pl-PL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+};
+
 export default function DescriptionPreviewTab({
   camp,
   viewMode = "desktop",
 }: DescriptionPreviewTabProps) {
   const isMobile = viewMode === "mobile";
 
-  // 1. Bezpieczne parsowanie bloków z bazy/formularza
-  let parsedBlocks = [];
+  // Bezpieczne parsowanie bloków z bazy/formularza
+  let parsedBlocks: any[] = [];
   if (camp?.blocks) {
     try {
       parsedBlocks =
@@ -27,8 +59,9 @@ export default function DescriptionPreviewTab({
     }
   }
 
-  // 2. Bezpieczne parsowanie mapUrl (żeby MapBlock z renderera wiedział, co wyświetlić)
-  let mapUrl = null;
+  // Bezpieczne parsowanie lokalizacji - mapUrl dla MapBlock + city dla HeroBlock
+  let mapUrl: string | null = null;
+  let locationDisplay = "";
   if (camp?.location) {
     try {
       const parsedLoc =
@@ -36,11 +69,15 @@ export default function DescriptionPreviewTab({
           ? JSON.parse(camp.location)
           : camp.location;
       mapUrl = parsedLoc.mapUrl || null;
+      locationDisplay = parsedLoc.city || parsedLoc.name || "";
     } catch (e) {
-      // Ignorujemy błąd, fallback zostanie pusty
+      // Stary format - location zapisana jako zwykly string
+      if (typeof camp.location === "string") locationDisplay = camp.location;
     }
   }
-  console.log(camp);
+
+  const dateRange = formatDateRange(camp?.startDate, camp?.endDate);
+  const priceStr = camp?.price ? camp.price.toString() : "";
 
   return (
     <div className="w-full flex flex-col bg-white items-center min-h-[400px] overflow-hidden rounded-[24px]">
@@ -54,9 +91,16 @@ export default function DescriptionPreviewTab({
         }`}
       >
         {parsedBlocks && parsedBlocks.length > 0 ? (
-          // Renderujemy właściwy opis wyjazdu używając Twojego BlockRenderera
           <div className="pointer-events-none">
-            <HeroBlock />
+            <HeroBlock
+              title={camp?.title || ""}
+              subtitle={camp?.subtitle}
+              heroImage={camp?.heroImage}
+              tags={camp?.tags || []}
+              location={locationDisplay}
+              dateRange={dateRange}
+              price={priceStr}
+            />
             <BlockRenderer blocks={parsedBlocks} mapUrl={mapUrl} />
           </div>
         ) : (
