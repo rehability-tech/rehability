@@ -1,11 +1,11 @@
 "use client";
 
-import { FAQSection } from "@/components/sections/FaqSection";
-import { CTASection } from "@/components/sections/o-nas/CTASection";
-import { EcosystemSection } from "@/components/sections/o-nas/EcosystemSection";
-import { HeroSection } from "@/components/sections/o-nas/HeroSection";
-import { ValuesSection } from "@/components/sections/o-nas/ValuesSection";
-import { WhySection } from "@/components/sections/o-nas/WhySection";
+import { FAQSection } from "@/components/FaqSection";
+import { CTASection } from "./_components/CTASection";
+import { EcosystemSection } from "./_components/EcosystemSection";
+import { HeroSection } from "./_components/HeroSection";
+import { ValuesSection } from "./_components/ValuesSection";
+import { WhySection } from "./_components/WhySection";
 
 export default function AboutUsPage() {
   return (

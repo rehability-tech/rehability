@@ -1,6 +1,6 @@
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
-import AuthCard from "@/components/sections/logowanie/AuthCard";
+import AuthCard from "./_components/AuthCard";
 
 export default function LoginPage() {
   return (

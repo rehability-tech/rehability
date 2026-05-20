@@ -1,8 +1,8 @@
 import React from "react";
 
-import { AllCampsList } from "@/components/sections/campy/AllCampsList";
-import { CampyHero } from "@/components/sections/campy/CampyHero";
-import { FeaturedCamp } from "@/components/sections/campy/FeaturedCamp";
+import { AllCampsList } from "./_components/AllCampsList";
+import { CampyHero } from "./_components/CampyHero";
+import { FeaturedCamp } from "./_components/FeaturedCamp";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = {

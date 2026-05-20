@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { AboutSection } from "./_components/AboutSection";
 import { AppPresentation } from "./_components/AppPresentation";
 import { ContactSection } from "./_components/ContactSection";
-import { FAQSection } from "@/components/sections/FaqSection";
+import { FAQSection } from "@/components/FaqSection";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "./_components/HeroSection";
 import { KnowledgeBase } from "./_components/KnowledgeBase";

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import React from "react";
-import { Tag } from "../AppPresentation"; // Upewnij się, że ścieżka jest poprawna
+import { Tag } from "@/app/(site)/_components/AppPresentation";
 import { motion, Variants } from "framer-motion";
 
 // --- DEFINICJE ANIMACJI ---

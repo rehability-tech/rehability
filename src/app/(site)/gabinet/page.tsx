@@ -1,6 +1,6 @@
-import { GabinetHero } from "@/components/sections/gabinet/GabinetHero";
-import { GabinetSocialProof } from "@/components/sections/gabinet/GabinetSocialProof";
-import GabinetServices from "@/components/sections/gabinet/GabinetServices";
+import { GabinetHero } from "./_components/GabinetHero";
+import { GabinetSocialProof } from "./_components/GabinetSocialProof";
+import GabinetServices from "./_components/GabinetServices";
 
 export default function GabinetPage() {
   return (

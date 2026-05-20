@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/Button";
 
 // Importy komponentów SingleCamp
 import { CAMP_DATA } from "./campdata";
-import SingleCampHero from "@/components/sections/campy/single-camp/SingleCampHero";
-import SingleCampTabs from "@/components/sections/campy/single-camp/CampTabs";
-import SingleCampBlockNoteRenderer from "@/components/sections/campy/single-camp/SingleCampBlockNoteRenderer";
-import SingleCampForm from "@/components/sections/campy/single-camp/SingleCampForm";
+import SingleCampHero from "./_components/SingleCampHero";
+import SingleCampTabs from "./_components/CampTabs";
+import SingleCampBlockNoteRenderer from "./_components/SingleCampBlockNoteRenderer";
+import SingleCampForm from "./_components/SingleCampForm";
 
 // === TYPY ===
 interface BlockNoteSpan {
