@@ -16,7 +16,7 @@ export default function VideoEmbedBlock({ content }: { content: any }) {
     : content.url;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 w-full my-10">
+    <div className="max-w-4xl mx-auto px-4 w-full">
       <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border-2 border-gray-100 shadow-lg">
         <iframe
           src={embedUrl}

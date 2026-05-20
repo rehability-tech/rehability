@@ -47,8 +47,8 @@ export default function FeaturesGridBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 w-full my-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+    <div className="max-w-5xl mx-auto px-4 w-full">
+      <div className="grid grid-cols-1 @lg:grid-cols-2 @3xl:grid-cols-3 gap-5 w-full">
         {content.items.map((item: any, idx: number) => {
           const Icon =
             item.icon && ICONS[item.icon] ? ICONS[item.icon] : Sparkle;

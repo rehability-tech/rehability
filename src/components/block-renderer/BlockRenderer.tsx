@@ -25,7 +25,7 @@ export default function BlockRenderer({ blocks, mapUrl }: BlockRendererProps) {
   if (!blocks || blocks.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="@container w-full flex flex-col gap-y-10">
       {blocks.map((block) => {
         switch (block.type) {
           case "heading":

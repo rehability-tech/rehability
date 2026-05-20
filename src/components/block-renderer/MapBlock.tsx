@@ -9,7 +9,7 @@ export default function MapBlock({ mapUrl }: MapBlockProps) {
   if (!mapUrl) return null;
 
   return (
-    <div className="w-full flex flex-col py-6 md:py-8">
+    <div className="w-full flex flex-col">
       <div className="w-full aspect-[21/9] min-h-[350px] md:min-h-[450px] rounded-[24px] overflow-hidden relative shadow-lg bg-gray-50">
         <iframe
           src={mapUrl}

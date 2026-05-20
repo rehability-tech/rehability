@@ -11,7 +11,7 @@ export default function BulletListBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 w-full my-6">
+    <div className="max-w-3xl mx-auto px-4 w-full">
       <div className="w-full flex flex-col gap-3">
         {content.items.map((item: any, idx: number) => (
           <div

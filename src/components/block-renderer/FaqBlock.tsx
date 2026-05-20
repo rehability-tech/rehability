@@ -15,7 +15,7 @@ export default function FaqBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 w-full my-10">
+    <div className="max-w-[900px] mx-auto px-4 w-full">
       <div className="w-full flex flex-col bg-white">
         {content.items.map((item: any, idx: number) => {
           const isOpen = openIndex === idx;
@@ -23,17 +23,17 @@ export default function FaqBlock({ content }: { content: any }) {
           return (
             <div
               key={item.id || idx}
-              className={`relative flex flex-col min-[600px]:flex-row min-[600px]:items-start gap-4 min-[600px]:gap-10 py-6 md:py-10 border-b border-[#0B3B4C]/20 w-full bg-white transition-colors group/faq ${
+              className={`relative flex flex-col @[600px]:flex-row @[600px]:items-start gap-4 @[600px]:gap-10 py-6 @[600px]:py-10 border-b border-[#0B3B4C]/20 w-full bg-white transition-colors group/faq ${
                 idx === 0 ? "border-t" : ""
               }`}
             >
-              <div className="flex justify-between items-center w-full min-[600px]:w-auto">
-                <div className="font-jakarta font-bold text-[40px] min-[600px]:text-[48px] min-[600px]:self-center leading-none text-[#0B3B4C] min-[600px]:mt-1">
+              <div className="flex justify-between items-center w-full @[600px]:w-auto">
+                <div className="font-jakarta font-bold text-[40px] @[600px]:text-[48px] @[600px]:self-center leading-none text-[#0B3B4C] @[600px]:mt-1">
                   {formattedNumber}
                 </div>
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="min-[600px]:hidden w-8 h-8 shrink-0 rounded-full bg-[#287D88] text-white flex items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out cursor-pointer"
+                  className="@[600px]:hidden w-8 h-8 shrink-0 rounded-full bg-[#287D88] text-white flex items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out cursor-pointer"
                   aria-label={isOpen ? "Zwiń odpowiedź" : "Rozwiń odpowiedź"}
                 >
                   <div
@@ -76,7 +76,7 @@ export default function FaqBlock({ content }: { content: any }) {
 
               <button
                 onClick={() => setOpenIndex(isOpen ? null : idx)}
-                className="hidden min-[600px]:flex w-10 h-10 self-start shrink-0 rounded-full bg-[#287D88] text-white items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out mt-1 hover:scale-105 cursor-pointer"
+                className="hidden @[600px]:flex w-10 h-10 self-start shrink-0 rounded-full bg-[#287D88] text-white items-center justify-center shadow-[0_4px_10px_rgba(40,125,136,0.3)] transition-transform duration-300 ease-in-out mt-1 hover:scale-105 cursor-pointer"
                 aria-label={isOpen ? "Zwiń odpowiedź" : "Rozwiń odpowiedź"}
               >
                 <div
