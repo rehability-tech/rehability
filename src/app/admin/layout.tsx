@@ -33,7 +33,28 @@ export default async function AdminLayout({
       <main className="flex flex-col min-w-0 min-h-screen">
         {/* KLIENCKI KOMPONENT TOPBARA */}
         <AdminTopbar user={user} />
-        <Toaster richColors position="top-center" />
+        <Toaster
+          position="top-right"
+          gap={8}
+          toastOptions={{
+            classNames: {
+              toast:
+                "!bg-white !border !border-gray-100 !shadow-lg !rounded-[16px] !rounded-tr-none !font-montserrat !text-[#0B3B4C] !py-4 !px-5",
+              title: "!font-jakarta !font-semibold !text-[14px] !text-[#0B3B4C]",
+              description: "!text-[13px] !text-gray-500 !font-montserrat",
+              success:
+                "!border-l-4 !border-l-[#287D88]",
+              error:
+                "!border-l-4 !border-l-red-400",
+              warning:
+                "!border-l-4 !border-l-amber-400",
+              info:
+                "!border-l-4 !border-l-blue-400",
+              closeButton:
+                "!bg-gray-100 !border-0 !text-gray-400 hover:!bg-gray-200 !rounded-full",
+            },
+          }}
+        />
 
         {/* ZAWARTOŚĆ STRONY */}
         <div className="max-w-[1400px] mx-auto w-full flex-1">

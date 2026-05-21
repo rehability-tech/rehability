@@ -8,6 +8,7 @@ import {
   Money,
   Tag,
   Note,
+  Heart,
 } from "@phosphor-icons/react/dist/ssr";
 
 const formatPrice = (value: any) => {
@@ -126,6 +127,41 @@ export default function DataPreviewTab({ camp }: DataPreviewTabProps) {
             </p>
             <p className="font-montserrat text-xs text-green-600 font-semibold mt-0.5">
               0 rezerwacji w systemie
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`bg-white rounded-[24px] p-6 border shadow-sm flex items-start gap-4 md:col-span-2 ${
+            camp?.allowBringFriend
+              ? "border-brand-primary/20 bg-brand-primary/[0.02]"
+              : "border-gray-100"
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              camp?.allowBringFriend
+                ? "bg-brand-primary/10 text-brand-primary"
+                : "bg-gray-100 text-gray-400"
+            }`}
+          >
+            <Heart size={24} weight="duotone" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+              Opcja "Zabierz przyjaciółkę"
+            </span>
+            <p
+              className={`font-montserrat font-bold text-[16px] mt-1 ${
+                camp?.allowBringFriend ? "text-brand-primary" : "text-gray-500"
+              }`}
+            >
+              {camp?.allowBringFriend ? "Aktywna" : "Nieaktywna"}
+            </p>
+            <p className="font-montserrat text-xs text-gray-400 mt-0.5">
+              {camp?.allowBringFriend
+                ? "Uczestniczki mogą rezerwować 2 miejsca z gwarantowanym wspólnym pokojem."
+                : "Rezerwacja tylko dla jednej osoby."}
             </p>
           </div>
         </div>

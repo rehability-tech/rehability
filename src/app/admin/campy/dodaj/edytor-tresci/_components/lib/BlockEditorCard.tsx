@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import {
   Trash,
   DotsSixVertical,
-  MapTrifold,
+  ArrowUp,
+  ArrowDown,
 } from "@phosphor-icons/react/dist/ssr";
 import FaqBlock from "../blocks/FaqBlock";
 import FeaturesGridBlock from "../blocks/FeaturesGridBlock";
@@ -27,6 +28,7 @@ import SpacerBlock from "../blocks/SpacerBlock";
 
 import { CampBlock } from "../hooks/useCampAiGenerator";
 import MapBlock from "../blocks/MapBlock";
+import BookingOptionsBlock from "../blocks/BookingOptionsBlock";
 
 // IMPORTY ROZDZIELONYCH BLOKÓW
 
@@ -34,6 +36,8 @@ interface BlockEditorCardProps {
   block: CampBlock;
   onDelete: () => void;
   onUpdate: (updatedBlock: CampBlock) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   campId: string;
   mapUrl: string;
 }
@@ -42,6 +46,8 @@ function BlockEditorCardBase({
   block,
   onDelete,
   onUpdate,
+  onMoveUp,
+  onMoveDown,
   campId,
   mapUrl,
 }: BlockEditorCardProps) {
@@ -55,12 +61,12 @@ function BlockEditorCardBase({
       case "heading":
         return <HeadingBlock content={block.content} onChange={setContent} />;
       case "paragraph":
-        return (
-          <ParagraphBlock content={block.content} onChange={setContent} />
-        );
+        return <ParagraphBlock content={block.content} onChange={setContent} />;
       case "highlight":
+        return <HighlightBlock content={block.content} onChange={setContent} />;
+      case "bookingOptions":
         return (
-          <HighlightBlock content={block.content} onChange={setContent} />
+          <BookingOptionsBlock content={block.content} onChange={setContent} />
         );
       case "spacer":
         return <SpacerBlock />;
@@ -153,6 +159,19 @@ function BlockEditorCardBase({
 
       {!block.isGenerating && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/element:opacity-100 flex flex-row items-center gap-1 transition-opacity bg-white/95 backdrop-blur-md p-1 rounded-lg shadow-sm border border-gray-200 z-10">
+          <button
+            onClick={onMoveUp}
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center"
+          >
+            <ArrowUp size={16} weight="bold" />
+          </button>
+          <button
+            onClick={onMoveDown}
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center"
+          >
+            <ArrowDown size={16} weight="bold" />
+          </button>
+          <div className="h-4 w-px bg-gray-200 mx-0.5" />
           <div
             onPointerDown={(e) => dragControls.start(e)}
             style={{ touchAction: "none" }}

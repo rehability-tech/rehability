@@ -1,5 +1,3 @@
-// app/(site)/page.tsx (lub src/app/(site)/page.tsx)
-
 import { Navbar } from "@/components/layout/Navbar";
 import { AboutSection } from "./_components/AboutSection";
 import { AppPresentation } from "./_components/AppPresentation";
@@ -12,14 +10,44 @@ import { PopularCourses } from "./_components/PopularCourses";
 import { ServicesSection } from "./_components/ServicesSection";
 import { SocialProofSection } from "./_components/SocialProofSection";
 import { UpcomingCamps } from "./_components/UpcomingCamps";
+import { prisma } from "@/lib/prisma";
 
-// Opcjonalnie: Metadata - musi być nazwanym eksportem (export const), NIE default
 export const metadata = {
   title: "Start | Rehability",
 };
 
-// POPRAWKA: Musi być "export default" i zwracać prawidłowy JSX
-export default function HomePage() {
+async function getFeaturedCamp() {
+  try {
+    const campRaw = await prisma.camp.findFirst({
+      where: { isFeatured: true, status: "PUBLISHED" },
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        tags: true,
+        heroImage: true,
+        location: true,
+        price: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    if (!campRaw) return null;
+
+    return {
+      ...campRaw,
+      price: campRaw.price ? Number(campRaw.price) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default async function HomePage() {
+  const featuredCamp = await getFeaturedCamp();
+
   return (
     <main className="flex-1 pt-30">
       <Navbar />
@@ -31,7 +59,7 @@ export default function HomePage() {
         <ServicesSection />
         <AppPresentation />
         <PopularCourses />
-        <UpcomingCamps />
+        {featuredCamp && <UpcomingCamps featuredCamp={featuredCamp} />}
         <KnowledgeBase />
         <FAQSection />
         <ContactSection />

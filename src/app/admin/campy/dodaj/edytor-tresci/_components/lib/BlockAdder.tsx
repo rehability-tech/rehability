@@ -14,13 +14,16 @@ import {
   YoutubeLogo,
   Image as ImageIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { BlockType } from "@/app/admin/campy/dodaj/edytor-tresci/page";
+
 import { Tooltip } from "@/components/ui/ToolTip";
 import {
+  Info,
   ListBulletsIcon,
   MapTrifold,
   QuestionIcon,
+  Users,
 } from "@phosphor-icons/react";
+import { BlockType } from "../hooks/useCampAiGenerator";
 
 interface BlockAdderProps {
   onAddBlock: (type: BlockType) => void;
@@ -102,6 +105,12 @@ export default function BlockAdder({ onAddBlock }: BlockAdderProps) {
       label: "Przerwa",
       desc: "Pusty odstęp między blokami",
       icon: <ArrowsOutLineVertical size={20} />,
+    },
+    {
+      type: "bookingOptions",
+      label: "Opcje rezerwacji",
+      desc: "Kafelki pakietów: Standard / Przyjaciółka",
+      icon: <Users size={20} />,
     },
   ];
 

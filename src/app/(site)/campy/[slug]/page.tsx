@@ -1,110 +1,64 @@
-"use client";
+import { cache } from "react";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
+import CampPageClient from "./_components/CampPageClient";
+import { BlockNoteBlock } from "./_components/SingleCampBlockNoteRenderer";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
-// Importy komponentów SingleCamp
-import { CAMP_DATA } from "./campdata";
-import SingleCampHero from "./_components/SingleCampHero";
-import SingleCampTabs from "./_components/CampTabs";
-import SingleCampBlockNoteRenderer from "./_components/SingleCampBlockNoteRenderer";
-import SingleCampForm from "./_components/SingleCampForm";
+const getCamp = cache(async (id: string) => {
+  return prisma.camp.findUnique({
+    where: { id, status: "PUBLISHED" },
+    select: {
+      id: true,
+      title: true,
+      subtitle: true,
+      tags: true,
+      heroImage: true,
+      blocks: true,
+    },
+  });
+});
 
-// === TYPY ===
-interface BlockNoteSpan {
-  type?: string;
-  text: string;
-  styles?: Record<string, unknown>;
-}
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const camp = await getCamp(slug);
 
-interface BlockNoteBlock {
-  id: string;
-  type: string;
-  props?: {
-    level?: number;
-    textAlignment?: string;
-    textColor?: string;
-    backgroundColor?: string;
-    [key: string]: unknown;
+  if (!camp) return { title: "Wyjazd | Rehability" };
+
+  return {
+    title: `${camp.title} | Rehability`,
+    description:
+      camp.subtitle ?? "Ekskluzywny wyjazd holistyczny Rehability.",
+    openGraph: {
+      title: `${camp.title} | Rehability`,
+      description:
+        camp.subtitle ?? "Ekskluzywny wyjazd holistyczny Rehability.",
+      images: camp.heroImage ? [{ url: camp.heroImage }] : [],
+    },
   };
-  content?: BlockNoteSpan[];
-  children?: BlockNoteBlock[];
 }
 
-interface CampCMSData {
-  title?: string;
-  subtitle?: string;
-  heroImage?: string;
-  tags?: string[];
-  blocks?: BlockNoteBlock[];
-  content?: BlockNoteBlock[];
-}
+export default async function SingleCampPage({ params }: Props) {
+  const { slug } = await params;
+  const camp = await getCamp(slug);
 
-export default function SingleCampPage() {
-  const [activeTab, setActiveTab] = useState<"info" | "form">("info");
+  if (!camp) notFound();
 
-  const data = CAMP_DATA as BlockNoteBlock[] | CampCMSData;
-  const blocksArray: BlockNoteBlock[] = Array.isArray(data)
-    ? data
-    : data.blocks || data.content || [];
-
-  const cmsData: CampCMSData = Array.isArray(data) ? {} : data;
-
-  const titleBlock = blocksArray.find(
-    (b: BlockNoteBlock) => b.type === "heading" && b.props?.level === 1,
-  );
-
-  const extractedTitle = titleBlock?.content
-    ?.map((span: BlockNoteSpan) => span.text)
-    .join("");
-
-  const pageTitle = extractedTitle || cmsData.title || "WYDARZENIE";
-  const heroImage = cmsData.heroImage || "/images/static/camp.png";
-  const subtitle =
-    cmsData.subtitle || "Zanurz się w holistycznym świecie odpoczynku";
-  const tags = cmsData.tags || [
-    "Świadomy ruch",
-    "Masaże",
-    "Wellness",
-    "Góry",
-    "Warsztaty",
-    "Czas dla siebie",
-  ];
+  const blocks = Array.isArray(camp.blocks)
+    ? (camp.blocks as unknown as BlockNoteBlock[])
+    : [];
 
   return (
-    <main className="min-h-screen bg-[#FDFDFD] pb-24 font-montserrat">
-      <SingleCampHero
-        title={pageTitle}
-        subtitle={subtitle}
-        tags={tags}
-        heroImage={heroImage}
-      />
-
-      <SingleCampTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-16">
-        {activeTab === "info" && (
-          <motion.div
-            key="info"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            // POPRAWKA: max-w-[1200px] zamiast max-w-[850px], responsywne paddingi
-            className="max-w-[1200px] w-full flex flex-col text-left"
-          >
-            <SingleCampBlockNoteRenderer blocks={blocksArray} />
-
-            <div className="flex justify-center mt-16 pt-8 border-t border-gray-100">
-              <Button showArrow onClick={() => setActiveTab("form")}>
-                Przejdź do formularza zapisu
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {activeTab === "form" && <SingleCampForm />}
-      </section>
-    </main>
+    <CampPageClient
+      title={camp.title}
+      subtitle={camp.subtitle ?? "Zanurz się w holistycznym świecie odpoczynku"}
+      tags={camp.tags}
+      heroImage={camp.heroImage ?? "/images/static/camp.png"}
+      blocks={blocks}
+    />
   );
 }

@@ -33,6 +33,8 @@ model Camp {
   endDate      DateTime
   capacity     Int
   mapUrl    String?
+  // Opcje rezerwacji
+  allowBringFriend Boolean @default(false)
   // Finanse
   price        Decimal
   deposit      Decimal
@@ -51,8 +53,37 @@ model Camp {
   lastStage    String   @default("dane-podstawowe")
   isFeatured   Boolean  @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  bookings     Booking[]
 }
+model Booking {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
+  // Relacja do wyjazdu
+  campId          String
+  camp            Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  // Dane uczestniczki (imię i telefon są opcjonalne, bo przy zaproszeniu znamy tylko e-mail)
+  name            String?
+  email           String
+  phone           String?
+
+  // Status: PENDING, CONFIRMED, CANCELLED, PENDING_INVITATION, EXPIRED
+  status          String   @default("PENDING")
+
+  // --- LOGIKA "ZABIERZ PRZYJACIÓŁKĘ" ---
+  // ID rezerwacji osoby, która wysłała zaproszenie
+  invitedById     String?
+  invitedBy       Booking?  @relation("FriendInvitation", fields: [invitedById], references: [id])
+  
+  // Osoby zaproszone przez tę rezerwację
+  invitedGuests   Booking[] @relation("FriendInvitation")
+  
+  // Unikalny token wysyłany w mailu i czas jego wygaśnięcia
+  invitationToken String?   @unique
+  expiresAt       DateTime?
+}
 model Post {
   id              String    @id @default(cuid())
   createdAt       DateTime  @default(now())
@@ -97,6 +128,12 @@ model BlogScheduleEntry {
   status        String   @default("PLANNED") // PLANNED, IN_PROGRESS, PUBLISHED, SKIPPED
 
   postId        String?
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
 
 model ExtraService {

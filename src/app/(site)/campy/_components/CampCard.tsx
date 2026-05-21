@@ -97,7 +97,7 @@ export default function CampCard({ camp, variants }: CampCardProps) {
             {camp.price ? `od ${camp.price} zł` : "Sprawdź cennik"}
           </span>
 
-          <Link href={`/oboz/${camp.id}`} className="w-full">
+          <Link href={`/campy/${camp.id}`} className="w-full">
             <Button showArrow className="w-full max-[768px]:w-auto">
               Poznaj szczegóły
             </Button>

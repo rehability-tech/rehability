@@ -31,7 +31,8 @@ export const campSchema = z.object({
     })
     .int("Liczba miejsc musi być całkowita")
     .min(1, "Musi być co najmniej 1 miejsce"),
-
+  // DODAJ TĘ LINIĘ:
+  allowBringFriend: z.boolean().optional().default(false),
   price: z.coerce
     .number({
       message: "Podaj prawidłową cenę wyjazdu",

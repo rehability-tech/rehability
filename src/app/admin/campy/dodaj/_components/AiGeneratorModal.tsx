@@ -16,6 +16,7 @@ export interface AiGeneratedData {
   deposit?: string;
   startDate?: string;
   endDate?: string;
+  allowBringFriend?: boolean; // <--- DODAJ TO
 }
 
 interface AiGeneratorModalProps {
@@ -206,7 +207,10 @@ export default function AiGeneratorModal({
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder={placeholder ?? "np. Weekendowy wyjazd w góry dla 10 kobiet z jogą, winem i masażami w Jarnołtówku..."}
+                      placeholder={
+                        placeholder ??
+                        "np. Weekendowy wyjazd w góry dla 10 kobiet z jogą, winem i masażami w Jarnołtówku..."
+                      }
                       className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[16px] p-4 min-h-[120px] font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors resize-none"
                     />
                     <Sparkle

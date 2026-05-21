@@ -14,7 +14,8 @@ export type BlockType =
   | "faq"
   | "videoEmbed"
   | "inlineImage"
-  | "map";
+  | "map"
+  | "bookingOptions";
 export interface CampBlock {
   id: string;
   type: BlockType;

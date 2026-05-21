@@ -51,6 +51,7 @@ function BasicDataFormContent() {
   const [capacity, setCapacity] = useState("");
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
+  const [allowBringFriend, setAllowBringFriend] = useState(false);
 
   const [description, setDescription] = useState("");
   const [lastAiPrompt, setLastAiPrompt] = useState("");
@@ -79,6 +80,7 @@ function BasicDataFormContent() {
           setDescription(data.description || "");
           setLastAiPrompt(data.lastAiPrompt || "");
           setMapUrl(data.mapUrl || "");
+          setAllowBringFriend(data.allowBringFriend || false);
 
           // Dekodowanie lokalizacji zapisanego jako JSON String
           if (data.location) {
@@ -135,7 +137,8 @@ function BasicDataFormContent() {
       // Nowy kod na froncie
       if (data.locationName) setLocationName(data.locationName);
       if (data.locationCity) setLocationCity(data.locationCity);
-
+      if (data.allowBringFriend !== undefined)
+        setAllowBringFriend(data.allowBringFriend);
       toast.success("Dane zostały pomyślnie wygenerowane!");
     } catch (error) {
       console.error("Błąd podczas generowania z AI:", error);
@@ -175,6 +178,7 @@ function BasicDataFormContent() {
           deposit,
           lastAiPrompt,
           lastStage: "edytor-tresci",
+          allowBringFriend,
         }),
       });
 
@@ -413,6 +417,51 @@ function BasicDataFormContent() {
               isLoading={isGeneratingData}
               helperText="Kwota, którą uczestniczka opłaca przy rezerwacji miejsca."
             />
+          </div>
+          {/* PAKIET ZABIERZ PRZYJACIÓŁKĘ */}
+          {/* OPCJA ZABIERZ PRZYJACIÓŁKĘ */}
+          <div
+            className={`border rounded-[16px] mt-6 p-5 md:p-6 transition-all duration-300 ${
+              allowBringFriend
+                ? "bg-brand-primary/[0.03] border-brand-primary/20 shadow-sm"
+                : "bg-gray-50 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <label className="flex items-start gap-4 cursor-pointer group">
+              {/* Nowoczesny Przełącznik (Toggle Switch) */}
+              <div
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out mt-0.5 ${
+                  allowBringFriend
+                    ? "bg-brand-primary"
+                    : "bg-gray-300 group-hover:bg-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${
+                    allowBringFriend ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={allowBringFriend}
+                  onChange={(e) => setAllowBringFriend(e.target.checked)}
+                />
+              </div>
+
+              {/* Teksty */}
+              <div className="flex flex-col">
+                <span className="text-[15px] font-bold text-[#0B3B4C] font-jakarta transition-colors group-hover:text-brand-primary">
+                  Włącz opcję "Zabierz przyjaciółkę"
+                </span>
+                <p className="text-[13px] text-gray-500 font-montserrat mt-1 leading-relaxed max-w-2xl">
+                  Pozwala uczestniczce zarezerwować 2 miejsca jednocześnie (cena
+                  i zadatek ulegają podwojeniu) i wysłać automatyczne
+                  zaproszenie e-mail do drugiej osoby z prośbą o uzupełnienie
+                  danych.
+                </p>
+              </div>
+            </label>
           </div>
         </section>
 

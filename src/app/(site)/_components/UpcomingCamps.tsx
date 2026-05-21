@@ -79,30 +79,49 @@ const FILLED_BLOCKS_MOBILE = [
 ];
 
 // ==========================================
-// DANE INFORMACYJNE
+// TYPY
 // ==========================================
-const INFO_CIRCLES = [
-  {
-    icon: <CalendarCheck size={18} weight="fill" className="text-white" />,
-    label: "Termin",
-    value: "28–31.05.2026",
-    sub: "4 dni pełne relaksu",
-  },
-  {
-    icon: <MapPin size={18} weight="fill" className="text-white" />,
-    label: "Lokalizacja",
-    value: "Holiday Sky Park",
-    sub: "Jarnołtówek",
-  },
-  {
-    icon: <CreditCard size={18} weight="fill" className="text-white" />,
-    label: "Cena",
-    value: "od 499 zł / os.",
-    sub: "Inwestycja w siebie",
-  },
-];
+interface FeaturedCamp {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  tags: string[];
+  heroImage: string | null;
+  location: string;
+  price: number | null;
+  startDate: Date | string;
+  endDate: Date | string;
+}
 
-export function UpcomingCamps() {
+interface UpcomingCampsProps {
+  featuredCamp: FeaturedCamp;
+}
+
+// ==========================================
+// POMOCNICZE
+// ==========================================
+function formatDateRange(start: Date | string, end: Date | string): string {
+  const s = new Date(start);
+  const e = new Date(end);
+  if (
+    s.getMonth() === e.getMonth() &&
+    s.getFullYear() === e.getFullYear()
+  ) {
+    return `${s.getDate()}–${e.getDate()}.${String(s.getMonth() + 1).padStart(2, "0")}.${s.getFullYear()}`;
+  }
+  return `${s.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} – ${e.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" })}`;
+}
+
+function parseLocation(raw: string): string {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed.name || parsed.city || raw;
+  } catch {
+    return raw;
+  }
+}
+
+export function UpcomingCamps({ featuredCamp }: UpcomingCampsProps) {
   const [isFilled, setIsFilled] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -122,9 +141,7 @@ export function UpcomingCamps() {
           }
         }
       },
-      {
-        threshold: 0.4,
-      },
+      { threshold: 0.4 },
     );
 
     if (sectionRef.current) {
@@ -137,20 +154,41 @@ export function UpcomingCamps() {
     };
   }, []);
 
-  const activeDesktopArray = isFilled
-    ? FILLED_BLOCKS_DESKTOP
-    : MASK_BLOCKS_DESKTOP;
-  const activeTabletArray = isFilled
-    ? FILLED_BLOCKS_TABLET
-    : MASK_BLOCKS_TABLET;
-  const activeMobileArray = isFilled
-    ? FILLED_BLOCKS_MOBILE
-    : MASK_BLOCKS_MOBILE;
+  const heroImage = featuredCamp.heroImage ?? "/images/static/camp.png";
+  const campTitle = featuredCamp.title;
+  const campTags = featuredCamp.tags;
+  const campSubtitle = featuredCamp.subtitle ?? "Pod opieką fizjoterapeuty i dietetyka klinicznego";
+  const campLink = `/campy/${featuredCamp.id}`;
+
+  const infoCircles = [
+    {
+      icon: <CalendarCheck size={18} weight="fill" className="text-white" />,
+      label: "Termin",
+      value: formatDateRange(featuredCamp.startDate, featuredCamp.endDate),
+      sub: "Twój czas na odpoczynek",
+    },
+    {
+      icon: <MapPin size={18} weight="fill" className="text-white" />,
+      label: "Lokalizacja",
+      value: parseLocation(featuredCamp.location),
+      sub: "Piękne otoczenie",
+    },
+    {
+      icon: <CreditCard size={18} weight="fill" className="text-white" />,
+      label: "Cena",
+      value: featuredCamp.price ? `od ${featuredCamp.price} zł / os.` : "Sprawdź cennik",
+      sub: "Inwestycja w siebie",
+    },
+  ];
+
+  const activeDesktopArray = isFilled ? FILLED_BLOCKS_DESKTOP : MASK_BLOCKS_DESKTOP;
+  const activeTabletArray = isFilled ? FILLED_BLOCKS_TABLET : MASK_BLOCKS_TABLET;
+  const activeMobileArray = isFilled ? FILLED_BLOCKS_MOBILE : MASK_BLOCKS_MOBILE;
 
   return (
-    <section ref={sectionRef} className="relative  overflow-hidden">
+    <section ref={sectionRef} className="relative overflow-hidden">
       <div className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center">
-        {/* === NAGŁÓWEK - ZAANIMOWANY FRAMER MOTION === */}
+        {/* === NAGŁÓWEK === */}
         <motion.div
           className="flex flex-col items-center text-center mb-12 md:mb-16"
           initial={{ opacity: 0, y: 30 }}
@@ -182,7 +220,7 @@ export function UpcomingCamps() {
                     key={block.id}
                     className={`w-full aspect-square overflow-hidden transition-all duration-700 ease-in-out ${block.radius}`}
                     style={{
-                      backgroundImage: "url('/images/static/camp.png')",
+                      backgroundImage: `url('${heroImage}')`,
                       backgroundSize: "400% 200%",
                       backgroundPosition: `${bgPosX}% ${bgPosY}%`,
                       backgroundRepeat: "no-repeat",
@@ -205,7 +243,7 @@ export function UpcomingCamps() {
                     key={block.id}
                     className={`w-full h-[160px] sm:h-[180px] overflow-hidden transition-all duration-700 ease-in-out ${block.radius}`}
                     style={{
-                      backgroundImage: "url('/images/static/camp.png')",
+                      backgroundImage: `url('${heroImage}')`,
                       backgroundSize: "200% 300%",
                       backgroundPosition: `${bgPosX}% ${bgPosY}%`,
                       backgroundRepeat: "no-repeat",
@@ -228,7 +266,7 @@ export function UpcomingCamps() {
                     key={block.id}
                     className={`w-full aspect-square overflow-hidden transition-all duration-700 ease-in-out ${block.radius}`}
                     style={{
-                      backgroundImage: "url('/images/static/camp.png')",
+                      backgroundImage: `url('${heroImage}')`,
                       backgroundSize: "200% 200%",
                       backgroundPosition: `${bgPosX}% ${bgPosY}%`,
                       backgroundRepeat: "no-repeat",
@@ -241,32 +279,31 @@ export function UpcomingCamps() {
             {/* === NAKŁADKA Z TEKSTEM (WEWNĄTRZ ZDJĘCIA) === */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pb-8 md:pb-16 pointer-events-none z-10 px-2">
               <h3
-                className={`font-jakarta font-extrabold max-[450px]:text-[39px] text-white  text-[42px] sm:text-[52px] md:text-[64px] leading-[100%] text-center tracking-wide uppercase transition-all duration-700 ease-in-out drop-shadow-md mb-4 md:mb-6 ${
+                className={`font-jakarta font-extrabold max-[450px]:text-[39px] text-white text-[42px] sm:text-[52px] md:text-[64px] leading-[100%] text-center tracking-wide uppercase transition-all duration-700 ease-in-out drop-shadow-md mb-4 md:mb-6 ${
                   isFilled ? "opacity-100 scale-100" : "opacity-0 scale-95"
                 }`}
               >
-                Między nami <br />
-                <span className="text-[#287D88]">Kobietami</span>
+                {campTitle.includes(" ") ? (
+                  <>
+                    {campTitle.split(" ").slice(0, -1).join(" ")} <br />
+                    <span className="text-[#287D88]">
+                      {campTitle.split(" ").at(-1)}
+                    </span>
+                  </>
+                ) : (
+                  campTitle
+                )}
               </h3>
 
               <div
                 className={`flex flex-col items-center gap-2 md:gap-3 transition-all duration-700 ease-in-out delay-100 ${
-                  isFilled
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
+                  isFilled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
               >
                 <div className="flex flex-wrap justify-center items-center gap-2 md:gap-5 max-w-[100%] bg-black/20 backdrop-blur-sm px-4 md:px-6 py-2 md:py-3 rounded-[32px] md:rounded-full shadow-lg border border-white/10 max-[670px]:bg-transparent max-[670px]:backdrop-filter-none max-[670px]:shadow-none max-[670px]:border-none max-[670px]:p-0">
-                  {[
-                    "Świadomy ruch",
-                    "Masaże",
-                    "Wellnes",
-                    "Góry",
-                    "Warsztaty",
-                    "Czas dla siebie",
-                  ].map((item, i, arr) => (
+                  {campTags.map((item, i, arr) => (
                     <React.Fragment key={i}>
-                      <span className="font-montserrat text-white text-[12px] md:text-[14px]  max-[450px]:text-[10px] font-medium tracking-wide max-[670px]:bg-black/20 max-[670px]:backdrop-blur-sm max-[670px]:border max-[670px]:border-white/10 max-[670px]:px-3 max-[670px]:py-1.5 max-[670px]:rounded-full">
+                      <span className="font-montserrat text-white text-[12px] md:text-[14px] max-[450px]:text-[10px] font-medium tracking-wide max-[670px]:bg-black/20 max-[670px]:backdrop-blur-sm max-[670px]:border max-[670px]:border-white/10 max-[670px]:px-3 max-[670px]:py-1.5 max-[670px]:rounded-full">
                         {item}
                       </span>
                       {i !== arr.length - 1 && (
@@ -280,7 +317,7 @@ export function UpcomingCamps() {
                   ))}
                 </div>
                 <p className="font-montserrat font-medium text-white text-[12px] md:text-[16px] mt-1 md:mt-2 drop-shadow-md text-center max-[450px]:text-[10px]">
-                  Pod opieką fizjoterapeuty i dietetyka klinicznego
+                  {campSubtitle}
                 </p>
               </div>
             </div>
@@ -288,33 +325,28 @@ export function UpcomingCamps() {
             {/* === PRZYCISK DESKTOP === */}
             <div
               className={`hidden md:flex absolute right-6 bottom-6 flex-col z-20 transition-all duration-700 delay-300 ${
-                isFilled
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4 pointer-events-none"
+                isFilled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
               }`}
             >
-              <Button>Poznaj szczegóły</Button>
-              <p className="text-white text-[13px] text-center mt-2 drop-shadow-md">
-                Pozostały tylko <strong className="">3 miejsca</strong>
-              </p>
+              <Link href={campLink}>
+                <Button>Poznaj szczegóły</Button>
+              </Link>
             </div>
           </div>
 
           {/* === DOLNE ELEMENTY NACHODZĄCE (KÓŁKA I PRZYCISK MOBILE) === */}
           <div
             className={`relative z-20 w-full flex flex-wrap justify-center items-center gap-4 md:gap-6 -mt-12 md:-mt-20 px-2 md:px-4 transition-all duration-700 ease-in-out ${
-              isFilled
-                ? "opacity-100 translate-y-0 delay-200"
-                : "opacity-0 translate-y-8 pointer-events-none"
+              isFilled ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-8 pointer-events-none"
             }`}
           >
-            {INFO_CIRCLES.map((info, i) => (
+            {infoCircles.map((info, i) => (
               <div
                 key={i}
-                className={`w-[130px] h-[130px] md:w-[160px] md:h-[160px] rounded-[111px] rounded-tr-none bg-brand-primary/80 md:bg-brand-primary/70 backdrop-blur-md shadow-xl flex flex-col items-center justify-center text-center relative border border-white/20 p-2 transform hover:scale-105 transition-transform ${i === 0 && "max-[470px]:!rounded-br-none max-[470px]:!rounded-[111px] "} ${i === 1 && "max-[470px]:!rounded-bl-none max-[470px]:!rounded-[111px] "} ${i === 2 && " max-[470px]:!rounded-[111px]  "}`}
+                className={`w-[130px] h-[130px] md:w-[160px] md:h-[160px] rounded-[111px] rounded-tr-none bg-brand-primary/80 md:bg-brand-primary/70 backdrop-blur-md shadow-xl flex flex-col items-center justify-center text-center relative border border-white/20 p-2 transform hover:scale-105 transition-transform ${i === 0 && "max-[470px]:!rounded-br-none max-[470px]:!rounded-[111px]"} ${i === 1 && "max-[470px]:!rounded-bl-none max-[470px]:!rounded-[111px]"} ${i === 2 && "max-[470px]:!rounded-[111px]"}`}
               >
                 <div
-                  className={`absolute top-1 right-1 w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#1b5c65] flex items-center justify-center shadow-inner ${i === 2 && " max-[470px]:left-1/2 max-[470px]:-translate-x-1/2 "} ${i === 0 && "max-[470px]:!bottom-1 max-[470px]:top-auto"} ${i === 1 && "max-[470px]:!bottom-1 max-[470px]:top-auto max-[470px]:left-1"}`}
+                  className={`absolute top-1 right-1 w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#1b5c65] flex items-center justify-center shadow-inner ${i === 2 && "max-[470px]:left-1/2 max-[470px]:-translate-x-1/2"} ${i === 0 && "max-[470px]:!bottom-1 max-[470px]:top-auto"} ${i === 1 && "max-[470px]:!bottom-1 max-[470px]:top-auto max-[470px]:left-1"}`}
                 >
                   {info.icon}
                 </div>
@@ -332,10 +364,9 @@ export function UpcomingCamps() {
 
             {/* === PRZYCISK MOBILE === */}
             <div className="flex md:hidden flex-col items-center mt-4 w-full">
-              <Button>Poznaj szczegóły</Button>
-              <p className="text-brand-secondary text-[12px] mt-2 text-center">
-                Pozostały tylko <strong className="">3 miejsca</strong>
-              </p>
+              <Link href={campLink}>
+                <Button>Poznaj szczegóły</Button>
+              </Link>
             </div>
           </div>
         </div>

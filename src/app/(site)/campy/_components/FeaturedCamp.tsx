@@ -185,7 +185,7 @@ export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
 
           {/* PRZYCISK Z DYNAMICZNYM LINKIEM */}
           <motion.div variants={fadeUpVariants} className="relative z-20">
-            <Link href={`/oboz/${initialCamp.id}`}>
+            <Link href={`/campy/${initialCamp.id}`}>
               <Button showArrow>Poznaj szczegóły</Button>
             </Link>
           </motion.div>

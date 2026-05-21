@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Phone,
   EnvelopeSimple,
@@ -37,7 +37,39 @@ const scaleUpVariants: Variants = {
   },
 };
 
+type Status = "idle" | "loading" | "success" | "duplicate" | "error";
+
 export function ContactSection() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+
+    try {
+      const res = await fetch("/api/public/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.status === 409) {
+        setStatus("duplicate");
+        return;
+      }
+      if (!res.ok) {
+        setStatus("error");
+        return;
+      }
+
+      setStatus("success");
+      setEmail("");
+    } catch {
+      setStatus("error");
+    }
+  };
+
   return (
     <section className="-mb-60 overflow-hidden">
       <motion.div
@@ -210,23 +242,49 @@ export function ContactSection() {
               <span className="font-bold">Zero spamu, sam konkret.</span>
             </p>
 
-            <form
-              className="w-full max-w-[500px] flex max-[600px]:flex-col min-[601px]:flex-row gap-4 max-[1024px]:gap-3"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <input
-                type="email"
-                placeholder="Twój adres e-mail"
-                required
-                className="flex-1 px-6 py-4 max-[1024px]:px-5 max-[1024px]:py-3.5 rounded-[12px] bg-[#E8F0F1] text-brand-secondary font-montserrat text-[16px] max-[1024px]:text-[15px] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1b646c] transition-all"
-              />
-              <button
-                type="submit"
-                className="px-10 py-4 max-[1024px]:px-8 max-[1024px]:py-3.5 rounded-[12px] bg-[#1b646c] hover:bg-[#154d53] text-white font-montserrat font-semibold text-[16px] max-[1024px]:text-[15px] transition-all shadow-md active:scale-95 whitespace-nowrap"
+            {status === "success" ? (
+              <div className="w-full max-w-[500px] py-4 px-6 rounded-[12px] bg-[#1b646c]/30 border border-white/30 text-white font-montserrat text-[16px] text-center">
+                Dziękujemy! Jesteś na liście.
+              </div>
+            ) : (
+              <form
+                className="w-full max-w-[500px] flex flex-col gap-3"
+                onSubmit={handleSubmit}
               >
-                Zapisz się
-              </button>
-            </form>
+                <div className="flex max-[600px]:flex-col min-[601px]:flex-row gap-4 max-[1024px]:gap-3">
+                  <input
+                    type="email"
+                    placeholder="Twój adres e-mail"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (status !== "idle") setStatus("idle");
+                    }}
+                    disabled={status === "loading"}
+                    className="flex-1 px-6 py-4 max-[1024px]:px-5 max-[1024px]:py-3.5 rounded-[12px] bg-[#E8F0F1] text-brand-secondary font-montserrat text-[16px] max-[1024px]:text-[15px] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1b646c] transition-all disabled:opacity-60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={status === "loading"}
+                    className="px-10 py-4 max-[1024px]:px-8 max-[1024px]:py-3.5 rounded-[12px] bg-[#1b646c] hover:bg-[#154d53] text-white font-montserrat font-semibold text-[16px] max-[1024px]:text-[15px] transition-all shadow-md active:scale-95 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {status === "loading" ? "Zapisuję..." : "Zapisz się"}
+                  </button>
+                </div>
+
+                {status === "duplicate" && (
+                  <p className="font-montserrat text-white/90 text-[14px] text-center">
+                    Ten adres jest już na naszej liście.
+                  </p>
+                )}
+                {status === "error" && (
+                  <p className="font-montserrat text-white/90 text-[14px] text-center">
+                    Coś poszło nie tak. Spróbuj ponownie.
+                  </p>
+                )}
+              </form>
+            )}
           </motion.div>
         </motion.div>
       </motion.div>

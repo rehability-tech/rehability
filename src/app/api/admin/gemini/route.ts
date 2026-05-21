@@ -143,7 +143,6 @@ export async function POST(req: Request) {
 
       // =======================================================================
       // INNE (Podstawowe Info itp.)
-      // =======================================================================
       case "generateBasicInfo":
         systemInstruction = `Jesteś asystentem AI. Na podstawie opisu wygeneruj DOKŁADNY obiekt JSON:
         {
@@ -155,7 +154,8 @@ export async function POST(req: Request) {
           "price": "Cena całkowita (string, tylko cyfry)",
           "deposit": "Zadatek (string, tylko cyfry)",
           "startDate": "YYYY-MM-DD",
-          "endDate": "YYYY-MM-DD"
+          "endDate": "YYYY-MM-DD",
+          "allowBringFriend": boolean (ustaw na true, TYLKO jeśli w tekście jest wzmianka o zabraniu przyjaciółki, osoby towarzyszącej, rezerwacji dla 2 osób itp. W przeciwnym razie false)
         }`;
         break;
 

@@ -36,6 +36,16 @@ const staggerContainer: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
+function parseLocation(raw?: string): string {
+  if (!raw) return "Brak lokalizacji";
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed.city || parsed.name || raw;
+  } catch {
+    return raw;
+  }
+}
+
 export default function EditableHero({
   title,
   data,
@@ -45,6 +55,7 @@ export default function EditableHero({
   dateRange,
   price,
 }: EditableHeroProps) {
+  const displayLocation = parseLocation(location);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isAddingTag, setIsAddingTag] = useState(false);
@@ -209,7 +220,7 @@ export default function EditableHero({
           {/* LOKALIZACJA */}
           <div className="flex items-center gap-2 drop-shadow-lg bg-black/25 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
             <MapPin size={16} weight="fill" className="text-brand-primary" />
-            <span>{location || "Brak lokalizacji"}</span>
+            <span>{displayLocation}</span>
           </div>
 
           {/* DATA */}

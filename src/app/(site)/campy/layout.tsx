@@ -4,9 +4,12 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "O nas | Rehability",
+  title: {
+    default: "Campy | Rehability",
+    template: "%s | Rehability",
+  },
   description:
-    "Poznaj filozofię Rehability. Tworzymy ekosystem życia bez bólu, dając Ci wiedzę i narzędzia do odzyskania kontroli nad własnym ciałem.",
+    "Ekskluzywne wyjazdy holistyczne Rehability. Całkowity reset dla ciała i umysłu.",
 };
 
 export default function AboutUsLayout({
