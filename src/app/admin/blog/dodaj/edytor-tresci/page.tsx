@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CaretLeft, CaretRight, CircleNotch, Coffee } from "@phosphor-icons/react/dist/ssr";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -12,11 +12,29 @@ import EditorToolbar from "@/app/admin/campy/dodaj/edytor-tresci/_components/lib
 import AiGeneratorModal from "@/app/admin/campy/dodaj/_components/AiGeneratorModal";
 import BlogBlockBuilder from "./_components/lib/BlogBlockBuilder";
 import { useBlogContent } from "./_components/hooks/useBlogContent";
-import { useBlogAiGenerator } from "./_components/hooks/useBlogAiGenerator";
+import { useBlogAiGenerator, type BlogBlock } from "./_components/hooks/useBlogAiGenerator";
+import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
+import NeonAiPanel, {
+  type NeonStep,
+  type StepStatus,
+} from "../_components/NeonAiPanel";
+
+const AUTO_STEPS_DEF: NeonStep[] = [
+  { id: "context",   label: "Wczytywanie kontekstu",   detail: "Pobieram dane artykułu i temat z harmonogramu..." },
+  { id: "blueprint", label: "Planowanie struktury",    detail: "AI projektuje układ sekcji i bloków..." },
+  { id: "blocks",    label: "Pisanie treści blok po bloku", detail: "AI wypełnia każdy blok osobno..." },
+  { id: "save",      label: "Zapis i przejście do SEO", detail: "Zapisuję artykuł i przechodzę do SEO..." },
+];
+
+type LiveStep = NeonStep & { status: StepStatus };
+const makeSteps = (): LiveStep[] => AUTO_STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function BlogContentEditorContent() {
+  const router       = useRouter();
   const searchParams = useSearchParams();
-  const postId = searchParams.get("id");
+  const postId       = searchParams.get("id");
 
   const {
     isFetchingData,
@@ -40,11 +58,214 @@ function BlogContentEditorContent() {
 
   const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
 
+  // ── autogenerate state ──
+  const [autoSteps, setAutoSteps]       = useState<LiveStep[]>(makeSteps());
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [autoLiveMsg, setAutoLiveMsg]     = useState<string | undefined>();
+  const autoStarted = useRef(false);
+
+  const updateStep = useCallback((id: string, status: StepStatus, detail?: string) => {
+    setAutoSteps((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setShowFloatingToolbar(window.scrollY > 450);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // ── autogenerate orchestrator (block-by-block) ──
+  const runAutoGenerate = useCallback(
+    async (scheduleId: string, pId: string) => {
+      try {
+        // 1 – context
+        updateStep("context", "active");
+        setAutoLiveMsg("Pobieram dane artykułu i temat z harmonogramu...");
+
+        const [postRes, scheduleRes] = await Promise.all([
+          fetch(`/api/admin/blog/${pId}`),
+          fetch(`/api/admin/blog/schedule/${scheduleId}`),
+        ]);
+        if (!postRes.ok)     throw new Error("Nie udało się pobrać artykułu.");
+        if (!scheduleRes.ok) throw new Error("Nie udało się pobrać tematu.");
+        const post  = await postRes.json();
+        const entry = await scheduleRes.json();
+
+        const overallContext = [
+          `Tytuł: ${post.title || ""}`,
+          `Kategoria: ${post.category || entry.category || ""}`,
+          `Opis: ${post.excerpt || ""}`,
+          `Temat: ${entry.topic || ""}`,
+          `Słowa kluczowe: ${(entry.keywords as string[] | undefined)?.join(", ") || ""}`,
+        ].join("\n");
+        updateStep("context", "done");
+
+        // 2 – blueprint
+        updateStep("blueprint", "active");
+        setAutoLiveMsg("AI projektuje układ sekcji i bloków...");
+
+        const blueprintStatus = (resumeMsg: string) => (status: RateStatus) => {
+          if (status.kind === "waiting") {
+            const prefix =
+              status.reason === "ratelimit"
+                ? "⏸ Limit Gemini — wznowię za"
+                : `⚠ Błąd Gemini — ponawiam (${status.attempt}/${status.maxAttempts}) za`;
+            setAutoLiveMsg(`${prefix} ${status.countdown}s`);
+          } else {
+            setAutoLiveMsg(resumeMsg);
+          }
+        };
+
+        const bpRes = await geminiFetch(
+          "/api/admin/gemini",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: overallContext, action: "generateBlogBlueprint" }),
+          },
+          { onStatus: blueprintStatus("AI projektuje układ sekcji i bloków...") },
+        );
+        if (!bpRes.ok) throw new Error("Błąd planowania struktury artykułu.");
+        const { blueprint } = await bpRes.json();
+        if (!Array.isArray(blueprint) || blueprint.length === 0) {
+          throw new Error("AI nie zwróciło planu artykułu.");
+        }
+        updateStep("blueprint", "done");
+
+        // 3 – blocks one by one
+        updateStep("blocks", "active");
+        let currentBlocks: BlogBlock[] = [];
+
+        for (let i = 0; i < blueprint.length; i++) {
+          const step = blueprint[i];
+          setAutoLiveMsg(
+            `Blok ${i + 1} / ${blueprint.length} · ${step.type} – ${step.topic ?? ""}`,
+          );
+
+          // add a pending block to the list (visible with neon shimmer)
+          const newBlockId = crypto.randomUUID();
+          currentBlocks = [
+            ...currentBlocks,
+            { id: newBlockId, type: step.type, content: {}, isGenerating: true },
+          ];
+          updateField("blocks", currentBlocks);
+
+          // tiny pause so the user sees the new pending block enter
+          await sleep(250);
+
+          try {
+            const blockResumeMsg = `Blok ${i + 1} / ${blueprint.length} · ${step.type} – ${step.topic ?? ""}`;
+            const blockRes = await geminiFetch(
+              "/api/admin/gemini",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "generateSingleBlock",
+                  prompt: overallContext,
+                  overallContext,
+                  blockType: step.type,
+                  topic: step.topic,
+                }),
+              },
+              { onStatus: blueprintStatus(blockResumeMsg) },
+            );
+            if (!blockRes.ok) throw new Error("Błąd API");
+            let blockContent = await blockRes.json();
+
+            // normalize nested response
+            if (
+              blockContent.content &&
+              typeof blockContent.content === "object" &&
+              !Array.isArray(blockContent.content)
+            )
+              blockContent = blockContent.content;
+            if (
+              blockContent[step.type] &&
+              typeof blockContent[step.type] === "object" &&
+              !Array.isArray(blockContent[step.type])
+            )
+              blockContent = blockContent[step.type];
+            if (blockContent.type) delete blockContent.type;
+            if (["bulletList", "featuresGrid", "faq"].includes(step.type) && !blockContent.items)
+              blockContent.items = [];
+            if (["heading", "paragraph", "highlight"].includes(step.type)) {
+              if (typeof blockContent === "string") blockContent = { text: blockContent };
+              else if (!blockContent.text)
+                blockContent.text = "Treść się nie wygenerowała. Usuń i spróbuj ponownie.";
+            }
+
+            currentBlocks = currentBlocks.map((b) =>
+              b.id === newBlockId
+                ? { ...b, content: blockContent, isGenerating: false }
+                : b,
+            );
+            updateField("blocks", currentBlocks);
+          } catch {
+            currentBlocks = currentBlocks.map((b) =>
+              b.id === newBlockId
+                ? {
+                    ...b,
+                    isGenerating: false,
+                    content: { text: "Błąd ładowania bloku. Usuń i spróbuj ponownie." },
+                  }
+                : b,
+            );
+            updateField("blocks", currentBlocks);
+          }
+
+          // small breather between blocks so the UI feels paced, not rushed
+          await sleep(250);
+        }
+        updateStep("blocks", "done");
+
+        // 4 – save and forward to SEO
+        updateStep("save", "active");
+        setAutoLiveMsg("Zapisuję treść i otwieram SEO...");
+        const saveRes = await fetch(`/api/admin/blog/${pId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "content", content: currentBlocks }),
+        });
+        if (!saveRes.ok) throw new Error("Błąd zapisu treści.");
+        updateStep("save", "done");
+
+        await sleep(700);
+        router.push(
+          `/admin/blog/dodaj/seo?id=${pId}&autogenerate=true&scheduleId=${scheduleId}`,
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
+        setAutoLiveMsg(msg);
+        setAutoSteps((prev) =>
+          prev.map((s) =>
+            s.status === "active" ? { ...s, status: "error", detail: msg } : s,
+          ),
+        );
+      }
+    },
+    [router, updateField, updateStep],
+  );
+
+  // ── detect autogenerate param after content is fetched ──
+  useEffect(() => {
+    if (autoStarted.current) return;
+    if (isFetchingData || !postId) return;
+    const autoGenParam = searchParams.get("autogenerate");
+    const scheduleId   = searchParams.get("scheduleId");
+    if (autoGenParam !== "true" || !scheduleId) return;
+
+    autoStarted.current = true;
+    // strip query so a refresh doesn't replay the flow
+    router.replace(`/admin/blog/dodaj/edytor-tresci?id=${postId}`);
+    setAutoSteps(makeSteps());
+    setIsAutoRunning(true);
+    runAutoGenerate(scheduleId, postId);
+  }, [isFetchingData, postId, searchParams, router, runAutoGenerate]);
 
   if (isFetchingData) {
     return (
@@ -61,6 +282,18 @@ function BlogContentEditorContent() {
       animate={{ opacity: 1, y: 0 }}
       className="relative pb-24"
     >
+      {/* Floating neon AI panel for autogenerate */}
+      <AnimatePresence>
+        {isAutoRunning && (
+          <NeonAiPanel
+            title="Agent AI · Edytor treści"
+            steps={autoSteps}
+            liveMessage={autoLiveMsg}
+            onAbort={() => router.push("/admin/blog")}
+          />
+        )}
+      </AnimatePresence>
+
       <AiGeneratorModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
@@ -71,7 +304,7 @@ function BlogContentEditorContent() {
         placeholder="np. Artykuł o ćwiczeniach na kręgosłup dla kobiet pracujących przy biurku..."
       />
 
-      {/* Pływający pasek postępu AI */}
+      {/* Pływający pasek postępu (manual AI z modala) */}
       <AnimatePresence>
         {aiProgress.isVisible && (
           <motion.div
@@ -167,6 +400,25 @@ function BlogContentEditorContent() {
             />
           </motion.div>
 
+          {/* Empty placeholder while autogenerate is running and no blocks added yet */}
+          {isAutoRunning && contentData.blocks.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center px-6">
+              <motion.div
+                animate={{ scale: [1, 1.06, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-4 shadow-[0_0_24px_rgba(40,125,136,0.35)]"
+              >
+                <CircleNotch size={26} weight="bold" className="text-brand-primary animate-spin" />
+              </motion.div>
+              <p className="text-[14px] font-montserrat font-semibold text-[#0B3B4C]">
+                Agent AI przygotowuje strukturę artykułu...
+              </p>
+              <p className="text-[12px] font-montserrat text-gray-400 mt-1">
+                Bloki pojawią się tutaj jeden po drugim.
+              </p>
+            </div>
+          )}
+
           <BlogBlockBuilder
             blocks={contentData.blocks}
             onChange={(newBlocks) => updateField("blocks", newBlocks)}
@@ -183,7 +435,7 @@ function BlogContentEditorContent() {
         <Button
           onClick={handleSaveAndNext}
           isLoading={savingSource === "bottom"}
-          disabled={savingSource !== null}
+          disabled={savingSource !== null || isAutoRunning}
           rightIcon={<CaretRight size={18} weight="bold" />}
         >
           Zapisz i kontynuuj

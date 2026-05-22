@@ -9,10 +9,30 @@
       "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\api\\\\public\\\\campy\")",
       "Bash(Out-Null)",
       "Bash(Write-Output \"ok\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\" | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Directory\"}else{\"File\"}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\" -Recurse -Directory | ForEach-Object { $_.FullName.Replace\\(\"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\", \"\"\\).TrimStart\\(\"\\\\\"\\) } | Sort-Object)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\" 2>/dev/null; mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\" 2>/dev/null; echo \"dirs ready\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\_components\" 2>/dev/null && echo \"ok\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\api\\\\panel\\\\harmonogram\\\\[bookingId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\api\\\\panel\\\\sklep\\\\[campId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\harmonogram\\\\_components\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\sklep\\\\[serviceId]\\\\_components\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\sklep\\\\koszyk\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\sklep\\\\_components\" && echo \"ok\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\finanse\\\\_components\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\panel\\\\[bookingId]\\\\karta-zdrowia\\\\_components\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\admin\\\\campy\\\\[id]\\\\uczestnicy\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(Object.keys\\(p.dependencies||{}\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('next:',p.dependencies.next,'react:',p.dependencies.react,'framer:',p.dependencies['framer-motion']\\)\")",
+      "Bash(grep -E \"\\\\\\\\\\(site\\\\\\\\\\)/page.tsx|\\\\\\\\\\(site\\\\\\\\\\)/_components/HeroSection|^src/app/layout.tsx|^next.config\")"
     ],
     "additionalDirectories": [
-      "C:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\components\\sections\\admin\\editor"
+      "C:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\components\\sections\\admin\\editor",
+      "c:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\app\\panel",
+      "c:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\app\\panel\\[bookingId]",
+      "c:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\app\\panel\\[bookingId]\\sklep"
     ]
   }
 }

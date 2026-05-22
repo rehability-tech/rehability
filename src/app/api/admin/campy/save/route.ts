@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { campSchema } from "@/lib/zod/campsValidators";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { validateCampCompleteness } from "@/lib/camps/validateCampCompleteness";
 
 export async function POST(req: Request) {
   try {
@@ -43,12 +44,41 @@ export async function POST(req: Request) {
     };
 
     let camp;
+    let forcedDraft = false;
 
     if (id) {
       // 5a. AKTUALIZACJA
+      // Pobieramy aktualny stan campa, żeby wiedzieć, czy był PUBLISHED
+      const existingCamp = await prisma.camp.findUnique({ where: { id } });
+      if (!existingCamp) {
+        return NextResponse.json(
+          { error: "Nie znaleziono wyjazdu o podanym ID" },
+          { status: 404 },
+        );
+      }
+
+      // Składamy "post-update" kształt campa do walidacji kompletności.
+      // heroImage / blocks nie są edytowane w tym endpointzie — bierzemy z bazy.
+      if (existingCamp.status === "PUBLISHED") {
+        const mergedCamp = {
+          heroImage: existingCamp.heroImage,
+          location: campData.location,
+          startDate: campData.startDate,
+          endDate: campData.endDate,
+          mapUrl: campData.mapUrl,
+          allowBringFriend: campData.allowBringFriend,
+          blocks: existingCamp.blocks,
+        };
+        const { isComplete } = validateCampCompleteness(mergedCamp);
+        if (!isComplete) forcedDraft = true;
+      }
+
       camp = await prisma.camp.update({
         where: { id },
-        data: campData,
+        data: {
+          ...campData,
+          ...(forcedDraft ? { status: "DRAFT" } : {}),
+        },
       });
     } else {
       // 5b. TWORZENIE
@@ -61,6 +91,12 @@ export async function POST(req: Request) {
       success: true,
       campId: camp.id,
       lastStage: camp.lastStage,
+      ...(forcedDraft
+        ? {
+            forcedDraft: true,
+            message: "Cofnięto publikację z powodu braków w treści",
+          }
+        : {}),
     });
   } catch (error: any) {
     console.error("Błąd zapisu campa:", error);

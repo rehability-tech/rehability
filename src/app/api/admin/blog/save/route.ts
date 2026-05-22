@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     if (!isAuthorized) return response as NextResponse;
 
     const body = await req.json();
-    const { id, ...dataToValidate } = body;
+    const { id, scheduleId, ...dataToValidate } = body;
 
     const validated = blogBasicSchema.parse(dataToValidate);
 
@@ -33,7 +33,28 @@ export async function POST(req: Request) {
       post = await prisma.post.create({ data: postData });
     }
 
-    return NextResponse.json({ success: true, postId: post.id, lastStage: post.lastStage });
+    // Link to the calendar entry that triggered this flow, and mirror status
+    // so the harmonogram view immediately reflects in-progress / drafted work.
+    if (typeof scheduleId === "string" && scheduleId.length > 0) {
+      try {
+        await prisma.blogScheduleEntry.update({
+          where: { id: scheduleId },
+          data: { postId: post.id, status: "IN_PROGRESS" },
+        });
+      } catch (err) {
+        console.warn(
+          "[blog/save] could not link schedule entry",
+          scheduleId,
+          err,
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      postId: post.id,
+      lastStage: post.lastStage,
+    });
   } catch (error: any) {
     console.error("Błąd zapisu posta:", error);
 

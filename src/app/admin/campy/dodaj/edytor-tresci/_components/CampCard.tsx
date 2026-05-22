@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/ToolTip";
 import { toast } from "sonner";
 import { Camp } from "@/generated/prisma";
+import { validateCampCompleteness } from "@/lib/camps/validateCampCompleteness";
 
 // ==========================================
 // FUNKCJE POMOCNICZE
@@ -107,37 +108,13 @@ export function CampCard({
   const canDrag = !isFeaturedZone && !isDraft;
 
   // ----------------------------------------------------
-  // WALIDACJA GOTOWOŚCI DO PUBLIKACJI (FRONTEND)
+  // WALIDACJA GOTOWOŚCI DO PUBLIKACJI
+  // Wspólne źródło prawdy z backendem (lib/camps/validateCampCompleteness).
+  // Dzięki temu tooltip pokazuje dokładnie te same braki, które blokują
+  // publikację po stronie API.
   // ----------------------------------------------------
-  const missingFields: string[] = [];
-
-  if (!camp.heroImage) missingFields.push("Zdjęcie (Tło)");
-  if (!camp.location) missingFields.push("Lokalizacja");
-  if (!camp.startDate || !camp.endDate) missingFields.push("Daty");
-
-  let blocksCount = 0;
-  let hasMapBlock = false;
-
-  if (camp.blocks) {
-    try {
-      const parsed =
-        typeof camp.blocks === "string" ? JSON.parse(camp.blocks) : camp.blocks;
-      if (Array.isArray(parsed)) {
-        blocksCount = parsed.length;
-        // Sprawdzamy czy istnieje blok typu "map"
-        hasMapBlock = parsed.some((block: any) => block.type === "map");
-      }
-    } catch (e) {}
-  }
-
-  if (blocksCount < 3) missingFields.push("Min. 3 bloki treści");
-
-  // Wymagaj mapUrl TYLKO, gdy dodano blok mapy ORAZ w campie faktycznie nie ma stringa mapUrl
-  if (hasMapBlock && (!camp.mapUrl || camp.mapUrl.trim() === "")) {
-    missingFields.push("Link do mapy Google (wymagany przez blok mapy)");
-  }
-
-  const canPublish = missingFields.length === 0;
+  const { isComplete: canPublish, missing: missingFields } =
+    validateCampCompleteness(camp);
 
   useEffect(() => {
     if (!isUpdating) setConfirmedStatus(camp.status);
@@ -443,7 +420,8 @@ export function CampCard({
           <Tooltip content="Edytuj dane wyjazdu" position="top">
             <Link
               href={`/admin/campy/dodaj/${camp.lastStage}?id=${camp.id}`}
-              className={isUpdating ? "pointer-events-none" : ""}
+              className={`hidden md:block ${isUpdating ? "pointer-events-none" : ""}`}
+              aria-label="Edytuj dane wyjazdu"
             >
               <button
                 disabled={isUpdating}

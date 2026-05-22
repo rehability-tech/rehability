@@ -2,8 +2,19 @@ import { geminiRequestSchema } from "@/lib/zod/geminiValidators";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { parseModelJson, ModelJsonParseError } from "@/lib/gemini/parseModelJson";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
+
+function clampToCharLimit(text: string, maxLen: number): string {
+  const trimmed = text.trim().replace(/\s+/g, " ");
+  if (trimmed.length <= maxLen) return trimmed;
+  const slice = trimmed.slice(0, maxLen);
+  const lastSpace = slice.lastIndexOf(" ");
+  const base =
+    lastSpace > maxLen * 0.6 ? slice.slice(0, lastSpace) : slice;
+  return base.replace(/[\s.,;:!?-]+$/, "").trimEnd();
+}
 
 export async function POST(req: Request) {
   try {
@@ -220,10 +231,43 @@ export async function POST(req: Request) {
       // =======================================================================
       case "generateBlogSeo":
         systemInstruction = `Jesteś ekspertem SEO specjalizującym się w blogach wellness.
+
+        TWARDE LIMITY ZNAKÓW (liczone razem ze spacjami — przekroczenie jest BŁĘDEM):
+        - metaTitle: BEZWZGLĘDNIE max 60 znaków. Cel: 50-58 znaków. Jeżeli wersja brzmi naturalnie przy 45 znakach, zostaw 45.
+        - metaDescription: BEZWZGLĘDNIE max 155 znaków. Cel: 130-150 znaków.
+
+        Przed zwróceniem JSON-a policz znaki w obu polach (każdy znak, łącznie ze spacjami i znakami diakrytycznymi). Jeśli któreś pole przekracza limit, SKRÓĆ je tak, by zmieściło się w limicie — nie zwracaj zbyt długiej wersji.
+
         Na podstawie danych artykułu wygeneruj DOKŁADNY obiekt JSON:
         {
-          "metaTitle": "Optymalny tytuł SEO, 50-60 znaków, zawiera główne słowo kluczowe",
-          "metaDescription": "Zachęcający opis 120-155 znaków, zawiera słowo kluczowe i call-to-action",
+          "metaTitle": "Optymalny tytuł SEO. MAX 60 znaków (najlepiej 50-58). Zawiera główne słowo kluczowe.",
+          "metaDescription": "Zachęcający opis. MAX 155 znaków (najlepiej 130-150). Zawiera słowo kluczowe i call-to-action.",
+          "focusKeyword": "Główna fraza kluczowa (2-4 słowa po polsku)"
+        }`;
+        break;
+
+      // =======================================================================
+      // AGENT: METADANE SEO WYJAZDU (CAMP)
+      // =======================================================================
+      case "generateCampSeo":
+        systemInstruction = `Jesteś ekspertem SEO specjalizującym się w turystyce premium, retreatach i wyjazdach wellness dla kobiet.
+
+        TWARDE LIMITY ZNAKÓW (liczone razem ze spacjami — przekroczenie jest BŁĘDEM):
+        - metaTitle: BEZWZGLĘDNIE max 60 znaków. Cel: 50-58 znaków. Jeżeli wersja brzmi naturalnie przy 45 znakach, zostaw 45.
+        - metaDescription: BEZWZGLĘDNIE max 155 znaków. Cel: 130-150 znaków.
+
+        Przed zwróceniem JSON-a policz znaki w obu polach (każdy znak, łącznie ze spacjami i znakami diakrytycznymi). Jeśli któreś pole przekracza limit, SKRÓĆ je tak, by zmieściło się w limicie — nie zwracaj zbyt długiej wersji.
+
+        WSKAZÓWKI MERYTORYCZNE:
+        - Wpleć lokalizację (miasto / region) i tematykę wyjazdu w metaTitle, jeśli to tylko możliwe — to długi ogon SEO, który konwertuje.
+        - Wpleć datę / sezon w metaDescription jako element pilności (np. "Lato 2026", "Wrzesień 2026").
+        - Skup się na korzyści emocjonalnej dla uczestniczki (reset, energia, czas dla siebie), a nie na suchych faktach.
+        - Focus keyword to fraza, którą realna kobieta wpisuje w Google ("retreat wellness Tatry", "obozy fizjoterapeutyczne morze").
+
+        Na podstawie danych wyjazdu wygeneruj DOKŁADNY obiekt JSON:
+        {
+          "metaTitle": "Optymalny tytuł SEO. MAX 60 znaków (najlepiej 50-58). Zawiera główne słowo kluczowe + lokalizację.",
+          "metaDescription": "Zachęcający opis. MAX 155 znaków (najlepiej 130-150). Korzyść + sezon + call-to-action.",
           "focusKeyword": "Główna fraza kluczowa (2-4 słowa po polsku)"
         }`;
         break;
@@ -270,8 +314,76 @@ export async function POST(req: Request) {
     if (isHtmlAction) {
       return NextResponse.json({ content: responseText });
     }
-    return NextResponse.json(JSON.parse(responseText));
+
+    try {
+      const parsed = parseModelJson<Record<string, unknown>>(responseText);
+
+      if (
+        (action === "generateBlogSeo" || action === "generateCampSeo") &&
+        parsed &&
+        typeof parsed === "object"
+      ) {
+        const seo = parsed as {
+          metaTitle?: string;
+          metaDescription?: string;
+          focusKeyword?: string;
+        };
+        if (typeof seo.metaTitle === "string") {
+          seo.metaTitle = clampToCharLimit(seo.metaTitle, 60);
+        }
+        if (typeof seo.metaDescription === "string") {
+          seo.metaDescription = clampToCharLimit(seo.metaDescription, 155);
+        }
+      }
+
+      return NextResponse.json(parsed);
+    } catch (parseErr) {
+      if (parseErr instanceof ModelJsonParseError) {
+        console.error(
+          "Gemini returned malformed JSON for action",
+          action,
+          "—",
+          parseErr.message,
+          "\n--- raw (first 500 chars) ---\n",
+          parseErr.raw.slice(0, 500),
+        );
+        return NextResponse.json(
+          {
+            error:
+              "Model zwrócił niepoprawny JSON. Spróbuję ponownie automatycznie.",
+            kind: "MALFORMED_JSON",
+          },
+          { status: 502 },
+        );
+      }
+      throw parseErr;
+    }
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+
+    const isQuotaError =
+      /\b429\b/.test(msg) ||
+      /Too Many Requests/i.test(msg) ||
+      /RESOURCE_EXHAUSTED/i.test(msg) ||
+      /exceeded your current quota/i.test(msg);
+
+    if (isQuotaError) {
+      const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+      const retryDelaySec = retryMatch
+        ? Math.max(1, Math.ceil(parseFloat(retryMatch[1])))
+        : 30;
+      console.warn(
+        `Gemini quota exceeded; instructing client to retry in ${retryDelaySec}s`,
+      );
+      return NextResponse.json(
+        {
+          error: "Przekroczono limit zapytań Gemini. Wznowię automatycznie.",
+          retryDelaySec,
+        },
+        { status: 429 },
+      );
+    }
+
     console.error("Gemini API Error:", error);
     return NextResponse.json(
       { error: "Wystąpił błąd podczas komunikacji z AI." },

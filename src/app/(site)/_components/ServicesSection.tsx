@@ -14,6 +14,7 @@ const SERVICES = [
       "Zastosowanie nowoczesnych metod, w tym osteopatii i treningu medycznego.",
     ],
     buttonText: "Umów wizytę",
+    buttonHref: "/gabinet",
   },
   {
     title: "Masaże i Terapia Manualna",
@@ -24,6 +25,7 @@ const SERVICES = [
       "Holistyczne podejście do ciała, poprawiające ogólne samopoczucie.",
     ],
     buttonText: "Sprawdź ofertę zabiegów",
+    buttonHref: "/gabinet",
   },
   {
     title: "Szkolenia VOD",
@@ -34,6 +36,8 @@ const SERVICES = [
       "Nowoczesne techniki terapii tłumaczone krok po kroku przez ekspertów",
     ],
     buttonText: "Poznaj platformę VOD",
+    // Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia.
+    buttonHref: "/w-budowie",
   },
   {
     title: "Campy",
@@ -44,6 +48,7 @@ const SERVICES = [
       "Budowanie wartościowych relacji i wymiana branżowych doświadczeń.",
     ],
     buttonText: "Zobacz nadchodzące terminy",
+    buttonHref: "/campy",
   },
 ];
 
@@ -161,7 +166,9 @@ export function ServicesSection() {
                   </motion.ul>
 
                   <motion.div variants={fadeUpVariants}>
-                    <Button showArrow>{service.buttonText}</Button>
+                    <Button showArrow href={service.buttonHref}>
+                      {service.buttonText}
+                    </Button>
                   </motion.div>
                 </div>
               </motion.div>

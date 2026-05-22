@@ -19,9 +19,13 @@ export default function BlogFaqBlock({ items }: { items: FaqItem[] }) {
   return (
     <div className="my-6 flex flex-col gap-2">
       {items.map((item, i) => (
-        <div key={item.id || i} className="border border-gray-100 rounded-2xl overflow-hidden bg-gray-50/50">
+        <div
+          key={item.id || i}
+          className="border border-gray-100 rounded-2xl overflow-hidden bg-gray-50/50"
+        >
           <button
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
+            aria-expanded={openIndex === i}
             className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer"
           >
             <span className="font-jakarta font-semibold text-[#0B3B4C] text-[15px] pr-4">
@@ -30,7 +34,10 @@ export default function BlogFaqBlock({ items }: { items: FaqItem[] }) {
             <CaretDown
               size={18}
               weight="bold"
-              className={cn("text-brand-primary shrink-0 transition-transform duration-300", openIndex === i && "rotate-180")}
+              className={cn(
+                "text-brand-primary shrink-0 transition-transform duration-300",
+                openIndex === i && "rotate-180",
+              )}
             />
           </button>
           <AnimatePresence initial={false}>

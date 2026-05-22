@@ -8,10 +8,11 @@ import SingleCampHero from "./SingleCampHero";
 import SingleCampTabs from "./CampTabs";
 import SingleCampBlockNoteRenderer, {
   BlockNoteBlock,
-} from "./SingleCampBlockNoteRenderer";
+} from "./SingleCampBlocksNoteRenderer";
 import SingleCampForm from "./SingleCampForm";
 
 interface CampPageClientProps {
+  campId: string;
   title: string;
   subtitle: string;
   tags: string[];
@@ -20,6 +21,7 @@ interface CampPageClientProps {
 }
 
 export default function CampPageClient({
+  campId,
   title,
   subtitle,
   tags,
@@ -58,7 +60,7 @@ export default function CampPageClient({
           </motion.div>
         )}
 
-        {activeTab === "form" && <SingleCampForm />}
+        {activeTab === "form" && <SingleCampForm campId={campId} />}
       </section>
     </main>
   );

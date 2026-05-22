@@ -60,10 +60,7 @@ export const CTASection = () => {
               diagnozy? Wybierz terapię stacjonarną. Znajdziemy prawdziwe źródło
               problemu i wspólnie zaplanujemy proces leczenia.
             </p>
-            <Button
-              showArrow
-              onClick={() => console.log("Umów wizytę kliknięte")}
-            >
+            <Button showArrow href="/gabinet">
               Umów wizytę w gabinecie
             </Button>
           </motion.div>
@@ -81,10 +78,9 @@ export const CTASection = () => {
               podtrzymaniu efektów terapii? Zyskaj dostęp do autorskich
               programów treningowych i dbaj o ciało z dowolnego miejsca.
             </p>
-            <Button
-              showArrow
-              onClick={() => console.log("Platforma VOD kliknięta")}
-            >
+            {/* Brak trasy /platforma-vod — kierujemy na placeholder „w-budowie",
+                aż VOD pojawi się w app routerze. */}
+            <Button showArrow href="/w-budowie">
               Odkryj platformę VOD
             </Button>
           </motion.div>

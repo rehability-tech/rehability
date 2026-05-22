@@ -138,7 +138,9 @@ export function SocialProofSection() {
                 platformie VOD, czy intensywny trening na żywo podczas naszych
                 Campów – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
               </p>
-              <Button showArrow variant="primary">
+              {/* Strefa edukacji = VOD + Campy. Brak /platforma-vod —
+                  placeholder /w-budowie do czasu uruchomienia. */}
+              <Button showArrow variant="primary" href="/w-budowie">
                 Poznaj strefę edukacji
               </Button>
             </motion.div>
@@ -241,7 +243,7 @@ export function SocialProofSection() {
               VOD, czy intensywny trening na żywo podczas naszych Campów –
               przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
             </p>
-            <Button showArrow variant="primary">
+            <Button showArrow variant="primary" href="/w-budowie">
               Poznaj strefę edukacji
             </Button>
           </motion.div>

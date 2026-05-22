@@ -7,6 +7,7 @@ import {
   ListNumbers,
   Image as ImageIcon,
   Article,
+  MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr";
 
 const steps = [
@@ -26,6 +27,13 @@ const steps = [
   },
   {
     id: 3,
+    name: "SEO",
+    path: "/admin/campy/dodaj/seo",
+    icon: MagnifyingGlass,
+    requiresId: true,
+  },
+  {
+    id: 4,
     name: "Podsumowanie",
     path: "/admin/campy/dodaj/podsumowanie",
     icon: Article,
@@ -43,8 +51,10 @@ function StepperContent() {
   let currentStepIndex = 0;
   if (pathname.includes("/edytor-tresci")) {
     currentStepIndex = 1;
-  } else if (pathname.includes("/podsumowanie")) {
+  } else if (pathname.includes("/seo")) {
     currentStepIndex = 2;
+  } else if (pathname.includes("/podsumowanie")) {
+    currentStepIndex = 3;
   }
 
   const handleStepClick = (

@@ -1,71 +1,50 @@
-import { withAuth } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default withAuth(
-  function middleware(request) {
-    const { pathname } = request.nextUrl;
-    const token = request.nextauth.token;
+// ZMIANA TUTAJ: Zamiast 'export async function middleware', używamy 'export async function proxy'
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = await getToken({ req: request });
 
-    // 1. Ignorujemy pliki statyczne i API
-    if (
-      pathname.includes(".") ||
-      pathname.startsWith("/_next") ||
-      (pathname.startsWith("/api") && !pathname.startsWith("/api/admin"))
-    ) {
-      return NextResponse.next();
+  // 1. Zabezpieczenie przed niezalogowanymi (wypychamy na logowanie)
+  const isProtectedRoute =
+    pathname.startsWith("/panel") || pathname.startsWith("/admin");
+  if (isProtectedRoute && !token) {
+    return NextResponse.redirect(new URL("/logowanie", request.url));
+  }
+
+  // 2. Logika dla ZALOGOWANYCH użytkowników
+  if (token) {
+    const isAdmin = token.role === "ADMIN";
+
+    // A: Przekierowanie ze strony logowania do odpowiedniego panelu
+    if (pathname === "/logowanie") {
+      return NextResponse.redirect(
+        new URL(isAdmin ? "/admin" : "/panel", request.url),
+      );
     }
 
-    // --- INTELIGENTNE PRZEKIEROWANIE ZE STRONY LOGOWANIA ---
-    if (pathname === "/logowanie" && token) {
-      if (token.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      } else {
-        return NextResponse.redirect(new URL("/panel-kursanta", request.url));
-      }
-    }
-
-    // --- OCHRONA PANELU ADMINA ---
-    const isAdminRoute =
-      pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
-
-    if (isAdminRoute && token?.role !== "ADMIN") {
-      // Zwykły user ucieka stąd na stronę główną
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-
-    // --- NOWE: OCHRONA PANELU KURSANTA PRZED ADMINEM ---
-    const isUserPanelRoute = pathname.startsWith("/panel-kursanta");
-
-    if (isUserPanelRoute && token?.role === "ADMIN") {
-      // Jeśli Admin zapędzi się na panel kursanta, wyrzucamy go do jego bazy (na /admin)
+    // B: Admin wchodzi na trasę usera -> odsyłamy do /admin
+    if (isAdmin && pathname.startsWith("/panel")) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
-    // ---------------------------------------------------
 
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ req, token }) => {
-        const { pathname } = req.nextUrl;
+    // C: User wchodzi na trasę admina -> odsyłamy do /panel
+    if (!isAdmin && pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/panel", request.url));
+    }
+  }
 
-        if (
-          pathname.startsWith("/admin") ||
-          pathname.startsWith("/api/admin") ||
-          pathname.startsWith("/panel-kursanta")
-        ) {
-          return !!token;
-        }
-
-        return true;
-      },
-    },
-    pages: {
-      signIn: "/logowanie",
-    },
-  },
-);
+  // Jeśli żaden warunek nie zablokował, przepuszczamy dalej
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|logotypy).*)"],
+  matcher: [
+    "/panel/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/logowanie",
+  ],
 };

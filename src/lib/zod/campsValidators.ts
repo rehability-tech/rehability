@@ -45,10 +45,28 @@ export const campSchema = z.object({
     })
     .min(0, "Zadatek nie może być ujemny"),
 
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
 
   lastAiPrompt: z.string().optional(),
 
   // Dodane opcjonalne pole na zapisywanie aktualnego kroku kreatora
   lastStage: z.string().optional(),
+});
+
+// ==========================================
+// SCHEMAT SEO (mirror blogSeoSchema)
+// ==========================================
+export const campSeoSchema = z.object({
+  metaTitle: z
+    .string()
+    .max(70, "Meta tytuł nie może przekraczać 70 znaków")
+    .optional(),
+  metaDescription: z
+    .string()
+    .max(165, "Meta opis nie może przekraczać 165 znaków")
+    .optional(),
+  focusKeyword: z.string().optional(),
+  ogImage: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  noIndex: z.boolean().optional().default(false),
 });

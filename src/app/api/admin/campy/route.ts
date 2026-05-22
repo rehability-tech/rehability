@@ -24,6 +24,7 @@ export async function GET() {
         lastStage: true,
         heroImage: true,
         mapUrl: true,
+        allowBringFriend: true,
         blocks: true, // <--- Upewnij się, że to tutaj jest!
       },
     });

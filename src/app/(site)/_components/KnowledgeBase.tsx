@@ -20,7 +20,7 @@ const ARTICLES = [
     title: "Zdrowy kręgosłup w biurze",
     desc: "5 prostych ćwiczeń, które zlikwidują ból karku.",
     image: "/images/about/szlolenie_dla_fizjoterapeutów.jpg",
-    link: "#",
+    link: "/blog",
   },
   {
     id: 2,
@@ -28,7 +28,7 @@ const ARTICLES = [
     title: "Czym jest masaż Kobido?",
     desc: "Poznaj japoński sekret głębokiego relaksu i liftingu.",
     image: "/images/about/gabinet_fizjoterapii.jpg",
-    link: "#",
+    link: "/blog",
   },
   {
     id: 3,
@@ -36,7 +36,7 @@ const ARTICLES = [
     title: "Mity o rwie kulszowej",
     desc: "Fakty i sprawdzone metody, które przyspieszą Twoje leczenie",
     image: "/images/about/piotr_siemaszko.png",
-    link: "#",
+    link: "/blog",
   },
 ];
 

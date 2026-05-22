@@ -61,7 +61,9 @@ const HeaderBlock = () => (
       Nowoczesna <span className="text-brand-primary">fizjoterapia</span> w
       Prudniku.
     </h1>
-    <Button showArrow>Zobacz terminy</Button>
+    <Button showArrow href="/campy">
+      Zobacz terminy
+    </Button>
   </motion.div>
 );
 
@@ -91,6 +93,8 @@ const FizjoBlock = ({ className = "" }: { className?: string }) => (
         alt="Fizjoterapia w trakcie"
         fill
         priority
+        fetchPriority="high"
+        sizes="(max-width: 1024px) 90vw, 33vw"
         className="object-cover"
       />
     </div>
@@ -112,7 +116,8 @@ const RelaxBlock = () => (
         src="/images/hero/relax_hero.jpg"
         alt="Strefa relaksu"
         fill
-        priority
+        loading="eager"
+        sizes="(max-width: 1024px) 45vw, 20vw"
         className="object-cover transition-transform hover:scale-105 duration-700"
       />
     </div>
@@ -134,7 +139,8 @@ const CampyBlock = () => (
         src="/images/hero/campy_hero.jpg"
         alt="Campy i wyjazdy"
         fill
-        priority
+        loading="eager"
+        sizes="(max-width: 1024px) 45vw, 25vw"
         className="object-cover transition-transform hover:scale-105 duration-700"
       />
     </div>
@@ -158,7 +164,8 @@ const BottomTextBlock = () => (
       Poznaj autorskie metody diagnostyki i terapii. Rozwiń swój warsztat dzięki
       kursom VOD i zjazdom na Campach.
     </p>
-    <Button variant="primary" showArrow>
+    {/* Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia. */}
+    <Button variant="primary" showArrow href="/w-budowie">
       Dołącz do platformy
     </Button>
   </motion.div>

@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
           id: true,
           title: true,
           subtitle: true,
+          description: true, // potrzebne w CampCard na publicznym froncie
           tags: true,
           heroImage: true,
           location: true,

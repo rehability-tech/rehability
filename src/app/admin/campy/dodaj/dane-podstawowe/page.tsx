@@ -11,6 +11,7 @@ import {
   X,
   Sparkle,
   CircleNotch,
+  Warning,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { registerLocale } from "react-datepicker";
@@ -52,6 +53,7 @@ function BasicDataFormContent() {
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
   const [allowBringFriend, setAllowBringFriend] = useState(false);
+  const [hasBookingOptionsBlock, setHasBookingOptionsBlock] = useState(false);
 
   const [description, setDescription] = useState("");
   const [lastAiPrompt, setLastAiPrompt] = useState("");
@@ -81,6 +83,22 @@ function BasicDataFormContent() {
           setLastAiPrompt(data.lastAiPrompt || "");
           setMapUrl(data.mapUrl || "");
           setAllowBringFriend(data.allowBringFriend || false);
+
+          // Sprawdzamy, czy w blokach treści jest blok opcji rezerwacji
+          try {
+            const parsedBlocks =
+              typeof data.blocks === "string"
+                ? JSON.parse(data.blocks)
+                : data.blocks;
+            setHasBookingOptionsBlock(
+              Array.isArray(parsedBlocks) &&
+                parsedBlocks.some(
+                  (b: any) => b?.type === "bookingOptions",
+                ),
+            );
+          } catch {
+            setHasBookingOptionsBlock(false);
+          }
 
           // Dekodowanie lokalizacji zapisanego jako JSON String
           if (data.location) {
@@ -422,9 +440,11 @@ function BasicDataFormContent() {
           {/* OPCJA ZABIERZ PRZYJACIÓŁKĘ */}
           <div
             className={`border rounded-[16px] mt-6 p-5 md:p-6 transition-all duration-300 ${
-              allowBringFriend
-                ? "bg-brand-primary/[0.03] border-brand-primary/20 shadow-sm"
-                : "bg-gray-50 border-gray-200 hover:border-gray-300"
+              allowBringFriend && editId && !hasBookingOptionsBlock
+                ? "bg-amber-50/60 border-amber-300 shadow-sm"
+                : allowBringFriend
+                  ? "bg-brand-primary/[0.03] border-brand-primary/20 shadow-sm"
+                  : "bg-gray-50 border-gray-200 hover:border-gray-300"
             }`}
           >
             <label className="flex items-start gap-4 cursor-pointer group">
@@ -462,6 +482,21 @@ function BasicDataFormContent() {
                 </p>
               </div>
             </label>
+
+            {allowBringFriend && editId && !hasBookingOptionsBlock && (
+              <div className="mt-4 flex items-start gap-2.5 rounded-[12px] border border-amber-300 bg-amber-100/60 px-3.5 py-3 text-[12.5px] text-amber-800 font-montserrat leading-relaxed">
+                <Warning
+                  size={18}
+                  weight="fill"
+                  className="shrink-0 text-amber-600 mt-0.5"
+                />
+                <span>
+                  Opcja jest włączona, ale w Edytorze Treści brakuje bloku{" "}
+                  <strong>„Opcje rezerwacji"</strong>. Dodaj go, w przeciwnym
+                  razie publikacja wyjazdu będzie zablokowana.
+                </span>
+              </div>
+            )}
           </div>
         </section>
 

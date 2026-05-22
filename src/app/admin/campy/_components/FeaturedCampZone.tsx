@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Star, DotsSixVertical } from "@phosphor-icons/react/dist/ssr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CampCard, CampData } from "../dodaj/edytor-tresci/_components/CampCard";
+import { CampCard } from "../dodaj/edytor-tresci/_components/CampCard";
+import { Camp } from "@/generated/prisma";
 
 interface FeaturedCampZoneProps {
-  featuredCamp: CampData | undefined;
+  featuredCamp: Camp | undefined;
   onUpdateFeaturedLocally: (campId: string | null) => void;
 }
 
@@ -16,23 +17,30 @@ export function FeaturedCampZone({
   onUpdateFeaturedLocally,
 }: FeaturedCampZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-
-  // NOWY STAN: Kontroluje wizualne ładowanie (rozmycie/pulsowanie)
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // --- AUTOMATYCZNE USUWANIE PRZY UTRACIE STATUSU ---
+  useEffect(() => {
+    // Jeśli karta jest w Featured Zone, ale z jakiegoś powodu straciła status PUBLISHED
+    // (np. wymuszony DRAFT z backendu po edycji), automatycznie zdejmujemy wyróżnienie.
+    if (featuredCamp && featuredCamp.status !== "PUBLISHED" && !isProcessing) {
+      updateFeaturedCampInDB(null);
+      toast.info(
+        "Wyróżniony wyjazd został usunięty ze strony głównej, ponieważ nie ma statusu 'Opublikowany'.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featuredCamp?.status]);
 
   // --- LOGIKA ZAPISU DO BAZY ---
   const updateFeaturedCampInDB = async (campId: string | null) => {
-    // 1. Zaczynamy ładowanie (włącza się blur)
     setIsProcessing(true);
 
-    // 2. Jeśli DODAJEMY nową kartę (przeciągnięcie), aktualizujemy UI natychmiast.
-    // Jeśli USUWAMY (kliknięcie 'X', czyli campId to null), NIE robimy nic, żeby stara karta została na ekranie z blurem.
     if (campId !== null) {
       onUpdateFeaturedLocally(campId);
     }
 
     try {
-      // 3. Wywołanie API do bazy w tle
       const response = await fetch("/api/admin/campy/feature", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,29 +49,28 @@ export function FeaturedCampZone({
 
       if (!response.ok) throw new Error("Błąd podczas zapisywania");
 
-      // 4. Jeśli operacją było USUNIĘCIE, to DOPIERO TERAZ zdejmujemy kartę z widoku
       if (campId === null) {
         onUpdateFeaturedLocally(null);
       }
 
-      if (campId)
+      if (campId) {
         toast.success("Zmieniono wyróżniony wyjazd na stronie głównej!");
-      else toast.success("Usunięto wyjazd ze strony głównej");
+      } else {
+        toast.success("Usunięto wyjazd ze strony głównej");
+      }
     } catch (error) {
       toast.error("Wystąpił błąd podczas aktualizacji. Odśwież stronę.");
-      // Cofamy optymistyczną zmianę tylko jeśli próbowaliśmy coś dodać
       if (campId !== null) {
         onUpdateFeaturedLocally(null);
       }
     } finally {
-      // 5. Wyłączamy efekt ładowania - karta (lub pusty placeholder) staje się ostra
       setIsProcessing(false);
     }
   };
 
   // --- HANDLERY DRAG & DROP ---
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); // Wymagane, aby upuścić element
+    e.preventDefault();
     if (!isProcessing) setIsDragOver(true);
   };
 
@@ -74,9 +81,8 @@ export function FeaturedCampZone({
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-    if (isProcessing) return; // Zabezpieczenie przed dropowaniem podczas ładowania
+    if (isProcessing) return;
 
-    // Odbieramy ID z przeciąganego elementu
     const droppedCampId = e.dataTransfer.getData("campId");
     if (!droppedCampId) return;
 
@@ -85,7 +91,7 @@ export function FeaturedCampZone({
 
   const handleUnfeature = (campId: string) => {
     if (isProcessing) return;
-    updateFeaturedCampInDB(null); // Null resetuje wyróżnienie - uruchomi logikę usuwania
+    updateFeaturedCampInDB(null);
   };
 
   return (
@@ -105,8 +111,6 @@ export function FeaturedCampZone({
             : featuredCamp
               ? "border-transparent"
               : "border-dashed border-gray-200 bg-gray-50/50",
-          // --- EFEKT ŁADOWANIA ---
-          // Jeśli ładujemy -> nakładamy blur, pulsowanie i wyłączamy klikanie
           isProcessing &&
             "blur-[2px] opacity-70 animate-pulse pointer-events-none",
         )}
@@ -116,6 +120,13 @@ export function FeaturedCampZone({
             camp={featuredCamp}
             isFeaturedZone
             onUnfeature={handleUnfeature}
+            onChangeStatus={(id, newStatus) => {
+              // Jeśli user ręcznie zmieni status na samej karcie w strefie wyróżnionej,
+              // natychmiast wyrzucamy ją ze strefy (ponieważ tylko PUBLISHED może tu być)
+              if (newStatus !== "PUBLISHED") {
+                handleUnfeature(id);
+              }
+            }}
           />
         ) : (
           <div className="text-center p-8 pointer-events-none">

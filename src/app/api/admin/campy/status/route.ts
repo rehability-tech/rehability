@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { validateCampCompleteness } from "@/lib/camps/validateCampCompleteness";
 import { z } from "zod";
 
 // Definiujemy schemat Zod dla aktualizacji statusu
@@ -47,43 +48,14 @@ export async function PATCH(req: Request) {
         );
       }
 
-      const missing: string[] = [];
+      const { isComplete, missing } = validateCampCompleteness(camp);
 
-      // Sprawdzamy podstawowe wartości
-      if (!camp.heroImage) missing.push("zdjęcia (tła)");
-      if (!camp.location) missing.push("lokalizacji");
-      if (!camp.startDate || !camp.endDate) missing.push("daty wyjazdu");
-
-      // Sprawdzamy ilość bloków i czy znajduje się tam blok mapy
-      let blocksCount = 0;
-      let hasMapBlock = false;
-
-      if (camp.blocks) {
-        try {
-          const parsed =
-            typeof camp.blocks === "string"
-              ? JSON.parse(camp.blocks)
-              : camp.blocks;
-          if (Array.isArray(parsed)) {
-            blocksCount = parsed.length;
-            hasMapBlock = parsed.some((block: any) => block.type === "map");
-          }
-        } catch (e) {
-          console.error("Błąd podczas parsowania JSON-a bloków", e);
-        }
-      }
-
-      if (blocksCount < 3) missing.push("minimum 3 bloków w Edytorze Treści");
-
-      // Jeżeli dodano blok mapy, sprawdzamy pole mapUrl wyciągnięte BEZPOŚREDNIO z bazy
-      if (hasMapBlock && (!camp.mapUrl || camp.mapUrl.trim() === "")) {
-        missing.push("linku do mapy Google (wymagany przez dodany blok mapy)");
-      }
-
-      // Jeśli czegokolwiek brakuje, blokujemy zapytanie i zwracamy powód
-      if (missing.length > 0) {
+      if (!isComplete) {
         return NextResponse.json(
-          { error: `Nie można opublikować. Brakuje: ${missing.join(", ")}.` },
+          {
+            error: `Nie można opublikować. Brakuje: ${missing.join(", ")}.`,
+            missing,
+          },
           { status: 400 },
         );
       }

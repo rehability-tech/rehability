@@ -6,15 +6,17 @@ import {
   TextAa, X, CaretRight, CircleNotch, Plus, Sparkle, Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { FormInput, FormTextarea } from "@/app/admin/campy/dodaj/_components/FormFields";
 import AiGeneratorModal from "@/app/admin/campy/dodaj/_components/AiGeneratorModal";
-import AutoGenerateOverlay, {
-  type AutoGenStep,
+import NeonAiPanel, {
+  type NeonStep,
   type StepStatus,
-} from "../_components/AutoGenerateOverlay";
+} from "../_components/NeonAiPanel";
+import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
+import { cn } from "@/lib/utils";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -36,23 +38,22 @@ const DEFAULT_CATEGORIES = [
   "Fizjoterapia", "Mindfulness", "Żywienie", "Ruch", "Camp Stories", "Terapia", "Ogólne",
 ];
 
-// ─── autogenerate steps ──────────────────────────────────────────────────────
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const STEPS_DEF: AutoGenStep[] = [
-  { id: "fetch",      label: "Pobieranie tematu z harmonogramu",  detail: "Ładowanie sugestii z bazy danych..." },
-  { id: "basic",      label: "Generowanie danych podstawowych",   detail: "AI tworzy tytuł, opis i tagi artykułu..." },
-  { id: "save-basic", label: "Zapisywanie danych podstawowych",   detail: "Artykuł rejestrowany w bazie..." },
-  { id: "blueprint",  label: "Planowanie struktury artykułu",     detail: "AI projektuje układ sekcji i bloków..." },
-  { id: "content",    label: "Pisanie treści artykułu",           detail: "AI wypełnia każdy blok treścią..." },
-  { id: "seo",        label: "Generowanie metadanych SEO",        detail: "AI optymalizuje tytuł i opis dla Google..." },
-  { id: "finalize",   label: "Finalizacja i zapis",               detail: "Wszystko gotowe!" },
+// ─── autogenerate steps (only basic-data scope) ─────────────────────────────
+
+const STEPS_DEF: NeonStep[] = [
+  { id: "fetch",  label: "Pobieranie tematu",       detail: "Ładuję wpis z harmonogramu..." },
+  { id: "ai",     label: "Generowanie tytułu",      detail: "AI projektuje tytuł artykułu..." },
+  { id: "excerpt",label: "Pisanie opisu",           detail: "AI tworzy chwytliwy opis..." },
+  { id: "tags",   label: "Dobór tagów",             detail: "AI dobiera słowa kluczowe..." },
+  { id: "save",   label: "Zapis i przekierowanie",  detail: "Zapisuję i otwieram edytor treści..." },
 ];
 
-type LiveStep = AutoGenStep & { status: StepStatus };
+type LiveStep = NeonStep & { status: StepStatus };
+const makeSteps = (): LiveStep[] => STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
 
-function makeSteps(): LiveStep[] {
-  return STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
-}
+type LoadingField = "title" | "excerpt" | "tags" | "category" | null;
 
 // ─── main form ───────────────────────────────────────────────────────────────
 
@@ -78,11 +79,25 @@ function BasicDataFormContent() {
   const [isFetching, setIsFetching] = useState(false);
 
   // ── autogenerate state ──
-  const [autoSteps, setAutoSteps]     = useState<LiveStep[]>(makeSteps());
+  const [autoSteps, setAutoSteps]         = useState<LiveStep[]>(makeSteps());
   const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [loadingField, setLoadingField]   = useState<LoadingField>(null);
+  const [autoLiveMsg, setAutoLiveMsg]     = useState<string | undefined>();
   const autoStarted = useRef(false);
 
-  // ─── helpers ──
+  const buildRateStatus =
+    (resumeMsg: string) =>
+    (status: RateStatus) => {
+      if (status.kind === "waiting") {
+        const prefix =
+          status.reason === "ratelimit"
+            ? "⏸ Limit Gemini — wznowię za"
+            : `⚠ Błąd Gemini — ponawiam (${status.attempt}/${status.maxAttempts}) za`;
+        setAutoLiveMsg(`${prefix} ${status.countdown}s`);
+      } else {
+        setAutoLiveMsg(resumeMsg);
+      }
+    };
 
   const updateStep = useCallback((id: string, status: StepStatus, detail?: string) => {
     setAutoSteps((prev) =>
@@ -92,7 +107,7 @@ function BasicDataFormContent() {
     );
   }, []);
 
-  // ─── full autogenerate sequence ──────────────────────────────────────────
+  // ─── autogenerate (basic data only) ──────────────────────────────────────
 
   const runAutoGenerate = useCallback(
     async (scheduleId: string) => {
@@ -104,27 +119,69 @@ function BasicDataFormContent() {
         const entry = await entryRes.json();
         updateStep("fetch", "done");
 
-        // 2 – generate basic data
-        updateStep("basic", "active");
+        // ensure category list contains the schedule one
+        if (entry.category && !DEFAULT_CATEGORIES.includes(entry.category)) {
+          setCategories((prev) => prev.includes(entry.category) ? prev : [...prev, entry.category]);
+        }
+
+        // 2 – call AI for basic data once
         const basicPrompt = [
           entry.title,
           entry.topic,
           `Kategoria: ${entry.category}`,
           `Słowa kluczowe: ${(entry.keywords as string[]).join(", ")}`,
         ].join("\n");
-        const basicRes = await fetch("/api/admin/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: basicPrompt, action: "generateBlogBasicData" }),
-        });
+
+        updateStep("ai", "active");
+        setLoadingField("title");
+        const basicRes = await geminiFetch(
+          "/api/admin/gemini",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: basicPrompt, action: "generateBlogBasicData" }),
+          },
+          { onStatus: buildRateStatus("AI generuje dane podstawowe artykułu...") },
+        );
         if (!basicRes.ok) throw new Error("Błąd generowania danych podstawowych.");
         const basicData = await basicRes.json();
-        updateStep("basic", "done");
 
-        // 3 – save basic data
-        updateStep("save-basic", "active");
+        // reveal title with a short neon flash
         const finalTitle = basicData.title || entry.title;
-        const slug       = slugify(finalTitle);
+        setTitle(finalTitle);
+        await sleep(450);
+        setLoadingField(null);
+        updateStep("ai", "done");
+
+        // 3 – excerpt
+        updateStep("excerpt", "active");
+        setLoadingField("excerpt");
+        await sleep(450);
+        setExcerpt(basicData.excerpt || "");
+        await sleep(450);
+        setLoadingField(null);
+        updateStep("excerpt", "done");
+
+        // 4 – tags + category
+        updateStep("tags", "active");
+        setLoadingField("tags");
+        await sleep(450);
+        const finalTags: string[] =
+          Array.isArray(basicData.tags) && basicData.tags.length
+            ? basicData.tags
+            : (entry.keywords || []);
+        setTags(finalTags);
+        if (Array.isArray(basicData.categorySuggestions) && basicData.categorySuggestions.length) {
+          setAiCategorySuggestions(basicData.categorySuggestions);
+        }
+        setCategory(entry.category || "Ogólne");
+        await sleep(500);
+        setLoadingField(null);
+        updateStep("tags", "done");
+
+        // 5 – save & redirect to editor with autogenerate flag
+        updateStep("save", "active");
+        const slug = slugify(finalTitle);
         const saveRes = await fetch("/api/admin/blog/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -133,8 +190,9 @@ function BasicDataFormContent() {
             slug,
             excerpt:   basicData.excerpt || "",
             category:  entry.category,
-            tags:      basicData.tags || entry.keywords || [],
+            tags:      finalTags,
             lastStage: "edytor-tresci",
+            scheduleId,
           }),
         });
         if (!saveRes.ok) {
@@ -142,114 +200,15 @@ function BasicDataFormContent() {
           throw new Error(err.error || "Błąd zapisu danych podstawowych.");
         }
         const { postId } = await saveRes.json();
-        updateStep("save-basic", "done");
+        updateStep("save", "done");
 
-        // 4 – generate blog blueprint
-        updateStep("blueprint", "active");
-        const overallContext = [
-          `Tytuł: ${finalTitle}`,
-          `Kategoria: ${entry.category}`,
-          `Opis: ${basicData.excerpt || ""}`,
-          `Temat: ${entry.topic}`,
-          `Słowa kluczowe: ${(entry.keywords as string[]).join(", ")}`,
-        ].join("\n");
-        const bpRes = await fetch("/api/admin/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: overallContext, action: "generateBlogBlueprint" }),
-        });
-        if (!bpRes.ok) throw new Error("Błąd planowania struktury artykułu.");
-        const { blueprint } = await bpRes.json();
-        updateStep("blueprint", "done");
-
-        // 5 – generate each block, then save
-        updateStep("content", "active", `AI pisze bloki artykułu (0 / ${blueprint.length})...`);
-        const blocks: any[] = blueprint.map((step: any) => ({
-          id: crypto.randomUUID(),
-          type: step.type,
-          content: {},
-          isGenerating: true,
-        }));
-
-        for (let i = 0; i < blueprint.length; i++) {
-          const step = blueprint[i];
-          updateStep("content", "active", `AI pisze bloki artykułu (${i + 1} / ${blueprint.length})...`);
-          try {
-            const blockRes = await fetch("/api/admin/gemini", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "generateSingleBlock",
-                prompt: overallContext,
-                overallContext,
-                blockType: step.type,
-                topic: step.topic,
-              }),
-            });
-            if (!blockRes.ok) throw new Error();
-            let blockContent = await blockRes.json();
-
-            // Normalize nested response
-            if (blockContent.content && typeof blockContent.content === "object" && !Array.isArray(blockContent.content))
-              blockContent = blockContent.content;
-            if (blockContent[step.type] && typeof blockContent[step.type] === "object" && !Array.isArray(blockContent[step.type]))
-              blockContent = blockContent[step.type];
-            if (blockContent.type) delete blockContent.type;
-            if (["bulletList", "featuresGrid", "faq"].includes(step.type) && !blockContent.items)
-              blockContent.items = [];
-            if (["heading", "paragraph", "highlight"].includes(step.type) && !blockContent.text)
-              blockContent.text = "";
-
-            blocks[i] = { ...blocks[i], content: blockContent, isGenerating: false };
-          } catch {
-            blocks[i] = { ...blocks[i], content: { text: "" }, isGenerating: false };
-          }
-        }
-
-        const cSaveRes = await fetch(`/api/admin/blog/${postId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "content", content: blocks }),
-        });
-        if (!cSaveRes.ok) throw new Error("Błąd zapisu treści.");
-        updateStep("content", "done");
-
-        // 6 – generate SEO
-        updateStep("seo", "active");
-        const seoPrompt = [
-          `Tytuł: ${finalTitle}`,
-          `Opis: ${basicData.excerpt || ""}`,
-          `Słowa kluczowe: ${(entry.keywords as string[]).join(", ")}`,
-        ].join("\n");
-        const seoRes = await fetch("/api/admin/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: seoPrompt, action: "generateBlogSeo" }),
-        });
-        if (!seoRes.ok) throw new Error("Błąd generowania SEO.");
-        const seoData = await seoRes.json();
-        updateStep("seo", "done");
-
-        // 7 – save SEO + finalize
-        updateStep("finalize", "active");
-        const seoSaveRes = await fetch(`/api/admin/blog/${postId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action:          "seo",
-            metaTitle:       seoData.metaTitle        || finalTitle,
-            metaDescription: seoData.metaDescription  || basicData.excerpt || "",
-            focusKeyword:    seoData.focusKeyword      || "",
-            noIndex:         false,
-          }),
-        });
-        if (!seoSaveRes.ok) throw new Error("Błąd zapisu SEO.");
-        updateStep("finalize", "done");
-
-        // 🎉 redirect after short celebration
-        setTimeout(() => router.push("/admin/blog"), 1800);
+        await sleep(700);
+        router.push(
+          `/admin/blog/dodaj/edytor-tresci?id=${postId}&autogenerate=true&scheduleId=${scheduleId}`,
+        );
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
+        setLoadingField(null);
         setAutoSteps((prev) =>
           prev.map((s) =>
             s.status === "active" ? { ...s, status: "error", detail: msg } : s,
@@ -269,6 +228,7 @@ function BasicDataFormContent() {
     if (autoGenParam !== "true" || !scheduleId) return;
 
     autoStarted.current = true;
+    // strip query so a refresh doesn't restart the flow
     router.replace(`/admin/blog/dodaj/dane-podstawowe?scheduleId=${scheduleId}`);
     setAutoSteps(makeSteps());
     setIsAutoRunning(true);
@@ -317,7 +277,7 @@ function BasicDataFormContent() {
     setIsAiModalOpen(false);
     setIsAiGenerating(true);
     try {
-      const res = await fetch("/api/admin/gemini", {
+      const res = await geminiFetch("/api/admin/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, model: modelType, action: "generateBlogBasicData" }),
@@ -372,14 +332,19 @@ function BasicDataFormContent() {
     );
   }
 
+  const tagsLoading     = loadingField === "tags";
+  const categoryLoading = loadingField === "category" || loadingField === "tags";
+
   return (
     <>
-      {/* ── autogenerate overlay ── */}
+      {/* ── floating neon AI panel ── */}
       <AnimatePresence>
         {isAutoRunning && (
-          <AutoGenerateOverlay
+          <NeonAiPanel
+            title="Agent AI · Dane podstawowe"
             steps={autoSteps}
             onAbort={() => router.push("/admin/blog")}
+            liveMessage={autoLiveMsg}
           />
         )}
       </AnimatePresence>
@@ -398,7 +363,7 @@ function BasicDataFormContent() {
           <button
             type="button"
             onClick={() => setIsAiModalOpen(true)}
-            disabled={isAiGenerating}
+            disabled={isAiGenerating || isAutoRunning}
             className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-sm font-semibold rounded-[12px] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isAiGenerating
@@ -423,6 +388,7 @@ function BasicDataFormContent() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="np. 5 ćwiczeń na zdrowy kręgosłup"
+                isLoading={loadingField === "title"}
               />
               <FormTextarea
                 label="Krótki opis (excerpt)"
@@ -430,6 +396,7 @@ function BasicDataFormContent() {
                 onChange={(e) => setExcerpt(e.target.value)}
                 placeholder="1–2 zdania zachęcające do przeczytania. Pojawi się na liście blogów i w SEO."
                 rows={3}
+                isLoading={loadingField === "excerpt"}
               />
             </div>
           </section>
@@ -440,13 +407,38 @@ function BasicDataFormContent() {
               Kategoria
             </h3>
             <div className="flex flex-col gap-2 max-w-xs">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
-              >
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <div className="relative z-0">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={categoryLoading}
+                  className={cn(
+                    "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+                    categoryLoading && "opacity-80 text-gray-500 cursor-default",
+                  )}
+                >
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <AnimatePresence>
+                  {categoryLoading && (
+                    <motion.div
+                      key="cat-glow"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute inset-0 z-20 rounded-[12px] overflow-hidden shadow-[0_0_12px_7px_rgba(40,125,136,0.3)] pointer-events-none"
+                    >
+                      <motion.div
+                        initial={{ left: "-100%" }}
+                        animate={{ left: "100%" }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                        className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <div className="flex gap-2">
                 <input
@@ -489,22 +481,53 @@ function BasicDataFormContent() {
             </div>
           </section>
 
-          {/* ── tagi (z AI) ── */}
-          {tags.length > 0 && (
+          {/* ── tagi ── */}
+          {(tags.length > 0 || tagsLoading) && (
             <section>
               <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
                 Tagi <span className="normal-case font-normal ml-1">(generowane przez AI)</span>
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary text-sm font-semibold font-montserrat px-3 py-1 rounded-full"
-                  >
-                    <Tag size={12} weight="bold" />
-                    {tag}
-                  </span>
-                ))}
+              <div className="relative z-0 inline-block w-full">
+                <div className={cn(
+                  "flex flex-wrap gap-2 min-h-[40px] rounded-[12px] transition-all",
+                  tagsLoading && "p-2 bg-gray-50/50",
+                )}>
+                  {tags.length === 0 && tagsLoading && (
+                    <span className="text-[11px] text-gray-400 font-montserrat italic px-2 py-1">
+                      AI dobiera tagi...
+                    </span>
+                  )}
+                  {tags.map((tag) => (
+                    <motion.span
+                      key={tag}
+                      initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      className="flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary text-sm font-semibold font-montserrat px-3 py-1 rounded-full"
+                    >
+                      <Tag size={12} weight="bold" />
+                      {tag}
+                    </motion.span>
+                  ))}
+                </div>
+                <AnimatePresence>
+                  {tagsLoading && (
+                    <motion.div
+                      key="tags-glow"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute inset-0 z-20 rounded-[12px] overflow-hidden shadow-[0_0_12px_7px_rgba(40,125,136,0.3)] pointer-events-none"
+                    >
+                      <motion.div
+                        initial={{ left: "-100%" }}
+                        animate={{ left: "100%" }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                        className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </section>
           )}
@@ -521,7 +544,7 @@ function BasicDataFormContent() {
             <Button
               onClick={handleSaveAndNext}
               isLoading={isSaving}
-              disabled={!title || isSaving}
+              disabled={!title || isSaving || isAutoRunning}
               rightIcon={<CaretRight size={18} weight="bold" />}
             >
               Dalej: Edytor treści

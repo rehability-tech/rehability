@@ -3,7 +3,7 @@ import AdminSidebar from "./_components/AdminSideBar";
 import AdminTopbar from "./_components/AdminTopbar";
 import { Toaster } from "sonner";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth/auth";
 // DODANO: Import funkcji redirect
 import { redirect } from "next/navigation";
 

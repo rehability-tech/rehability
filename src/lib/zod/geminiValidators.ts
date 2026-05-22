@@ -13,6 +13,7 @@ export const geminiRequestSchema = z.object({
     "generateBlogBlueprint",
     "generateBlogContent",
     "generateBlogSeo",
+    "generateCampSeo",
   ]),
 
   // Pola używane wyłącznie przez Copywritera przy generowaniu pojedynczych klocków:

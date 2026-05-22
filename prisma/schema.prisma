@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -26,70 +24,92 @@ model Camp {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // --- KROK 1: Dane podstawowe ---
   title        String
   location     String
   startDate    DateTime
   endDate      DateTime
   capacity     Int
-  mapUrl    String?
-  // Opcje rezerwacji
+  mapUrl       String?
   allowBringFriend Boolean @default(false)
-  // Finanse
   price        Decimal
   deposit      Decimal
 
-  // --- KROK 2: Treść wyjazdu ---
-  subtitle     String?  // Opcjonalny podtytuł
-  tags         String[] // Tablica tagów, np. ["Joga", "Góry", "Relaks"]
-  heroImage    String?  // Link do głównego zdjęcia
-  description  String?  @db.Text // Główny opis
+  subtitle     String?
+  tags         String[]
+  heroImage    String?
+  description  String?  @db.Text
   services     CampService[]
-  // TO JEST NAJWAŻNIEJSZE: Tu wpadnie cały nasz Drag&Drop z TipTapem!
-  blocks       Json?    @default("[]") 
+  blocks       Json?    @default("[]")
 
-  // --- Systemowe i AI ---
-  lastAiPrompt String?  @db.Text 
+  // ── SEO (mirror modelu Post) ─────────────────────
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  focusKeyword    String?
+  ogImage         String?
+  canonicalUrl    String?
+  noIndex         Boolean  @default(false)
+  // ─────────────────────────────────────────────────
+
+  lastAiPrompt String?  @db.Text
   lastStage    String   @default("dane-podstawowe")
   isFeatured   Boolean  @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  views        Int      @default(0)
+
   bookings     Booking[]
+  events       CampEvent[]
 }
+
 model Booking {
-  id              String   @id @default(cuid())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relacja do wyjazdu
-  campId          String
-  camp            Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  campId    String
+  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
 
-  // Dane uczestniczki (imię i telefon są opcjonalne, bo przy zaproszeniu znamy tylko e-mail)
-  name            String?
-  email           String
-  phone           String?
+  // Powiązanie z kontem uczestniczki (wypełniane po rejestracji / dopasowaniu e-mail)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
 
-  // Status: PENDING, CONFIRMED, CANCELLED, PENDING_INVITATION, EXPIRED
-  status          String   @default("PENDING")
+  name      String?
+  email     String
+  phone     String?
 
-  // --- LOGIKA "ZABIERZ PRZYJACIÓŁKĘ" ---
-  // ID rezerwacji osoby, która wysłała zaproszenie
-  invitedById     String?
-  invitedBy       Booking?  @relation("FriendInvitation", fields: [invitedById], references: [id])
-  
-  // Osoby zaproszone przez tę rezerwację
-  invitedGuests   Booking[] @relation("FriendInvitation")
-  
-  // Unikalny token wysyłany w mailu i czas jego wygaśnięcia
-  invitationToken String?   @unique
-  expiresAt       DateTime?
+  // PENDING | CONFIRMED | CANCELLED | PENDING_INVITATION | EXPIRED
+  status    String   @default("PENDING")
+
+  // --- Bilet QR ---
+  qrToken   String   @unique @default(cuid())
+
+  // --- Check-in (skaner admina) ---
+  isCheckedIn Boolean  @default(false)
+  checkedInAt DateTime?
+
+  // --- Płatności ---
+  depositPaidAt   DateTime?
+  remainderPaidAt DateTime?
+
+  // --- Stripe Checkout ---
+  stripeSessionId String?   @unique
+  amountTotal     Int       @default(0) // grosze
+  amountPaid      Int       @default(0) // grosze
+
+  // --- Zaproszenia "zabierz przyjaciółkę" ---
+  invitedById   String?
+  invitedBy     Booking?  @relation("FriendInvitation", fields: [invitedById], references: [id])
+  invitedGuests Booking[] @relation("FriendInvitation")
+  invitationToken String? @unique
+  expiresAt     DateTime?
+
+  serviceOrders ServiceOrder[]
 }
+
 model Post {
   id              String    @id @default(cuid())
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // --- KROK 1: Dane podstawowe ---
   title           String
   slug            String    @unique
   excerpt         String?   @db.Text
@@ -97,12 +117,10 @@ model Post {
   category        String    @default("Ogólne")
   tags            String[]
   author          String    @default("Piotr Siemaszko")
-  readTime        Int?      // szacowany czas czytania w minutach
+  readTime        Int?
 
-  // --- KROK 2: Treść ---
   content         Json?     @default("[]")
 
-  // --- KROK 3: SEO ---
   metaTitle       String?
   metaDescription String?   @db.Text
   focusKeyword    String?
@@ -110,8 +128,7 @@ model Post {
   canonicalUrl    String?
   noIndex         Boolean   @default(false)
 
-  // --- Systemowe ---
-  status          String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  status          String    @default("DRAFT")
   publishedAt     DateTime?
   lastStage       String    @default("dane-podstawowe")
 }
@@ -125,7 +142,7 @@ model BlogScheduleEntry {
   topic         String   @db.Text
   category      String
   keywords      String[]
-  status        String   @default("PLANNED") // PLANNED, IN_PROGRESS, PUBLISHED, SKIPPED
+  status        String   @default("PLANNED") // PLANNED | IN_PROGRESS | PUBLISHED | SKIPPED
 
   postId        String?
 }
@@ -138,9 +155,9 @@ model NewsletterSubscriber {
 
 model ExtraService {
   id          String   @id @default(cuid())
-  name        String   
-  duration    Int      // Czas w minutach
-  price       Decimal  
+  name        String
+  duration    Int
+  price       Decimal
   description String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -148,14 +165,105 @@ model ExtraService {
 
 model CampService {
   id          String   @id @default(cuid())
-  name        String   // np. "Masaż klasyczny"
-  duration    Int      // Czas w minutach
-  price       Decimal  // Cena
+  name        String
+  duration    Int      // minuty
+  price       Decimal
   description String?  @db.Text
-  
-  // Relacja zwrotna do Campa
+
   campId      String
   camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  slots       ServiceSlot[]
+  orders      ServiceOrder[]
+}
+
+// Ogólny punkt harmonogramu wyjazdu widoczny dla wszystkich uczestniczek
+model CampEvent {
+  id          String        @id @default(cuid())
+  campId      String
+  camp        Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?       @db.Text
+  startTime   DateTime      // pełna data + godzina
+  endTime     DateTime?
+  type        CampEventType @default(GENERAL)
+  icon        String?       // nazwa ikony z @phosphor-icons
+  isPublished Boolean       @default(true)
+  sortOrder   Int           @default(0)
+
+  createdAt   DateTime      @default(now())
+}
+
+enum CampEventType {
+  GENERAL
+  MEAL
+  ACTIVITY
+  WELLNESS_FREE
+  ANNOUNCEMENT
+}
+
+// Okienko czasowe na usługę, definiowane przez admina
+model ServiceSlot {
+  id        String      @id @default(cuid())
+  serviceId String
+  service   CampService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  startTime DateTime    // pełna data + godzina
+  endTime   DateTime    // startTime + service.duration
+
+  isActive  Boolean     @default(true)
+
+  // @unique gwarantuje na poziomie DB brak double-bookingów
+  order     ServiceOrder?
+
+  createdAt DateTime    @default(now())
+}
+
+// Rezerwacja konkretnego slotu przez uczestniczkę
+model ServiceOrder {
+  id        String   @id @default(cuid())
+
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  slotId    String      @unique
+  slot      ServiceSlot @relation(fields: [slotId], references: [id])
+
+  // Denormalizacja — szybki dostęp bez JOIN
+  serviceId String
+  service   CampService @relation(fields: [serviceId], references: [id])
+
+  price     Decimal  // snapshot ceny z momentu rezerwacji
+
+  // PENDING | PAID | CANCELLED
+  status          String   @default("PENDING")
+  paymentIntentId String?
+  paidAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Karta zdrowia uczestniczki — 1:1 z User (trwałe, reużywane między wyjazdami)
+model HealthProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dietType         String?   // OMNIVORE | VEGETARIAN | VEGAN | OTHER
+  foodIntolerances String[]
+  foodNotes        String?   @db.Text
+
+  chronicConditions String?  @db.Text
+  medications       String?  @db.Text
+  injuries          String?  @db.Text
+  allergies         String?  @db.Text
+
+  emergencyName  String?
+  emergencyPhone String?
+
+  updatedAt DateTime @updatedAt
 }
 
 // ==========================================
@@ -163,18 +271,18 @@ model CampService {
 // ==========================================
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -189,24 +297,24 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Zdefiniowany Enum Ról
 enum Role {
   USER
   ADMIN
 }
 
-// POJEDYNCZY, WŁAŚCIWY MODEL USERA
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  
-  role          Role      @default(USER) 
-  
+
+  role          Role      @default(USER)
+
   accounts      Account[]
   sessions      Session[]
+  bookings      Booking[]
+  healthProfile HealthProfile?
 }
 
 model VerificationToken {

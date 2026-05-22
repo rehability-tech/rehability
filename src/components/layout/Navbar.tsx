@@ -2,10 +2,20 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import type { Session } from "next-auth";
+import {
+  CaretDown,
+  SignOut,
+  SquaresFour,
+  User as UserIcon,
+  MonitorPlay, // Nowa ikona dla VOD
+  Tent, // Nowa ikona dla Campów (lub użyj MapTrifold/CalendarBlank)
+} from "@phosphor-icons/react/dist/ssr";
 
 const NAV_LINKS = [
   { label: "Start", href: "/" },
@@ -15,11 +25,56 @@ const NAV_LINKS = [
   { label: "Blog", href: "/blog" },
 ];
 
-export function Navbar() {
-  const [isPending, setIsPending] = useState(false);
+interface NavbarProps {
+  session: Session | null;
+}
+const dropdownVariants: Variants = {
+  hidden: { opacity: 0, y: -10, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.2,
+      ease: "easeOut",
+      when: "beforeChildren",
+      staggerChildren: 0.08,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.95,
+    transition: {
+      duration: 0.15,
+      when: "afterChildren",
+      staggerChildren: 0.05,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.1 },
+  },
+};
+export function Navbar({ session }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const path = usePathname();
 
+  // Blokowanie scrolla przy otwartym menu mobilnym
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -28,27 +83,40 @@ export function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-  const handleVodClick = async () => {
-    setIsPending(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-    } finally {
-      setIsPending(false);
+  // Zamykanie dropdowna po kliknięciu poza nim (desktop)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
     }
-  };
-  const currentPathname = path.split("/");
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
+  const currentPathname = path.split("/");
   const isGabinetRoute =
     path === "/gabinet" ||
     path === "/campy" ||
     path === `/campy/${currentPathname[2]}`;
+
+  // Ustalanie uprawnień i linków na podstawie roli
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
+
+  // Upewnij się, że TypeScript poprawnie mapuje role w Session, jeśli nie to użyj "as jakistyp"
+  const dashboardLink =
+    (session?.user as any)?.role === "ADMIN" ? "/admin" : "/panel";
+  console.log(session);
 
   return (
     <header className={`absolute top-0 left-0 right-0 z-50 w-full py-4`}>
       <div
         className={`container flex items-center justify-between ${
           isGabinetRoute &&
-          "bg-white/70 py-3 px-6 rounded-full backdrop-blur-2xl"
+          "bg-white/70 py-3 px-6 rounded-full backdrop-blur-2xl shadow-sm"
         } `}
       >
         <Link
@@ -86,7 +154,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
 
-                  {/* Nowy wskaźnik aktywnej zakładki - krótka linia */}
+                  {/* Wskaźnik aktywnej zakładki */}
                   {isActive && (
                     <motion.div
                       layoutId="nav-underline"
@@ -105,10 +173,125 @@ export function Navbar() {
           </ul>
         </nav>
 
-        <div className="hidden md:block">
-          <Button variant="primary" isLoading={isPending} href="/logowanie">
-            Platforma VOD
-          </Button>
+        {/* === KONTO / LOGOWANIE DESKTOP === */}
+        <div className="hidden md:block relative z-[101]" ref={dropdownRef}>
+          {session ? (
+            // DROPDOWN DLA ZALOGOWANEGO UŻYTKOWNIKA
+            // DROPDOWN DLA ZALOGOWANEGO UŻYTKOWNIKA
+            <div className="relative">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-tl-full rounded-bl-full rounded-br-full rounded-tr-[4px] hover:border-brand-primary/50 transition-all shadow-sm focus-visible:outline-none"
+              >
+                <div className="w-7 h-7 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary overflow-hidden">
+                  {session.user?.image ? (
+                    <Image
+                      src={session.user.image}
+                      alt="Avatar"
+                      width={28}
+                      height={28}
+                    />
+                  ) : (
+                    <UserIcon size={16} weight="bold" />
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-[#0B3B4C] truncate max-w-[120px]">
+                  {session.user?.name || "Moje konto"}
+                </span>
+                <CaretDown
+                  size={14}
+                  weight="bold"
+                  className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <motion.div
+                    variants={dropdownVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute right-0 top-full mt-3 w-64 bg-white border border-gray-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-tl-[24px] rounded-bl-[24px] rounded-br-[24px] rounded-tr-[4px] overflow-hidden flex flex-col p-2"
+                  >
+                    {/* Główny Panel */}
+                    <motion.div variants={itemVariants}>
+                      <Link
+                        href={dashboardLink}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[16px] text-sm font-semibold text-[#0B3B4C] hover:bg-brand-primary/5 transition-colors"
+                      >
+                        <SquaresFour
+                          size={20}
+                          weight="duotone"
+                          className="text-brand-primary"
+                        />
+                        {(session.user as any)?.role === "ADMIN"
+                          ? "Panel Administratora"
+                          : "Główny Panel"}
+                      </Link>
+                    </motion.div>
+
+                    <motion.div
+                      variants={itemVariants}
+                      className="h-px bg-gray-100 my-1 mx-3"
+                    />
+
+                    {/* Platforma VOD */}
+                    {/* Platforma VOD */}
+                    <motion.div variants={itemVariants}>
+                      <Link
+                        // Jeśli admin -> /admin/vod, w przeciwnym razie -> /platforma-vod
+                        href={isAdmin ? "/admin/vod" : "/platforma-vod"}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
+                      >
+                        <MonitorPlay size={18} />
+                        Platforma VOD
+                      </Link>
+                    </motion.div>
+
+                    {/* Campy */}
+                    <motion.div variants={itemVariants}>
+                      <Link
+                        // Jeśli admin -> /admin/campy, w przeciwnym razie -> /moje-campy
+                        href={isAdmin ? "/admin/campy" : "/moje-campy"}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
+                      >
+                        <Tent size={18} />
+                        {isAdmin ? "Campy" : "Moje Campy"}
+                      </Link>
+                    </motion.div>
+
+                    <motion.div
+                      variants={itemVariants}
+                      className="h-px bg-gray-100 my-1 mx-3"
+                    />
+
+                    {/* Wyloguj */}
+                    <motion.div variants={itemVariants}>
+                      <button
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          signOut({ callbackUrl: "/" });
+                        }}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left mt-1"
+                      >
+                        <SignOut size={18} />
+                        Wyloguj się
+                      </button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            // PRZYCISK LOGOWANIA (NIEZALOGOWANY)
+            <Button variant="primary" href="/logowanie">
+              Platforma VOD
+            </Button>
+          )}
         </div>
 
         {/* === PRZYCISK MENU MOBILE === */}
@@ -154,7 +337,7 @@ export function Navbar() {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-[100] flex flex-col bg-white px-6 py-4 md:hidden overflow-y-auto"
           >
-            <div className="mt-20 flex flex-col flex-1">
+            <div className="mt-24 flex flex-col flex-1">
               <nav className="flex flex-col gap-2">
                 {NAV_LINKS.map((link) => {
                   const isActive = path === link.href;
@@ -190,37 +373,87 @@ export function Navbar() {
                     </Link>
                   );
                 })}
-
-                {/* Link VOD */}
-                <Link
-                  href={"/panel-kursanta"}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between font-montserrat text-[18px] text-brand-primary py-3 px-4 font-semibold mt-4 border-t border-gray-100"
-                >
-                  Platforma VOD
-                  <div className="flex items-center justify-center rounded-full -mr-1 h-8 w-8 bg-brand-primary shadow-sm">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-white"
-                    >
-                      <path
-                        d="M9 18L15 12L9 6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </Link>
               </nav>
+
+              {/* Sekcja konta na telefonie na samym dole menu */}
+              <div className="mt-auto mb-4 border-t border-gray-100 pt-6 flex flex-col gap-3">
+                {session ? (
+                  <>
+                    <div className="flex items-center gap-3 px-2 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        {session.user?.image ? (
+                          <Image
+                            src={session.user.image}
+                            alt="Avatar"
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                          />
+                        ) : (
+                          <UserIcon size={20} weight="bold" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[14px] text-gray-500 font-medium">
+                          Zalogowano jako:
+                        </span>
+                        <span className="text-[16px] font-bold text-[#0B3B4C]">
+                          {session.user?.name || "Użytkownik"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={dashboardLink}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 font-montserrat text-[16px] bg-brand-primary text-white py-3.5 px-4 font-bold rounded-xl shadow-md transition-all hover:bg-[#0B3B4C]/90"
+                    >
+                      <SquaresFour size={20} />
+                      Przejdź do Panelu
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        signOut({ callbackUrl: "/" });
+                      }}
+                      className="flex items-center justify-center gap-2 font-montserrat text-[16px] bg-brand-primary/20 text-brand-primary py-3.5 px-4 font-bold rounded-xl transition-all hover:bg-red-100"
+                    >
+                      <SignOut size={20} />
+                      Wyloguj się
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/logowanie"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between font-montserrat text-[18px] text-brand-primary py-3 px-4 font-semibold border-2 border-brand-primary/20 bg-brand-primary/5 rounded-xl transition-all hover:bg-brand-primary/10"
+                  >
+                    Platforma VOD
+                    <div className="flex items-center justify-center rounded-full h-8 w-8 bg-brand-primary shadow-sm">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-white"
+                      >
+                        <path
+                          d="M9 18L15 12L9 6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </Link>
+                )}
+              </div>
             </div>
 
-            <div className="mt-auto pt-8 pb-4 flex items-center justify-between text-[14px] font-montserrat font-medium text-gray-400 px-4">
+            <div className="pb-4 flex items-center justify-between text-[14px] font-montserrat font-medium text-gray-400 px-4">
               <Link
                 href="#"
                 className="hover:text-brand-primary transition-colors"

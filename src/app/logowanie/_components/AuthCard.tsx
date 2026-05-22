@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, GoogleLogo } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,16 @@ export default function AuthCard() {
   const [isAccepted, setIsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detekcja viewportu — tylko md+ animuje "sliding panel". Na mobile karta jest statyczna w flow.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   // DODANO: Prawdziwa logika logowania
   const handleGoogleAuth = async () => {
@@ -31,7 +41,7 @@ export default function AuthCard() {
       // Uruchomienie logowania przez Google.
       // callbackUrl wskazuje, gdzie użytkownik ma zostać przekierowany po udanym logowaniu.
       // Zmień "/panel-kursanta" na ścieżkę, która u Ciebie pasuje.
-      await signIn("google", { callbackUrl: "/panel-kursanta" });
+      await signIn("google", { callbackUrl: "/panel" });
     } catch (err) {
       console.error("Błąd autentykacji:", err);
       setError("Wystąpił błąd komunikacji z Google. Spróbuj ponownie.");
@@ -42,31 +52,33 @@ export default function AuthCard() {
   const isRegister = mode === "register";
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      {/* GŁÓWNY KONTENER (MORSKIE TŁO) */}
-      <div className="relative font-montserrat h-[475px] bg-[#76ADB6] w-[900px] mx-auto rounded-[56px] overflow-hidden shadow-2xl z-10 flex">
-        {/* DEKORACYJNE LOGO W TLE (LEWA STRONA) */}
+    <main className="w-full flex items-center justify-center p-4">
+      {/* GŁÓWNY KONTENER (MORSKIE TŁO)
+          Mobile: pionowy stack (auto-height, jeden formularz na ekranie),
+          md+: side-by-side z przesuwającą się białą kartą. */}
+      <div className="relative font-montserrat bg-transparent md:bg-[#76ADB6] w-full max-w-[900px] mx-auto md:rounded-[56px] md:overflow-hidden md:shadow-2xl z-10 flex flex-col md:flex-row md:h-[475px]">
+        {/* DEKORACYJNE LOGO W TLE (LEWA STRONA) — ukryte na mobile */}
         <img
           src="/logotypy/logo-sygnet.svg"
           alt=""
           aria-hidden="true"
-          className="absolute -bottom-42 -left-18 w-[400px] h-[450px] pointer-events-none z-0"
+          className="hidden md:block absolute -bottom-42 -left-18 w-[400px] h-[450px] pointer-events-none z-0"
         />
 
-        {/* DEKORACYJNE LOGO W TLE (PRAWA STRONA) */}
+        {/* DEKORACYJNE LOGO W TLE (PRAWA STRONA) — ukryte na mobile */}
         <img
           src="/logotypy/logo-sygnet.svg"
           alt=""
           aria-hidden="true"
-          className="absolute -bottom-42 -right-18 w-[400px] h-[450px] pointer-events-none z-0"
+          className="hidden md:block absolute -bottom-42 -right-18 w-[400px] h-[450px] pointer-events-none z-0"
         />
 
         {/* ========================================================= */}
-        {/* WARSTWA TEKSTOWA W TLE (LEWA I PRAWA STRONA)             */}
+        {/* WARSTWA TEKSTOWA W TLE (LEWA I PRAWA STRONA — tylko md+)  */}
         {/* ========================================================= */}
 
         {/* Lewa strona tła (Widoczna, gdy biała karta jest po prawej) */}
-        <div className="w-1/2 h-full flex flex-col justify-center items-center text-center text-white z-10 select-none">
+        <div className="hidden md:flex w-1/2 h-full flex-col justify-center items-center text-center text-white z-10 select-none">
           <motion.div
             animate={{
               opacity: isRegister ? 1 : 0,
@@ -92,7 +104,7 @@ export default function AuthCard() {
         </div>
 
         {/* Prawa strona tła (Widoczna, gdy biała karta jest po lewej) */}
-        <div className="w-1/2 h-full flex flex-col justify-center items-center text-center text-white z-10 select-none">
+        <div className="hidden md:flex w-1/2 h-full flex-col justify-center items-center text-center text-white z-10 select-none">
           <motion.div
             animate={{
               opacity: !isRegister ? 1 : 0,
@@ -117,16 +129,20 @@ export default function AuthCard() {
         </div>
 
         {/* ========================================================= */}
-        {/* PRZESUWAJĄCA SIĘ BIAŁA KARTA (SLIDING PANEL)             */}
+        {/* PRZESUWAJĄCA SIĘ BIAŁA KARTA (md+) / Statyczna karta (mobile) */}
         {/* ========================================================= */}
         <motion.div
-          className="absolute top-0 h-full w-1/2 bg-white z-20 shadow-xl overflow-hidden flex flex-col justify-center items-center "
-          animate={{
-            left: isRegister ? "50%" : "0%",
-            borderRadius: isRegister
-              ? "50px 56px 56px 50px"
-              : "56px 50px 50px 56px",
-          }}
+          className="relative md:absolute md:top-0 w-full md:w-1/2 md:h-full bg-white z-20 shadow-xl md:shadow-xl overflow-hidden flex flex-col justify-center items-center rounded-[32px] md:rounded-none"
+          animate={
+            isDesktop
+              ? {
+                  left: isRegister ? "50%" : "0%",
+                  borderRadius: isRegister
+                    ? "50px 56px 56px 50px"
+                    : "56px 50px 50px 56px",
+                }
+              : undefined
+          }
           transition={{ type: "spring", stiffness: 280, damping: 30 }}
         >
           {/* AnimatePresence zapewnia płynne przenikanie się formularzy wewnątrz karty */}
@@ -139,9 +155,9 @@ export default function AuthCard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-5 justify-center p-12 items-center text-center w-full text-[#0B3B4C]"
+                className="flex flex-col gap-5 justify-center p-6 md:p-12 items-center text-center w-full text-[#0B3B4C]"
               >
-                <h2 className="font-jakarta font-extrabold text-[36px] leading-[110%]">
+                <h2 className="font-jakarta font-extrabold text-[28px] md:text-[36px] leading-[110%]">
                   Zarejestruj się
                 </h2>
                 <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-full">
@@ -209,9 +225,9 @@ export default function AuthCard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-6 justify-center items-center text-center w-full text-[#0B3B4C]"
+                className="flex flex-col gap-6 justify-center p-6 md:p-0 items-center text-center w-full text-[#0B3B4C]"
               >
-                <h2 className="font-jakarta font-extrabold text-[36px] leading-[110%]">
+                <h2 className="font-jakarta font-extrabold text-[28px] md:text-[36px] leading-[110%]">
                   Zaloguj się
                 </h2>
                 <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-full px-3 -mt-4">
@@ -232,6 +248,20 @@ export default function AuthCard() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* MOBILE-ONLY: przełącznik trybu (na md+ rolę tę pełnią boczne panele) */}
+          <div className="md:hidden flex items-center justify-center gap-2 pb-6 -mt-2">
+            <span className="font-montserrat text-[13px] text-gray-500">
+              {isRegister ? "Masz już konto?" : "Nie masz jeszcze konta?"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMode(isRegister ? "login" : "register")}
+              className="font-montserrat text-[13px] font-bold text-[#76ADB6] hover:underline focus-visible:outline-none"
+            >
+              {isRegister ? "Zaloguj się" : "Zarejestruj się"}
+            </button>
+          </div>
         </motion.div>
       </div>
     </main>

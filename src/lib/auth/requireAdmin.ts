@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Upewnij się, że ta ścieżka jest poprawna!
+import { authOptions } from "@/lib/auth/auth"; // Upewnij się, że ta ścieżka jest poprawna!
 
 export async function requireAdmin() {
   const session = await getServerSession(authOptions);

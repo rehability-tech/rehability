@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { validateCampCompleteness } from "@/lib/camps/validateCampCompleteness";
 
 import { z } from "zod";
 
@@ -13,12 +14,15 @@ const paramsSchema = z.object({
   id: z.string().min(1, "Brak ID Campa"),
 });
 
-// Walidacja danych wejściowych dla PATCH (Edytor treści)
+// Walidacja danych wejściowych dla PATCH (Edytor treści).
+// Uwaga: pole `description` jest CELOWO POMINIĘTE — należy do kroku
+// "Dane podstawowe" i jest aktualizowane przez /api/admin/campy/save.
+// Gdyby tu trafiło (np. ze starego frontu), zod odetnie je w `safeParse`
+// dzięki domyślnemu strip-mode, więc nie przedostanie się do Prismy.
 const patchBodySchema = z.object({
   subtitle: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   heroImage: z.string().url("Niepoprawny URL zdjęcia").nullable().optional(),
-  description: z.string().nullable().optional(),
   // blocks to Json z bazy, na froncie przesyłasz tablicę obiektów TipTap,
   // sprawdzamy tylko czy to w ogóle jest przysłane (może być dowolną strukturą json/array)
   blocks: z.any().optional(),
@@ -106,23 +110,59 @@ export async function PATCH(
     }
 
     // Wyciągamy bezpiecznie zwalidowane dane
-    const { subtitle, tags, heroImage, description, blocks } =
-      validatedBody.data;
+    // (description celowo pominięty — patrz komentarz przy patchBodySchema)
+    const { subtitle, tags, heroImage, blocks } = validatedBody.data;
 
-    // 4. Logika biznesowa - Aktualizacja w bazie danych
+    // 4. Pobieramy aktualny stan campa — potrzebny do auto-cofnięcia statusu
+    const existingCamp = await prisma.camp.findUnique({ where: { id } });
+    if (!existingCamp) {
+      return NextResponse.json(
+        { error: "Nie znaleziono wyjazdu o podanym ID" },
+        { status: 404 },
+      );
+    }
+
+    // 5. Składamy "post-update" kształt campa do walidacji kompletności
+    const mergedCamp = {
+      heroImage: heroImage !== undefined ? heroImage : existingCamp.heroImage,
+      location: existingCamp.location,
+      startDate: existingCamp.startDate,
+      endDate: existingCamp.endDate,
+      mapUrl: existingCamp.mapUrl,
+      allowBringFriend: existingCamp.allowBringFriend,
+      blocks: blocks !== undefined ? blocks : existingCamp.blocks,
+    };
+
+    // Jeśli camp był PUBLISHED, a nowy stan jest niekompletny — wymuszamy DRAFT
+    let forcedDraft = false;
+    if (existingCamp.status === "PUBLISHED") {
+      const { isComplete } = validateCampCompleteness(mergedCamp);
+      if (!isComplete) forcedDraft = true;
+    }
+
+    // 6. Logika biznesowa - Aktualizacja w bazie danych
     const updatedCamp = await prisma.camp.update({
       where: { id: id },
       data: {
         subtitle,
         tags,
         heroImage,
-        description,
+        // description celowo pominięty — należy do "Dane podstawowe"
         blocks, // Prisma zapisze tablicę obiektów jako JSONB w Postgresie
         lastStage: "edytor-tresci", // Aktualizujemy krok, w którym jest admin
+        ...(forcedDraft ? { status: "DRAFT" } : {}),
       },
     });
 
-    return NextResponse.json(updatedCamp);
+    return NextResponse.json({
+      ...updatedCamp,
+      ...(forcedDraft
+        ? {
+            forcedDraft: true,
+            message: "Cofnięto publikację z powodu braków w treści",
+          }
+        : {}),
+    });
   } catch (error) {
     console.error("Błąd API podczas zapisu:", error);
     return NextResponse.json(

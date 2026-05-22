@@ -3,10 +3,23 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { z } from "zod";
 
-const bodySchema = z.object({
-  id: z.string().min(1),
-  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
-});
+const bodySchema = z
+  .object({
+    id: z.string().min(1),
+    status: z.enum(["DRAFT", "PUBLISHED", "SCHEDULED", "ARCHIVED"]),
+    publishedAt: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .nullable(),
+  })
+  .refine(
+    (val) => val.status !== "SCHEDULED" || !!val.publishedAt,
+    {
+      message: "publishedAt jest wymagane dla statusu SCHEDULED.",
+      path: ["publishedAt"],
+    },
+  );
 
 export async function PATCH(req: Request) {
   try {
@@ -14,22 +27,80 @@ export async function PATCH(req: Request) {
     if (!isAuthorized) return response as NextResponse;
 
     const body = await req.json();
-    const { id, status } = bodySchema.parse(body);
+    const { id, status, publishedAt } = bodySchema.parse(body);
 
-    const post = await prisma.post.update({
-      where: { id },
-      data: {
-        status,
-        publishedAt: status === "PUBLISHED" ? new Date() : undefined,
-      },
-    });
+    const now = new Date();
+
+    let data: {
+      status: string;
+      publishedAt?: Date | null;
+    };
+
+    if (status === "SCHEDULED") {
+      const target = new Date(publishedAt as string);
+      if (Number.isNaN(target.getTime())) {
+        return NextResponse.json(
+          { error: "Nieprawidłowa data publikacji." },
+          { status: 400 },
+        );
+      }
+      if (target.getTime() <= now.getTime()) {
+        return NextResponse.json(
+          {
+            error:
+              "Data publikacji musi być w przyszłości. Jeżeli chcesz opublikować od razu, użyj statusu PUBLISHED.",
+          },
+          { status: 400 },
+        );
+      }
+      data = { status: "SCHEDULED", publishedAt: target };
+    } else if (status === "PUBLISHED") {
+      data = { status: "PUBLISHED", publishedAt: now };
+    } else {
+      // DRAFT or ARCHIVED — preserve existing publishedAt unless explicitly cleared
+      data = { status };
+      if (publishedAt === null) data.publishedAt = null;
+    }
+
+    const post = await prisma.post.update({ where: { id }, data });
+
+    // Mirror status on a linked schedule entry, if any.
+    await syncScheduleEntryStatus(id, status);
 
     return NextResponse.json(post);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Błąd zmiany statusu:", error);
-    if (error?.issues) {
-      return NextResponse.json({ error: error.issues[0]?.message }, { status: 400 });
+    if (
+      error &&
+      typeof error === "object" &&
+      "issues" in error &&
+      Array.isArray((error as { issues?: Array<{ message: string }> }).issues)
+    ) {
+      const msg =
+        (error as { issues: Array<{ message: string }> }).issues[0]?.message ||
+        "Nieprawidłowe dane";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
     return NextResponse.json({ error: "Błąd serwera" }, { status: 500 });
+  }
+}
+
+async function syncScheduleEntryStatus(postId: string, postStatus: string) {
+  const entryStatus =
+    postStatus === "PUBLISHED"
+      ? "PUBLISHED"
+      : postStatus === "SCHEDULED"
+        ? "SCHEDULED"
+        : postStatus === "ARCHIVED"
+          ? "SKIPPED"
+          : "IN_PROGRESS";
+
+  try {
+    await prisma.blogScheduleEntry.updateMany({
+      where: { postId },
+      data: { status: entryStatus },
+    });
+  } catch (err) {
+    console.warn("[blog/status] failed to sync schedule entry:", err);
   }
 }

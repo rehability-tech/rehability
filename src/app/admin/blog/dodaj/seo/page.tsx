@@ -1,15 +1,36 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import {
   CaretLeft, CaretRight, CircleNotch, CheckCircle, Warning,
-  X, MagnifyingGlass, Globe, Eye, EyeSlash, Tag,
+  MagnifyingGlass, Globe, Eye, EyeSlash, Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { useSearchParams, useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import NeonAiPanel, {
+  type NeonStep,
+  type StepStatus,
+} from "../_components/NeonAiPanel";
+import NeonInputGlow from "../_components/NeonInputGlow";
+import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
+import PublishControl from "./_components/PublishControl";
+
+const AUTO_STEPS_DEF: NeonStep[] = [
+  { id: "ai",        label: "Generowanie metadanych SEO",  detail: "AI optymalizuje tytuł i opis dla Google..." },
+  { id: "title",     label: "Tytuł meta",                  detail: "Wpisuję tytuł zoptymalizowany pod SERP..." },
+  { id: "desc",      label: "Opis meta",                   detail: "Tworzę chwytliwy opis..." },
+  { id: "keyword",   label: "Słowo kluczowe",              detail: "Dobieram główną frazę..." },
+  { id: "save",      label: "Zapis i finalizacja",         detail: "Zapisuję dane SEO..." },
+];
+
+type LiveStep = NeonStep & { status: StepStatus };
+const makeSteps = (): LiveStep[] => AUTO_STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
+type LoadingField = "metaTitle" | "metaDescription" | "focusKeyword" | null;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ==========================================
 // SERP PREVIEW
@@ -185,6 +206,38 @@ function SeoFormContent() {
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving]     = useState(false);
 
+  const [postStatus, setPostStatus]               = useState<string>("DRAFT");
+  const [postPublishedAt, setPostPublishedAt]     = useState<string | null>(null);
+
+  // ── autogenerate state ──
+  const [autoSteps, setAutoSteps]         = useState<LiveStep[]>(makeSteps());
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [loadingField, setLoadingField]   = useState<LoadingField>(null);
+  const [autoLiveMsg, setAutoLiveMsg]     = useState<string | undefined>();
+  const autoStarted = useRef(false);
+
+  const buildRateStatus =
+    (resumeMsg: string) =>
+    (status: RateStatus) => {
+      if (status.kind === "waiting") {
+        const prefix =
+          status.reason === "ratelimit"
+            ? "⏸ Limit Gemini — wznowię za"
+            : `⚠ Błąd Gemini — ponawiam (${status.attempt}/${status.maxAttempts}) za`;
+        setAutoLiveMsg(`${prefix} ${status.countdown}s`);
+      } else {
+        setAutoLiveMsg(resumeMsg);
+      }
+    };
+
+  const updateStep = useCallback((id: string, status: StepStatus, detail?: string) => {
+    setAutoSteps((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     if (!postId) return;
     const fetchPost = async () => {
@@ -201,6 +254,8 @@ function SeoFormContent() {
         setOgImage(data.ogImage || data.coverImage || "");
         setCanonicalUrl(data.canonicalUrl || "");
         setNoIndex(data.noIndex ?? false);
+        setPostStatus(data.status || "DRAFT");
+        setPostPublishedAt(data.publishedAt || null);
       } catch {
         toast.error("Nie udało się załadować danych SEO.");
       } finally {
@@ -209,6 +264,110 @@ function SeoFormContent() {
     };
     fetchPost();
   }, [postId]);
+
+  // ── autogenerate flow (after coming from editor) ──
+  const runAutoGenerate = useCallback(
+    async (scheduleId: string, pId: string) => {
+      try {
+        // 1 – call AI for SEO data
+        updateStep("ai", "active");
+
+        const [postRes, scheduleRes] = await Promise.all([
+          fetch(`/api/admin/blog/${pId}`),
+          fetch(`/api/admin/blog/schedule/${scheduleId}`),
+        ]);
+        const post  = postRes.ok ? await postRes.json() : {};
+        const entry = scheduleRes.ok ? await scheduleRes.json() : { keywords: [] };
+
+        const seoPrompt = [
+          `Tytuł: ${post.title || ""}`,
+          `Opis: ${post.excerpt || ""}`,
+          `Słowa kluczowe: ${(entry.keywords as string[] | undefined)?.join(", ") || ""}`,
+        ].join("\n");
+
+        const seoRes = await geminiFetch(
+          "/api/admin/gemini",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: seoPrompt, action: "generateBlogSeo" }),
+          },
+          { onStatus: buildRateStatus("AI optymalizuje tytuł i opis dla Google...") },
+        );
+        if (!seoRes.ok) throw new Error("Błąd generowania SEO.");
+        const seoData = await seoRes.json();
+        updateStep("ai", "done");
+
+        // 2 – reveal meta title
+        updateStep("title", "active");
+        setLoadingField("metaTitle");
+        await sleep(450);
+        setMetaTitle(seoData.metaTitle || post.title || "");
+        await sleep(450);
+        setLoadingField(null);
+        updateStep("title", "done");
+
+        // 3 – reveal meta description
+        updateStep("desc", "active");
+        setLoadingField("metaDescription");
+        await sleep(450);
+        setMetaDescription(seoData.metaDescription || post.excerpt || "");
+        await sleep(500);
+        setLoadingField(null);
+        updateStep("desc", "done");
+
+        // 4 – reveal focus keyword
+        updateStep("keyword", "active");
+        setLoadingField("focusKeyword");
+        await sleep(400);
+        setFocusKeyword(seoData.focusKeyword || "");
+        await sleep(450);
+        setLoadingField(null);
+        updateStep("keyword", "done");
+
+        // 5 – save
+        updateStep("save", "active");
+        const saveRes = await fetch(`/api/admin/blog/${pId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action:          "seo",
+            metaTitle:       seoData.metaTitle       || post.title    || "",
+            metaDescription: seoData.metaDescription || post.excerpt  || "",
+            focusKeyword:    seoData.focusKeyword     || "",
+            noIndex:         false,
+          }),
+        });
+        if (!saveRes.ok) throw new Error("Błąd zapisu SEO.");
+        updateStep("save", "done");
+
+        toast.success("Artykuł gotowy! Możesz dopieścić SEO lub opublikować.");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Nieznany błąd generowania SEO.";
+        setLoadingField(null);
+        setAutoSteps((prev) =>
+          prev.map((s) =>
+            s.status === "active" ? { ...s, status: "error", detail: msg } : s,
+          ),
+        );
+      }
+    },
+    [updateStep],
+  );
+
+  useEffect(() => {
+    if (autoStarted.current) return;
+    if (isFetching || !postId) return;
+    const autoGenParam = searchParams.get("autogenerate");
+    const scheduleId   = searchParams.get("scheduleId");
+    if (autoGenParam !== "true" || !scheduleId) return;
+
+    autoStarted.current = true;
+    router.replace(`/admin/blog/dodaj/seo?id=${postId}`);
+    setAutoSteps(makeSteps());
+    setIsAutoRunning(true);
+    runAutoGenerate(scheduleId, postId);
+  }, [isFetching, postId, searchParams, router, runAutoGenerate]);
 
   // ── Checklist logika ──
   const seoChecks: SeoCheck[] = [
@@ -289,6 +448,17 @@ function SeoFormContent() {
 
   return (
     <div className="animate-in fade-in duration-500">
+      <AnimatePresence>
+        {isAutoRunning && (
+          <NeonAiPanel
+            title="Agent AI · SEO"
+            steps={autoSteps}
+            onAbort={() => router.push("/admin/blog")}
+            liveMessage={autoLiveMsg}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="mb-6">
         <h2 className="text-xl font-jakarta font-bold text-[#0B3B4C]">Optymalizacja SEO</h2>
         <p className="text-sm text-gray-500 font-montserrat mt-1">
@@ -314,12 +484,19 @@ function SeoFormContent() {
                 {metaTitle.length}/60
               </span>
             </div>
-            <input
-              value={metaTitle}
-              onChange={(e) => setMetaTitle(e.target.value)}
-              placeholder={postTitle || "Główny tytuł SEO artykułu..."}
-              className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
-            />
+            <div className="relative z-0">
+              <input
+                value={metaTitle}
+                onChange={(e) => setMetaTitle(e.target.value)}
+                placeholder={postTitle || "Główny tytuł SEO artykułu..."}
+                disabled={loadingField === "metaTitle"}
+                className={cn(
+                  "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+                  loadingField === "metaTitle" && "opacity-80 text-gray-500",
+                )}
+              />
+              <NeonInputGlow isLoading={loadingField === "metaTitle"} />
+            </div>
             <span className="text-xs text-gray-400">Idealnie 50–60 znaków. Pojawia się jako niebieski link w Google.</span>
           </div>
 
@@ -335,13 +512,20 @@ function SeoFormContent() {
                 {metaDescription.length}/160
               </span>
             </div>
-            <textarea
-              value={metaDescription}
-              onChange={(e) => setMetaDescription(e.target.value)}
-              placeholder={postExcerpt || "Krótki opis artykułu wyświetlany w wynikach wyszukiwania..."}
-              rows={3}
-              className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors resize-y"
-            />
+            <div className="relative z-0">
+              <textarea
+                value={metaDescription}
+                onChange={(e) => setMetaDescription(e.target.value)}
+                placeholder={postExcerpt || "Krótki opis artykułu wyświetlany w wynikach wyszukiwania..."}
+                rows={3}
+                disabled={loadingField === "metaDescription"}
+                className={cn(
+                  "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors resize-y",
+                  loadingField === "metaDescription" && "opacity-80 text-gray-500",
+                )}
+              />
+              <NeonInputGlow isLoading={loadingField === "metaDescription"} />
+            </div>
             <span className="text-xs text-gray-400">Idealnie 120–160 znaków. Pojawia się pod tytułem w Google.</span>
           </div>
 
@@ -351,12 +535,19 @@ function SeoFormContent() {
               <Tag size={15} />
               Słowo kluczowe (Focus Keyword)
             </label>
-            <input
-              value={focusKeyword}
-              onChange={(e) => setFocusKeyword(e.target.value)}
-              placeholder="np. fizjoterapia kręgosłup"
-              className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
-            />
+            <div className="relative z-0">
+              <input
+                value={focusKeyword}
+                onChange={(e) => setFocusKeyword(e.target.value)}
+                placeholder="np. fizjoterapia kręgosłup"
+                disabled={loadingField === "focusKeyword"}
+                className={cn(
+                  "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+                  loadingField === "focusKeyword" && "opacity-80 text-gray-500",
+                )}
+              />
+              <NeonInputGlow isLoading={loadingField === "focusKeyword"} />
+            </div>
             <span className="text-xs text-gray-400">Główna fraza, na którą pozycjonujesz artykuł.</span>
           </div>
 
@@ -442,6 +633,22 @@ function SeoFormContent() {
               Użyj tytułu i excerpta jako meta
             </button>
           </div>
+
+          {/* Publikacja */}
+          {postId && (
+            <div className="mt-4">
+              <PublishControl
+                postId={postId}
+                initialStatus={postStatus}
+                initialPublishedAt={postPublishedAt}
+                onBeforePublish={async () => {
+                  // Persist current SEO state before flipping status, so the
+                  // live page doesn't ship with stale meta.
+                  await handleSave(false);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -459,7 +666,7 @@ function SeoFormContent() {
           <button
             type="button"
             onClick={() => handleSave(false)}
-            disabled={isSaving}
+            disabled={isSaving || isAutoRunning}
             className="px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Zapisz bez wychodzenia
@@ -467,7 +674,7 @@ function SeoFormContent() {
           <Button
             onClick={() => handleSave(true)}
             isLoading={isSaving}
-            disabled={isSaving}
+            disabled={isSaving || isAutoRunning}
             rightIcon={<CaretRight size={18} weight="bold" />}
           >
             Zapisz i wróć do listy

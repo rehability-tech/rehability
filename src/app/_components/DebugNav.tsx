@@ -43,7 +43,7 @@ export function DebugNav() {
   // if (process.env.NODE_ENV === "production") return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col items-end font-montserrat">
+    <div className="fixed top-4  hidden right-4 z-[9999] flex flex-col items-end font-montserrat">
       {/* Przycisk Toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}

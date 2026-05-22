@@ -27,6 +27,7 @@ async function getInitialCampsData() {
           id: true,
           title: true,
           subtitle: true,
+          description: true, // <--- DODANO TUTAJ
           heroImage: true,
           location: true,
           price: true,
@@ -43,6 +44,7 @@ async function getInitialCampsData() {
           id: true,
           title: true,
           subtitle: true,
+          description: true, // <--- ORAZ TUTAJ
           tags: true,
           heroImage: true,
           location: true,

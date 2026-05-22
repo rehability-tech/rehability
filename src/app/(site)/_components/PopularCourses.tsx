@@ -137,7 +137,12 @@ export function PopularCourses() {
               przez <span className="text-brand-primary">fizjoterapeutów</span>
             </h2>
 
-            <Button className="max-[1024px]:hidden" showArrow>
+            {/* Brak listy kursów VOD — placeholder /w-budowie. */}
+            <Button
+              className="max-[1024px]:hidden"
+              showArrow
+              href="/w-budowie"
+            >
               Zobacz wszystkie
             </Button>
           </motion.div>
@@ -233,7 +238,9 @@ export function PopularCourses() {
 
           {/* Przycisk Zobacz wszystkie (Widoczny tylko na mobile) */}
           <div className="hidden max-[1024px]:block mt-4">
-            <Button showArrow>Zobacz wszystkie</Button>
+            <Button showArrow href="/w-budowie">
+              Zobacz wszystkie
+            </Button>
           </div>
         </motion.div>
       </motion.div>

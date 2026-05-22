@@ -1,8 +1,8 @@
 import { useState } from "react";
-
-let apiCallCount = 0;
-let apiResetTime = Date.now();
-const RPM_LIMIT = 12;
+import {
+  geminiFetch,
+  type RateStatus,
+} from "@/lib/gemini/clientRateLimiter";
 
 export type BlogBlockType =
   | "heading"
@@ -34,6 +34,29 @@ export function useBlogAiGenerator(updateField: (field: any, value: any) => void
     countdown: 0,
   });
 
+  const buildStatusHandler =
+    (resumeMessage: string) =>
+    (status: RateStatus) => {
+      if (status.kind === "waiting") {
+        const baseMsg =
+          status.reason === "ratelimit"
+            ? "Ochrona limitu Gemini. Wznawiam automatycznie ☕"
+            : `Błąd Gemini — ponawiam próbę (${status.attempt}/${status.maxAttempts})`;
+        setAiProgress((prev) => ({
+          ...prev,
+          phase: "ratelimit",
+          message: baseMsg,
+          countdown: status.countdown,
+        }));
+      } else {
+        setAiProgress((prev) =>
+          prev.phase === "ratelimit"
+            ? { ...prev, phase: "generating", message: resumeMessage, countdown: 0 }
+            : prev,
+        );
+      }
+    };
+
   const handleGenerateBlogContent = async (prompt: string, selectedModel: string) => {
     setAiProgress({
       isVisible: true,
@@ -45,18 +68,15 @@ export function useBlogAiGenerator(updateField: (field: any, value: any) => void
     });
 
     try {
-      if (apiCallCount >= RPM_LIMIT) {
-        apiCallCount = 0;
-        apiResetTime = Date.now();
-        await new Promise((r) => setTimeout(r, 60000));
-      }
-      apiCallCount++;
-
-      const bpRes = await fetch("/api/admin/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generateBlogBlueprint", prompt, model: selectedModel }),
-      });
+      const bpRes = await geminiFetch(
+        "/api/admin/gemini",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "generateBlogBlueprint", prompt, model: selectedModel }),
+        },
+        { onStatus: buildStatusHandler("Redaktor AI planuje strukturę artykułu...") },
+      );
       if (!bpRes.ok) throw new Error("Błąd podczas planowania struktury.");
       const { blueprint } = await bpRes.json();
 
@@ -86,50 +106,26 @@ export function useBlogAiGenerator(updateField: (field: any, value: any) => void
         setAiProgress((prev) => ({ ...prev, currentBlock: i + 1 }));
 
         try {
-          if (apiCallCount >= RPM_LIMIT) {
-            const timePassed = Date.now() - apiResetTime;
-            const waitMs = Math.max(0, 60000 - timePassed);
-            if (waitMs > 0) {
-              const secs = Math.ceil(waitMs / 1000);
-              setAiProgress((prev) => ({
-                ...prev,
-                phase: "ratelimit",
-                message: "Ochrona limitu. Agent pije kawę ☕",
-                countdown: secs,
-              }));
-              for (let s = secs; s > 0; s--) {
-                setAiProgress((prev) => ({ ...prev, countdown: s }));
-                await new Promise((r) => setTimeout(r, 1000));
-              }
-            }
-            apiCallCount = 0;
-            apiResetTime = Date.now();
-            setAiProgress((prev) => ({
-              ...prev,
-              phase: "generating",
-              message: "Copywriter wraca do pracy...",
-              countdown: 0,
-            }));
-          }
-          apiCallCount++;
-
-          const blockRes = await fetch("/api/admin/gemini", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "generateSingleBlock",
-              prompt,
-              overallContext: prompt,
-              blockType: step.type,
-              topic: step.topic,
-              model: selectedModel,
-            }),
-          });
+          const blockRes = await geminiFetch(
+            "/api/admin/gemini",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "generateSingleBlock",
+                prompt,
+                overallContext: prompt,
+                blockType: step.type,
+                topic: step.topic,
+                model: selectedModel,
+              }),
+            },
+            { onStatus: buildStatusHandler("Copywriter wraca do pracy...") },
+          );
 
           if (!blockRes.ok) throw new Error("Błąd API");
           let blockContent = await blockRes.json();
 
-          // Normalize response
           if (blockContent.content && typeof blockContent.content === "object" && !Array.isArray(blockContent.content))
             blockContent = blockContent.content;
           if (blockContent[step.type] && typeof blockContent[step.type] === "object" && !Array.isArray(blockContent[step.type]))

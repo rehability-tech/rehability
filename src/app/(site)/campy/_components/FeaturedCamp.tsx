@@ -37,6 +37,23 @@ const formatDateRange = (start: any, end: any) => {
   return `${startDate.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} - ${endDate.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" })}`;
 };
 
+// Funkcja ładnie formatująca lokalizację (wyciąga miasto z JSONa)
+// Wyciąga osobno nazwę obiektu i miasto z JSONa w bazie
+const parseLocation = (location: any) => {
+  if (!location) return { name: "Wkrótce podamy", city: "Piękne otoczenie" };
+  try {
+    const parsed =
+      typeof location === "string" ? JSON.parse(location) : location;
+    return {
+      name: parsed.name || "Brak nazwy",
+      city: parsed.city || "Piękne otoczenie",
+    };
+  } catch {
+    // Jeśli to zwykły string, trafia jako nazwa
+    return { name: location, city: "Piękne otoczenie" };
+  }
+};
+
 // Funkcja kolorująca ostatnie słowo w tytule na morski kolor
 const formatTitle = (title: string) => {
   if (!title) return "";
@@ -78,6 +95,7 @@ interface FeaturedCampProps {
 export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
   // Jeśli z jakiegoś powodu baza nie zwróci żadnego wyjazdu, po prostu ukrywamy tę sekcję
   if (!initialCamp) return null;
+  console.log(initialCamp.location);
 
   return (
     <section className="container mx-auto px-4 max-[1024px]:px-6 pt-24 pb-16 overflow-hidden">
@@ -105,7 +123,7 @@ export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
             variants={fadeUpVariants}
             className="font-montserrat text-[#0B3B4C]/80 text-[16px] leading-[170%] mb-10 max-w-[600px]"
           >
-            {initialCamp.subtitle ||
+            {initialCamp.description ||
               "Zostaw codzienny pośpiech za sobą i podaruj sobie czas głębokiego resetu w otoczeniu natury. Czeka na Ciebie świadomy ruch, profesjonalne masaże i wspierająca energia."}
           </motion.p>
 
@@ -132,6 +150,7 @@ export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
           </motion.div>
 
           {/* KÓŁKA INFORMACYJNE */}
+          {/* KÓŁKA INFORMACYJNE */}
           <motion.div
             variants={fadeUpVariants}
             className="flex flex-wrap gap-4 mb-10 justify-center min-[1025px]:justify-start relative z-10 max-[1024px]:-mt-12"
@@ -149,8 +168,9 @@ export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
               {
                 icon: <MapPin size={18} weight="fill" />,
                 label: "Lokalizacja",
-                value: initialCamp.location || "Wkrótce podamy",
-                sub: "Piękne otoczenie",
+                // ZMIANA: Wywołujemy parseLocation raz i wyciągamy name do 'value', a city do 'sub'
+                value: parseLocation(initialCamp.location).name,
+                sub: parseLocation(initialCamp.location).city,
               },
               {
                 icon: <CreditCard size={18} weight="fill" />,
@@ -173,10 +193,10 @@ export function FeaturedCamp({ initialCamp }: FeaturedCampProps) {
                 <span className="font-montserrat text-white/80 text-[11px] mb-1.5">
                   {item.label}
                 </span>
-                <span className="font-montserrat font-bold text-[13px] leading-tight mb-1 px-2">
+                <span className="font-montserrat font-bold text-[13px] leading-tight mb-1 px-2 line-clamp-2">
                   {item.value}
                 </span>
-                <span className="font-montserrat text-white/60 text-[10px]">
+                <span className="font-montserrat text-white/60 text-[10px] line-clamp-1 mt-0.5">
                   {item.sub}
                 </span>
               </div>
