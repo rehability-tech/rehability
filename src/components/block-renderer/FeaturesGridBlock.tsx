@@ -47,26 +47,31 @@ export default function FeaturesGridBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-5xl px-4 w-full">
-      <div className="grid grid-cols-1 @lg:grid-cols-2 @3xl:grid-cols-3 gap-5 w-full">
-        {content.items.map((item: any, idx: number) => {
-          const Icon =
-            item.icon && ICONS[item.icon] ? ICONS[item.icon] : Sparkle;
-          return (
-            <div
-              key={item.id || idx}
-              className="flex flex-col items-start gap-4 p-5 w-full bg-[#287D88] rounded-[20px] shadow-sm"
-            >
-              <div className="w-12 h-12 flex items-center justify-center rounded-full shrink-0 bg-white/10">
-                <Icon size={24} weight="duotone" className="text-white" />
-              </div>
-              <div className="w-full mt-1 text-white font-montserrat font-medium text-[14px] leading-relaxed">
-                {parse(item.text || "")}
-              </div>
+    <div className="grid grid-cols-1 @lg:grid-cols-2 @3xl:grid-cols-3 gap-5 w-full text-left">
+      {content.items.map((item: any, idx: number) => {
+        const Icon = item.icon && ICONS[item.icon] ? ICONS[item.icon] : Sparkle;
+        return (
+          <div
+            key={item.id || idx}
+            className="flex flex-col items-start gap-4 p-5 w-full rounded-[20px] shadow-sm"
+            style={{ backgroundColor: "#287D88" }}
+          >
+            <div className="w-12 h-12 flex items-center justify-center rounded-full shrink-0 bg-white/10">
+              <Icon size={24} weight="duotone" className="text-white" />
             </div>
-          );
-        })}
-      </div>
+            <div
+              className="
+                w-full mt-1 text-white font-montserrat font-medium text-[14px] leading-relaxed
+                [&_p]:m-0 [&_p+p]:mt-1
+                [&_strong]:font-bold [&_em]:italic
+                [&_span]:text-inherit
+              "
+            >
+              {parse(item.text || "")}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

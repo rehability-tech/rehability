@@ -114,7 +114,7 @@ export function useCampContent(editId: string | null) {
 
   const handleSaveAndNext = async () => {
     await performSave("bottom");
-    router.push(`/admin/campy/dodaj/podsumowanie?id=${editId}`);
+    router.push(`/admin/campy/dodaj/seo?id=${editId}`);
   };
 
   return {

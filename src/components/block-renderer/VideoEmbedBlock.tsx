@@ -12,20 +12,19 @@ export default function VideoEmbedBlock({ content }: { content: any }) {
 
   const videoId = getYoutubeId(content.url);
   const embedUrl = videoId
-    ? `https://www.youtube.com/embed/${videoId}?rel=0`
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`
     : content.url;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 w-full">
-      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border-2 border-gray-100 shadow-lg">
-        <iframe
-          src={embedUrl}
-          title="Video Embed"
-          className="absolute top-0 left-0 w-full h-full"
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        />
-      </div>
+    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border-2 border-gray-100 shadow-lg">
+      <iframe
+        src={embedUrl}
+        title="Video Embed"
+        loading="lazy"
+        className="absolute top-0 left-0 w-full h-full"
+        allowFullScreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import parse from "html-react-parser";
 import { Plus, Minus } from "@phosphor-icons/react/dist/ssr";
 
 // === INTERFEJSY PROPSÓW ===
@@ -25,16 +26,19 @@ export function FAQ({ titlePrefix, titleHighlight, items }: FAQProps) {
     setOpenIndex((prevIndex) => (prevIndex === index ? null : index));
   };
 
+  const hasHeading = Boolean(titlePrefix || titleHighlight);
+
   return (
-    <section className="overflow-hidden  mb-50 max-[1024px]:mb-72">
+    <section className={`overflow-hidden ${hasHeading ? "mb-50 max-[1024px]:mb-72" : ""}`}>
       <div className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center">
-        {/* === NAGŁÓWEK === */}
-        <div className="flex flex-col items-center text-center mb-16">
-          <h2 className="typography-subheading font-semibold text-brand-secondary text-[36px] md:text-[48px] leading-[120%]">
-            {titlePrefix}{" "}
-            <span className="text-brand-primary">{titleHighlight}</span>
-          </h2>
-        </div>
+        {hasHeading && (
+          <div className="flex flex-col items-center text-center mb-16">
+            <h2 className="typography-subheading font-semibold text-brand-secondary text-[36px] md:text-[48px] leading-[120%]">
+              {titlePrefix}{" "}
+              <span className="text-brand-primary">{titleHighlight}</span>
+            </h2>
+          </div>
+        )}
 
         {/* === LISTA FAQ === */}
         <div className="w-full max-w-[900px] flex flex-col">
@@ -95,9 +99,9 @@ export function FAQ({ titlePrefix, titleHighlight, items }: FAQProps) {
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <p className="font-montserrat text-brand-secondary/80 text-[14px] md:text-[15px] leading-[170%]">
-                        {faq.answer}
-                      </p>
+                      <div className="font-montserrat text-brand-secondary/80 text-[14px] md:text-[15px] leading-[170%] [&_p]:m-0 [&_p+p]:mt-3 [&_strong]:font-semibold [&_a]:text-brand-primary [&_a]:underline">
+                        {parse(faq.answer || "")}
+                      </div>
                     </div>
                   </div>
                 </div>

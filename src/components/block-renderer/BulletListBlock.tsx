@@ -11,26 +11,28 @@ export default function BulletListBlock({ content }: { content: any }) {
     return null;
 
   return (
-    <div className="max-w-3xl px-4 w-full">
-      <ul className="w-full flex flex-col gap-y-4 @md:gap-y-3">
-        {content.items.map((item: any, idx: number) => (
-          <li
-            key={item.id || idx}
-            className="flex items-start gap-3 @md:gap-4 w-full"
+    <ul className="w-full flex flex-col gap-3 text-left">
+      {content.items.map((item: any, idx: number) => (
+        <li key={item.id || idx} className="flex items-start gap-4 w-full">
+          <CheckCircle
+            size={24}
+            weight="fill"
+            className="text-[#287D88] shrink-0 mt-1"
+          />
+          <div
+            className="
+              flex-1 text-gray-600 font-montserrat text-base leading-[1.7]
+              [&_p]:m-0 [&_p+p]:mt-2
+              [&_strong]:font-semibold [&_strong]:text-[#0B3B4C]
+              [&_em]:italic
+              [&_a]:text-[#287D88] [&_a]:underline
+              [&_span]:text-inherit
+            "
           >
-            <div className="w-7 h-7 @md:w-8 @md:h-8 flex items-center justify-center rounded-full bg-[#287D88]/10 shrink-0 mt-0.5">
-              <CheckCircle
-                size={18}
-                weight="fill"
-                className="text-[#287D88]"
-              />
-            </div>
-            <div className="flex-1 text-gray-700 font-montserrat text-[15px] @md:text-base leading-[1.6] @md:leading-[1.7] pt-0.5">
-              {parse(item.text || "")}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+            {parse(item.text || "")}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

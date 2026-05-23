@@ -1,9 +1,7 @@
 import React from "react";
 
-// Importy wszystkich bloków
 import HeadingBlock from "./HeadingBlock";
 import ParagraphBlock from "./ParagraphBlock";
-
 import FeaturesGridBlock from "./FeaturesGridBlock";
 import BulletListBlock from "./BulletListBlock";
 import PricingListBlock from "./PricingListBlock";
@@ -12,9 +10,10 @@ import FaqBlock from "./FaqBlock";
 import InlineImageBlock from "./InlineImageBlock";
 import VideoEmbedBlock from "./VideoEmbedBlock";
 import SpacerBlock from "./SpacerBlock";
-import { CampBlock } from "@/app/admin/campy/dodaj/edytor-tresci/_components/hooks/useCampAiGenerator";
 import MapBlock from "./MapBlock";
 import HeroBlock from "./HeroBlock";
+import { CampBlock } from "@/app/admin/campy/dodaj/edytor-tresci/_components/hooks/useCampAiGenerator";
+import BookingOptionsBlock from "./BookingOptionsBlock";
 
 interface BlockRendererProps {
   blocks: CampBlock[];
@@ -25,7 +24,7 @@ export default function BlockRenderer({ blocks, mapUrl }: BlockRendererProps) {
   if (!blocks || blocks.length === 0) return null;
 
   return (
-    <div className="@container w-full flex flex-col gap-y-10">
+    <div className="@container w-full max-w-[1000px] mx-auto px-4 sm:px-6 flex flex-col gap-y-4 text-left">
       {blocks.map((block) => {
         switch (block.type) {
           case "heading":
@@ -50,6 +49,10 @@ export default function BlockRenderer({ blocks, mapUrl }: BlockRendererProps) {
             return <VideoEmbedBlock key={block.id} content={block.content} />;
           case "map":
             return <MapBlock key={block.id} mapUrl={mapUrl} />;
+          case "bookingOptions":
+            return (
+              <BookingOptionsBlock key={block.id} content={block.content} />
+            );
           default:
             console.warn(`Nieznany typ bloku w rendererze: ${block.type}`);
             return null;

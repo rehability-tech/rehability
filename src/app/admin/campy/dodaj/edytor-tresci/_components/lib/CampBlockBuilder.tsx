@@ -35,7 +35,6 @@ export default function CampBlocksBuilder({
         break;
       case "bookingOptions":
         defaultContent = {
-          title: "Wybierz swój wariant udziału",
           standardTitle: "Pakiet Standard (1 osoba)",
           standardText:
             "<p>Kupujesz jedno miejsce. Jeśli w obiekcie są pokoje współdzielone, przydzielimy Cię do innej wspaniałej uczestniczki wyjazdu.</p>",
