@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   ChartBar,
   Star,
   ArrowLeft,
+  Layout,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -23,36 +24,55 @@ const mainItems = [
   { key: "vod", href: "/admin/vod", label: "VOD", icon: MonitorPlay },
 ];
 
-// 2. Opcje nawigacji dla trybu "Campy" (po prawej stronie)
-// Dodałem 'action' żeby odróżnić standardowe linki od przycisku wstecz
-const subItems = [
-  {
-    key: "sub-users",
-    href: "/admin/campy/users",
-    label: "Ludzie",
-    icon: Users,
-  },
-  {
-    key: "sub-stats",
-    href: "/admin/campy/stats",
-    label: "Wykresy",
-    icon: ChartBar,
-  },
-  {
-    key: "sub-extras",
-    href: "/admin/campy/extras",
-    label: "Więcej",
-    icon: Star,
-  },
-  { key: "sub-back", action: "back", label: "Wróć", icon: ArrowLeft },
-];
+// Opcja "Wstecz", stała
+const backButton = {
+  key: "sub-back",
+  action: "back",
+  label: "Wróć",
+  icon: ArrowLeft,
+};
 
 export default function AdminMobileNavBar() {
   const pathname = usePathname();
-  const router = useRouter(); // Używamy routera do cofania
+  const router = useRouter();
 
-  // Przełącznik: czy jesteśmy w jakiejś zakładce /admin/campy?
+  // Sprawdzamy czy jesteśmy w jakiejś zakładce /admin/campy
   const isCampyMode = pathname?.startsWith("/admin/campy");
+
+  // Magia: wyciągamy ID (lub slug) campu z obecnego URLa!
+  // Pasuje do wzorca np. /admin/campy/clr9k0b4s0000.../cokolwiek
+  const campIdMatch = pathname?.match(/\/admin\/campy\/([a-zA-Z0-9_-]+)/);
+  const currentCampId = campIdMatch ? campIdMatch[1] : null;
+
+  // 2. Dynamiczne sub-menu zależne od tego, w jakim campie jesteśmy
+  const subItems = useMemo(() => {
+    // Jeśli nie jesteśmy wewnątrz konkretnego campu (np. na liście wszystkich campów)
+    // nie chcemy w ogóle pokazywać paska z sub-menu
+    if (!currentCampId) return [];
+
+    return [
+      {
+        key: "sub-hub",
+        href: `/admin/campy/${currentCampId}`,
+        label: "Pulpit",
+        icon: Layout,
+        exact: true, // Wymaga dokładnego matchu, by nie podświetlać się wszędzie
+      },
+      {
+        key: "sub-users",
+        href: `/admin/campy/${currentCampId}/uczestnicy`, // Przykładowa dynamiczna ścieżka
+        label: "Ludzie",
+        icon: Users,
+      },
+      {
+        key: "sub-stats",
+        href: `/admin/campy/${currentCampId}/finanse`,
+        label: "Finanse",
+        icon: ChartBar,
+      },
+      backButton,
+    ];
+  }, [currentCampId]);
 
   return (
     <div
@@ -80,20 +100,19 @@ export default function AdminMobileNavBar() {
                 ? pathname === "/admin"
                 : pathname?.startsWith(item.href);
 
-            // Całkowicie ukrywamy (razem z pointer-events) inne przyciski główne
-            const isHidden = isCampyMode && !isCampyPill;
-            // Sprawdzamy czy przycisk Campy powinien być nieklikalny
-            const isCampyDisabled = isCampyMode && isCampyPill;
+            // Całkowicie ukrywamy inne przyciski jeśli jesteśmy WEWNĄTRZ konkretnego campu
+            const isHidden = !!currentCampId && !isCampyPill;
+            const isCampyDisabled = !!currentCampId && isCampyPill;
 
             return (
               <li
                 key={item.key}
                 className={cn(
                   "transition-all duration-500 ease-in-out flex justify-center overflow-hidden",
-                  isActive ? "flex-grow" : "flex-grow-0",
+                  isActive && !currentCampId ? "flex-grow" : "flex-grow-0",
                   isHidden
-                    ? "max-w-0 opacity-0 px-0 mx-0 border-0 pointer-events-none" // Wyłączamy pointer events dla ukrytych
-                    : isActive
+                    ? "max-w-0 opacity-0 px-0 mx-0 border-0 pointer-events-none"
+                    : isActive && !currentCampId
                       ? "max-w-full px-0.5"
                       : "max-w-[44px] px-0.5",
                 )}
@@ -102,18 +121,15 @@ export default function AdminMobileNavBar() {
                   href={item.href}
                   aria-label={item.label}
                   onClick={(e) => {
-                    // Blokada linku, gdy jesteśmy w trybie campy
-                    if (isCampyDisabled) {
-                      e.preventDefault();
-                    }
+                    if (isCampyDisabled) e.preventDefault();
                   }}
                   className={cn(
                     "relative flex items-center justify-center gap-2",
                     "h-11 rounded-full overflow-hidden shrink-0",
                     "transition-all duration-500 ease-in-out",
-                    isCampyDisabled ? "pointer-events-none" : "", // Zabezpieczenie przed klikaniem
+                    isCampyDisabled ? "pointer-events-none" : "",
                     isActive
-                      ? "bg-brand-primary px-4 w-full text-white shadow-[0_4px_12px_-2px_rgba(242,217,103,0.2)] border border-brand-yellow/20"
+                      ? "bg-brand-primary px-4 w-full text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.5)] border border-brand-yellow/20"
                       : "w-11 border border-transparent text-brand-secondary/40 hover:text-brand-primary hover:bg-white/60",
                   )}
                 >
@@ -130,7 +146,8 @@ export default function AdminMobileNavBar() {
                     )}
                   />
 
-                  {isActive && (
+                  {/* Etykietę głównego menu pokazujemy tylko na Dashboardzie, żeby nie psuła sub-menu */}
+                  {isActive && !currentCampId && (
                     <span className="relative z-10 font-jakarta text-[13px] font-semibold tracking-tight whitespace-nowrap pr-1 text-white">
                       {item.label}
                     </span>
@@ -140,10 +157,16 @@ export default function AdminMobileNavBar() {
             );
           })}
 
-          {/* SUB-MENU CAMPY (Pojawia się po prawej) */}
+          {/* SUB-MENU DLA KONKRETNEGO CAMPU */}
           {subItems.map((item) => {
-            const isActive = pathname?.startsWith(item.href || "fallback");
-            const isVisible = isCampyMode;
+            let isActive = false;
+            if (item.href) {
+              isActive = item.exact
+                ? pathname === item.href // np. Pulpit (/admin/campy/[id]) musi pasować w 100%
+                : pathname?.startsWith(item.href); // np. Ludzie (/admin/campy/[id]/uczestnicy)
+            }
+
+            const isVisible = !!currentCampId; // Pokaż submenu tylko jeśli jesteśmy wewnątrz campu
             const isBackButton = item.action === "back";
 
             return (
@@ -151,18 +174,17 @@ export default function AdminMobileNavBar() {
                 key={item.key}
                 className={cn(
                   "transition-all duration-500 ease-in-out flex justify-center overflow-hidden",
-                  isActive ? "flex-grow" : "flex-grow-0",
+                  isActive && !isBackButton ? "flex-grow" : "flex-grow-0",
                   !isVisible
                     ? "max-w-0 opacity-0 px-0 mx-0 border-0 pointer-events-none"
-                    : isActive
+                    : isActive && !isBackButton
                       ? "max-w-full px-0.5"
                       : "max-w-[44px] px-0.5",
                 )}
               >
                 {isBackButton ? (
-                  // Renderujemy zwykły <button> dla akcji cofania
                   <button
-                    onClick={() => router.back()}
+                    onClick={() => router.push("/admin/campy")} // Bezpieczny powrót na główną listę campów
                     aria-label={item.label}
                     className={cn(
                       "relative flex items-center justify-center gap-2",
@@ -178,7 +200,6 @@ export default function AdminMobileNavBar() {
                     />
                   </button>
                 ) : (
-                  // Renderujemy normalny <Link> dla zakładek Campy
                   <Link
                     href={item.href!}
                     aria-label={item.label}
@@ -187,7 +208,7 @@ export default function AdminMobileNavBar() {
                       "h-11 rounded-full overflow-hidden shrink-0",
                       "transition-all duration-500 ease-in-out",
                       isActive
-                        ? "bg-brand-primary px-4 w-full text-white shadow-[0_4px_12px_-2px_rgba(242,217,103,0.2)] border border-brand-yellow/20"
+                        ? "bg-brand-primary px-4 w-full text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.5)] border border-brand-yellow/20"
                         : "w-11 border border-transparent text-brand-secondary/40 hover:text-brand-primary hover:bg-white/60",
                     )}
                   >

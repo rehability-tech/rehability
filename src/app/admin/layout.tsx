@@ -35,12 +35,12 @@ export default async function AdminLayout({
       {/* 2. POPRAWIONY GRID 
         Na mobile to zwykły flex (jedna kolumna), a na desktopie (lg:) grid 2-kolumnowy o równej szerokości 260px
       */}
-      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[260px_1fr] font-montserrat mb-22">
+      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[260px_1fr] font-montserrat  ">
         {/* KLIENCKI KOMPONENT SIDEBARA */}
         <AdminSidebar />
         <AdminMobileNavBar />
         {/* GŁÓWNY KONTENER NA TREŚĆ */}
-        <main className="flex flex-col min-w-0 min-h-screen">
+        <main className="flex flex-col min-w-0 min-h-screen  bg-gradient-to-br to-brand-primary/15 via-transparent from-brand-yellow/5 pb-22">
           {/* KLIENCKI KOMPONENT TOPBARA */}
           <AdminTopbar user={user} />
 
@@ -67,7 +67,7 @@ export default async function AdminLayout({
           {/* ZAWARTOŚĆ STRONY */}
           <div className="max-w-[1400px] mx-auto w-full flex-1">
             {/* Tailwind animations */}
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ">
               {children}
             </div>
           </div>

@@ -58,6 +58,19 @@ model Camp {
 
   bookings     Booking[]
   events       CampEvent[]
+  pageViews    CampView[]
+}
+
+model CampView {
+  id          String   @id @default(cuid())
+  campId      String
+  camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  visitorHash String
+  day         DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  @@unique([campId, visitorHash, day])
+  @@index([campId, day])
 }
 
 model Booking {

@@ -25,6 +25,7 @@ export async function GET() {
         heroImage: true,
         mapUrl: true,
         allowBringFriend: true,
+        views: true,
         blocks: true, // <--- Upewnij się, że to tutaj jest!
       },
     });

@@ -50,6 +50,25 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
 
   if (!camp) notFound();
 
+  // INKREMENTACJA WYŚWIETLEŃ BEZPOŚREDNIO TUTAJ
+  if (camp.status === "PUBLISHED") {
+    try {
+      await prisma.camp.update({
+        where: { id: camp.id },
+        data: {
+          views: {
+            increment: 1, // Atomiczne dodanie +1 do bazy
+          },
+        },
+      });
+      console.log("incremented the camp", camp.title);
+    } catch (error) {
+      // Łapiemy błąd, żeby ewentualny problem z licznikiem
+      // nie wysypał użytkownikowi całej strony wyjazdu
+      console.error("Błąd podczas inkrementacji wyświetleń:", error);
+    }
+  }
+
   const blocks = parseBlocksSafely(camp.blocks);
   const dateRange = formatDateRange(camp.startDate, camp.endDate);
 
