@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
   const parsed = healthSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "NieprawidLÇowe dane" }, { status: 400 });
+    return NextResponse.json({ error: "Nieprawid≈Çowe dane" }, { status: 400 });
   }
 
   const profile = await prisma.healthProfile.upsert({

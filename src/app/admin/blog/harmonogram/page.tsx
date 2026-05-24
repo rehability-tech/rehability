@@ -1,96 +1,32 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import {
-  CalendarBlank, CaretLeft, CaretRight, Sparkle,
-  CircleNotch, Tag, X, PencilSimple,
-} from "@phosphor-icons/react/dist/ssr";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-type Status =
-  | "PLANNED"
-  | "IN_PROGRESS"
-  | "SCHEDULED"
-  | "PUBLISHED"
-  | "SKIPPED";
-
-interface ScheduleEntry {
-  id: string;
-  scheduledDate: string;
-  title: string;
-  topic: string;
-  category: string;
-  keywords: string[];
-  status: Status;
-  postId?: string | null;
-}
-
-const POLISH_MONTHS = [
-  "Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec",
-  "Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień",
-];
-const POLISH_DAYS = ["Pon", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
-
-const STATUS_LABELS: Record<Status, string> = {
-  PLANNED:     "Zaplanowany",
-  IN_PROGRESS: "W trakcie",
-  SCHEDULED:   "Zaplanowana publikacja",
-  PUBLISHED:   "Opublikowany",
-  SKIPPED:     "Pominięty",
-};
-
-const STATUS_DOT: Record<Status, string> = {
-  PLANNED:     "bg-brand-primary",
-  IN_PROGRESS: "bg-blue-500",
-  SCHEDULED:   "bg-amber-500",
-  PUBLISHED:   "bg-green-500",
-  SKIPPED:     "bg-gray-300",
-};
-
-const STATUS_CARD: Record<Status, string> = {
-  PLANNED:     "border-brand-primary/30 bg-brand-primary/5",
-  IN_PROGRESS: "border-blue-200 bg-blue-50/50",
-  SCHEDULED:   "border-amber-200 bg-amber-50/50",
-  PUBLISHED:   "border-green-200 bg-green-50/50",
-  SKIPPED:     "border-gray-200 bg-gray-50/50",
-};
-
-function formatDisplayDate(isoString: string): string {
-  const [y, m, d] = isoString.split("T")[0].split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-}
-
-function getDayOfMonth(isoString: string): number {
-  return parseInt(isoString.split("T")[0].split("-")[2], 10);
-}
+import HarmonogramHeader from "./_components/HarmonogramHeader";
+import MonthNavigator from "./_components/MonthNavigator";
+import CalendarGrid from "./_components/CalendarGrid";
+import StatusLegend from "./_components/StatusLegend";
+import EntryDetailModal from "./_components/EntryDetailModal";
+import { ScheduleEntry } from "./_components/types";
 
 export default function HarmonogramPage() {
-  const router = useRouter();
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
 
-  const [currentYear, setCurrentYear]     = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth]   = useState(today.getMonth());
-  const [entries, setEntries]             = useState<ScheduleEntry[]>([]);
-  const [selectedEntry, setSelectedEntry] = useState<ScheduleEntry | null>(null);
-  const [isLoading, setIsLoading]         = useState(true);
-  const [isGenerating, setIsGenerating]   = useState(false);
-
-  const entriesByDay = useMemo(() => {
-    const map = new Map<number, ScheduleEntry>();
-    for (const entry of entries) {
-      if (!entry.scheduledDate) continue;
-      map.set(getDayOfMonth(entry.scheduledDate), entry);
-    }
-    return map;
-  }, [entries]);
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [entries, setEntries] = useState<ScheduleEntry[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<ScheduleEntry | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchEntries = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/blog/schedule?year=${currentYear}&month=${currentMonth}`);
+      const res = await fetch(
+        `/api/admin/blog/schedule?year=${currentYear}&month=${currentMonth}`,
+      );
       if (!res.ok) throw new Error();
       setEntries(await res.json());
     } catch {
@@ -100,347 +36,56 @@ export default function HarmonogramPage() {
     }
   }, [currentYear, currentMonth]);
 
-  useEffect(() => { fetchEntries(); }, [fetchEntries]);
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const res = await fetch("/api/admin/blog/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ year: currentYear, month: currentMonth }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      if (data.created === 0) {
-        toast.info("Plan na ten miesiąc już istnieje.");
-      } else {
-        toast.success(`Wygenerowano ${data.created} artykułów na ${POLISH_MONTHS[currentMonth]} ${currentYear}.`);
-        await fetchEntries();
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Błąd generowania harmonogramu.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Calendar math (Mon-first week)
-  const daysInMonth   = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOffset = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7;
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   const prevMonth = () => {
-    if (currentMonth === 0) { setCurrentYear((y) => y - 1); setCurrentMonth(11); }
-    else setCurrentMonth((m) => m - 1);
+    if (currentMonth === 0) {
+      setCurrentYear((y) => y - 1);
+      setCurrentMonth(11);
+    } else setCurrentMonth((m) => m - 1);
   };
   const nextMonth = () => {
-    if (currentMonth === 11) { setCurrentYear((y) => y + 1); setCurrentMonth(0); }
-    else setCurrentMonth((m) => m + 1);
-  };
-
-  const isToday = (day: number) =>
-    today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === day;
-
-  const isWeekend = (day: number) => {
-    const dow = new Date(currentYear, currentMonth, day).getDay();
-    return dow === 0 || dow === 6;
+    if (currentMonth === 11) {
+      setCurrentYear((y) => y + 1);
+      setCurrentMonth(0);
+    } else setCurrentMonth((m) => m + 1);
   };
 
   const totalForMonth = entries.length;
-  const publishedForMonth = entries.filter((e) => e.status === "PUBLISHED").length;
+  const publishedForMonth = entries.filter(
+    (e) => e.status === "PUBLISHED",
+  ).length;
 
   return (
-    <div className="animate-in fade-in duration-500 mx-auto w-full max-w-6xl px-4">
-      {/* ── NAGŁÓWEK ── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-[12px] bg-brand-primary/10 flex items-center justify-center shrink-0">
-              <CalendarBlank size={20} weight="fill" className="text-brand-primary" />
-            </div>
-            <h1 className="text-[22px] font-jakarta font-bold text-[#0B3B4C]">
-              Harmonogram bloga
-            </h1>
-          </div>
-          <p className="text-sm text-gray-500 font-montserrat ml-[52px]">
-            Miesięczny plan artykułów. Kliknij na zaznaczony dzień, aby otworzyć temat.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={isGenerating || isLoading}
-          className="self-start md:self-auto flex items-center gap-2 px-5 py-3 bg-brand-primary text-white text-sm font-semibold rounded-[14px] hover:bg-[#1E6068] transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_10px_24px_-12px_rgba(40,125,136,0.55)]"
-        >
-          {isGenerating
-            ? <CircleNotch size={16} weight="bold" className="animate-spin" />
-            : <Sparkle size={16} weight="fill" />
-          }
-          {isGenerating ? "Generuję..." : `Wygeneruj plan na ${POLISH_MONTHS[currentMonth]}`}
-        </button>
-      </div>
+    <div className="animate-in fade-in duration-500 mx-auto w-full max-w-6xl p-5">
+      {/* Przycisk wygenerowany na zawsze usunięty z headera */}
+      <HarmonogramHeader />
 
-      {/* ── NAWIGACJA MIESIĄCA + STATYSTYKI ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={prevMonth}
-            aria-label="Poprzedni miesiąc"
-            className="w-10 h-10 rounded-[12px] border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-[#0B3B4C] transition-colors flex items-center justify-center"
-          >
-            <CaretLeft size={18} weight="bold" />
-          </button>
-          <h2 className="px-4 text-[20px] font-jakarta font-bold text-[#0B3B4C] min-w-[180px] text-center">
-            {POLISH_MONTHS[currentMonth]} {currentYear}
-          </h2>
-          <button
-            onClick={nextMonth}
-            aria-label="Następny miesiąc"
-            className="w-10 h-10 rounded-[12px] border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-[#0B3B4C] transition-colors flex items-center justify-center"
-          >
-            <CaretRight size={18} weight="bold" />
-          </button>
-        </div>
+      <MonthNavigator
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        totalForMonth={totalForMonth}
+        publishedForMonth={publishedForMonth}
+        onPrev={prevMonth}
+        onNext={nextMonth}
+      />
 
-        {totalForMonth > 0 && (
-          <div className="flex items-center gap-2 text-[12px] font-montserrat text-gray-500 bg-white border border-gray-100 rounded-full px-4 py-1.5">
-            <span className="font-bold text-[#0B3B4C]">{publishedForMonth}</span>
-            <span>/ {totalForMonth} opublikowanych</span>
-          </div>
-        )}
-      </div>
+      <CalendarGrid
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        entries={entries}
+        isLoading={isLoading}
+        onSelectEntry={setSelectedEntry}
+      />
 
-      {/* ── KALENDARZ ── */}
-      <div className="bg-white border border-gray-100 rounded-[20px] overflow-hidden shadow-[0_8px_30px_-15px_rgba(11,59,76,0.15)]">
-        {/* Nagłówki dni */}
-        <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/60">
-          {POLISH_DAYS.map((day, i) => (
-            <div
-              key={day}
-              className={`py-3 text-center text-[11px] font-bold uppercase tracking-wider font-montserrat ${
-                i >= 5 ? "text-gray-400" : "text-gray-500"
-              }`}
-            >
-              {day}
-            </div>
-          ))}
-        </div>
+      <StatusLegend />
 
-        {/* Komórki dni */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-32">
-            <CircleNotch size={32} weight="bold" className="text-brand-primary animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-7">
-            {/* Puste komórki na start */}
-            {Array.from({ length: firstDayOffset }).map((_, i) => (
-              <div
-                key={`pad-${i}`}
-                aria-hidden="true"
-                className="min-h-[120px] border-b border-r border-gray-100 bg-gray-50/30"
-              />
-            ))}
-
-            {/* Dni miesiąca */}
-            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-              const entry = entriesByDay.get(day);
-              const weekend = isWeekend(day);
-              const todayCell = isToday(day);
-              const isLast = (firstDayOffset + day) % 7 === 0;
-
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={entry ? () => setSelectedEntry(entry) : undefined}
-                  disabled={!entry}
-                  className={`min-h-[120px] border-b border-r border-gray-100 px-2.5 pt-2.5 pb-2 flex flex-col gap-2 text-left transition-colors ${
-                    weekend ? "bg-gray-50/30" : "bg-white"
-                  } ${
-                    entry
-                      ? "cursor-pointer hover:bg-brand-primary/[0.06] focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:ring-inset"
-                      : "cursor-default"
-                  } ${isLast ? "border-r-0" : ""} ${todayCell ? "bg-brand-primary/[0.04]" : ""}`}
-                >
-                  {/* Numer dnia */}
-                  <span
-                    className={`text-[13px] font-bold font-montserrat w-7 h-7 flex items-center justify-center rounded-full shrink-0 ${
-                      todayCell
-                        ? "bg-brand-primary text-white shadow-[0_4px_10px_-3px_rgba(40,125,136,0.5)]"
-                        : weekend
-                          ? "text-gray-300"
-                          : "text-gray-600"
-                    }`}
-                  >
-                    {day}
-                  </span>
-
-                  {/* Wpis harmonogramu */}
-                  {entry && (
-                    <div
-                      className={`flex-1 rounded-[10px] border px-2.5 py-2 flex flex-col gap-1 ${STATUS_CARD[entry.status]}`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[entry.status]}`} />
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider font-montserrat text-[#0B3B4C]/70 truncate">
-                          {entry.category}
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-montserrat font-semibold text-[#0B3B4C] leading-snug line-clamp-3">
-                        {entry.title}
-                      </span>
-                      {entry.postId && entry.status !== "PUBLISHED" && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-brand-primary/70 mt-0.5">
-                          • Pisany
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── LEGENDA ── */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 px-1">
-        {(Object.keys(STATUS_LABELS) as Status[]).map((s) => (
-          <div key={s} className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`} />
-            <span className="text-[11px] text-gray-500 font-montserrat">{STATUS_LABELS[s]}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── OVERLAY WPISU ── */}
-      <AnimatePresence>
-        {selectedEntry && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B3B4C]/40 backdrop-blur-sm px-4"
-            onClick={() => setSelectedEntry(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-white w-full max-w-md rounded-[24px] p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Zamknij */}
-              <button
-                onClick={() => setSelectedEntry(null)}
-                className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-              >
-                <X size={18} weight="bold" />
-              </button>
-
-              {/* Data */}
-              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 font-montserrat mb-2">
-                {formatDisplayDate(selectedEntry.scheduledDate)}
-              </p>
-
-              {/* Kategoria */}
-              <span className="inline-block text-[11px] font-bold font-montserrat px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary mb-3">
-                {selectedEntry.category}
-              </span>
-
-              {/* Tytuł */}
-              <h3 className="text-[17px] font-jakarta font-bold text-[#0B3B4C] leading-snug mb-3">
-                {selectedEntry.title}
-              </h3>
-
-              {/* Temat */}
-              <p className="text-sm text-gray-500 font-montserrat leading-relaxed mb-4">
-                {selectedEntry.topic}
-              </p>
-
-              {/* Słowa kluczowe */}
-              {selectedEntry.keywords.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pb-5 mb-5 border-b border-gray-100">
-                  {selectedEntry.keywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="flex items-center gap-1 text-[11px] font-montserrat text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full"
-                    >
-                      <Tag size={10} />
-                      {kw}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Status pill */}
-              <div className="flex items-center gap-2 pb-4 mb-4 border-b border-gray-100">
-                <span className={`w-2 h-2 rounded-full ${STATUS_DOT[selectedEntry.status]}`} />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-montserrat">
-                  {STATUS_LABELS[selectedEntry.status]}
-                </span>
-              </div>
-
-              {/* Przyciski */}
-              <div className="flex flex-col gap-2.5">
-                {selectedEntry.postId ? (
-                  <>
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/admin/blog/dodaj/edytor-tresci?id=${selectedEntry.postId}`,
-                        )
-                      }
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-primary text-white text-sm font-semibold font-montserrat rounded-[12px] hover:bg-[#1E6068] transition-colors"
-                    >
-                      <PencilSimple size={16} weight="bold" />
-                      Kontynuuj edycję artykułu
-                    </button>
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/admin/blog/dodaj/seo?id=${selectedEntry.postId}`,
-                        )
-                      }
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 text-[#0B3B4C] text-sm font-semibold font-montserrat rounded-[12px] hover:bg-gray-50 transition-colors"
-                    >
-                      Przejdź do SEO i publikacji
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/admin/blog/dodaj/dane-podstawowe?scheduleId=${selectedEntry.id}`,
-                        )
-                      }
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 text-[#0B3B4C] text-sm font-semibold font-montserrat rounded-[12px] hover:bg-gray-50 transition-colors"
-                    >
-                      <PencilSimple size={16} weight="bold" />
-                      Napisz samodzielnie
-                    </button>
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/admin/blog/dodaj/dane-podstawowe?scheduleId=${selectedEntry.id}&autogenerate=true`,
-                        )
-                      }
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-primary text-white text-sm font-semibold font-montserrat rounded-[12px] hover:bg-[#1E6068] transition-colors"
-                    >
-                      <Sparkle size={16} weight="fill" />
-                      Wygeneruj przez AI
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <EntryDetailModal
+        entry={selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+      />
     </div>
   );
 }

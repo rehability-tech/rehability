@@ -1,0 +1,115 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { BellRinging, BellSlash } from "@phosphor-icons/react/dist/ssr";
+import { withOneSignal } from "@/lib/notifications/onesignal";
+
+interface Preferences {
+  isNotificationEnabled: boolean;
+  oneSignalPlayerId: string | null;
+}
+
+/**
+ * Przełącznik powiadomień push do użycia w widokach ustawień
+ * (zarówno /admin/ustawienia jak i /panel/.../ustawienia).
+ *
+ * - Włączenie → wywołuje OneSignal.requestPermission() (modal przeglądarki).
+ * - Wyłączenie → OneSignal.User.PushSubscription.optOut().
+ * - Synchronizacja stanu z DB odbywa się przez OneSignalProvider w layout (event 'change').
+ */
+export default function NotificationToggle() {
+  const [prefs, setPrefs] = useState<Preferences | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/notification-preferences")
+      .then((r) => r.json())
+      .then((d) => setPrefs(d.preferences))
+      .catch(() => {});
+  }, []);
+
+  async function toggle() {
+    if (!prefs || pending) return;
+    setPending(true);
+
+    if (prefs.isNotificationEnabled) {
+      withOneSignal(async (OneSignal) => {
+        try {
+          await OneSignal.User.PushSubscription.optOut();
+        } catch (err) {
+          console.error("[NotificationToggle] optOut failed:", err);
+        }
+      });
+      setPrefs({ ...prefs, isNotificationEnabled: false });
+    } else {
+      withOneSignal(async (OneSignal) => {
+        try {
+          const sub = OneSignal.User.PushSubscription;
+          if (sub.id) {
+            await sub.optIn();
+          } else {
+            await OneSignal.Notifications.requestPermission();
+          }
+        } catch (err) {
+          console.error("[NotificationToggle] enable failed:", err);
+        }
+      });
+    }
+
+    // Daj OneSignalProvider chwilę na zsynchronizowanie z backendem,
+    // potem dociągnij realny stan.
+    setTimeout(async () => {
+      const res = await fetch("/api/user/notification-preferences");
+      const d = await res.json();
+      setPrefs(d.preferences);
+      setPending(false);
+    }, 800);
+  }
+
+  if (!prefs) {
+    return (
+      <div className="h-20 rounded-2xl bg-white/40 animate-pulse border border-white/40" />
+    );
+  }
+
+  const on = prefs.isNotificationEnabled;
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={pending}
+      className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/40 hover:bg-white transition shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] disabled:opacity-60 text-left"
+    >
+      <div
+        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition ${
+          on
+            ? "bg-brand-primary text-white shadow-[0_4px_15px_rgba(242,217,103,0.35)]"
+            : "bg-brand-secondary/5 text-brand-secondary/60"
+        }`}
+      >
+        {on ? (
+          <BellRinging size={22} weight="fill" />
+        ) : (
+          <BellSlash size={22} weight="duotone" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-jakarta font-bold text-[14px] text-brand-secondary">
+          Powiadomienia push
+        </p>
+        <p className="font-montserrat text-[12px] text-brand-secondary/60 mt-0.5">
+          {on
+            ? "Włączone — będziesz dostawać alerty na to urządzenie."
+            : "Wyłączone — kliknij, żeby włączyć."}
+        </p>
+      </div>
+      <div
+        className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${on ? "bg-brand-primary" : "bg-brand-secondary/20"}`}
+      >
+        <span
+          className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`}
+        />
+      </div>
+    </button>
+  );
+}

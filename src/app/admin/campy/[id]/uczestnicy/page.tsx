@@ -43,11 +43,13 @@ export default async function UczestnicyPage({ params }: Props) {
   });
 
   const checkedInCount = bookings.filter((b) => b.isCheckedIn).length;
-  const confirmedCount = bookings.filter((b) => b.status === "CONFIRMED").length;
+  const confirmedCount = bookings.filter(
+    (b) => b.status === "DEPOSIT_PAID" || b.status === "FULLY_PAID",
+  ).length;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* NagL‚Alwek */}
+      {/* NagLï¿½Alwek */}
       <div className="mb-6">
         <h1 className="font-jakarta font-bold text-2xl text-[#0B3B4C]">
           Uczestnicy
@@ -177,7 +179,7 @@ export default async function UczestnicyPage({ params }: Props) {
                     {booking.depositPaidAt ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                         <CheckCircle size={10} weight="fill" />
-                        OpL‚acony
+                        OpLï¿½acony
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
@@ -228,9 +230,14 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-    CONFIRMED: {
-      label: "Potwierdzona",
+    DEPOSIT_PAID: {
+      label: "Zadatek",
       className: "text-emerald-600 bg-emerald-50",
+      icon: <CheckCircle size={11} weight="fill" />,
+    },
+    FULLY_PAID: {
+      label: "OpÅ‚acona",
+      className: "text-emerald-700 bg-emerald-100",
       icon: <CheckCircle size={11} weight="fill" />,
     },
     PENDING: {
@@ -244,7 +251,7 @@ function StatusBadge({ status }: { status: string }) {
       icon: <Clock size={11} weight="fill" />,
     },
     EXPIRED: {
-      label: "WygasL‚a",
+      label: "WygasLï¿½a",
       className: "text-gray-500 bg-gray-50",
       icon: <XCircle size={11} weight="fill" />,
     },

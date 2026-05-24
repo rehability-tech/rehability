@@ -71,9 +71,14 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; cls: string; icon: React.ReactNode }
 > = {
-  CONFIRMED: {
-    label: "Potwierdzona",
+  DEPOSIT_PAID: {
+    label: "Zadatek opłacony",
     cls: "bg-white/25 text-white",
+    icon: <CheckCircle size={12} weight="fill" />,
+  },
+  FULLY_PAID: {
+    label: "Opłacona w całości",
+    cls: "bg-emerald-500/30 text-white",
     icon: <CheckCircle size={12} weight="fill" />,
   },
   PENDING: {

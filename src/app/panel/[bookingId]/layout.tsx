@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { redirect, notFound } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
+import UserSidebar from "../_components/UserSidebar";
+import UserTopbar from "../_components/UserTopbar";
 
 interface Props {
   children: React.ReactNode;
@@ -26,8 +28,6 @@ export default async function BookingLayout({ children, params }: Props) {
     notFound();
   }
 
-  // DostÄ™p: booking musi naleLLeÄ‡ do zalogowanej uczestniczki
-  // Dopuszczamy teLL e-mail match â€” gdy booking istnieje, ale userId jeszcze nie byL‚ przypisany
   const ownsById = booking.userId === session.user.id;
   const ownsByEmail = booking.email === session.user.email;
 
@@ -35,7 +35,6 @@ export default async function BookingLayout({ children, params }: Props) {
     redirect("/panel");
   }
 
-  // JeL›li booking istnieje, a userId nie byL‚ przypisany â€” przypisz przy pierwszym wejL›ciu
   if (!booking.userId && ownsByEmail) {
     await prisma.booking.update({
       where: { id: bookingId },
@@ -43,5 +42,25 @@ export default async function BookingLayout({ children, params }: Props) {
     });
   }
 
-  return <>{children}</>;
+  const user = {
+    name: session.user.name,
+    image: session.user.image,
+    email: session.user.email,
+  };
+
+  return (
+    <>
+      <UserSidebar bookingId={bookingId} />
+
+      <div className="lg:pl-64 min-h-screen">
+        <div className="hidden lg:block">
+          <UserTopbar user={user} bookingId={bookingId} />
+        </div>
+
+        <div className="max-w-[1400px] mx-auto w-full lg:px-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {children}
+        </div>
+      </div>
+    </>
+  );
 }

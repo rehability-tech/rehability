@@ -41,24 +41,19 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
+      case "payment_intent.succeeded": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        await handlePaymentSucceeded(pi);
         break;
       }
-      case "checkout.session.async_payment_succeeded": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
-        break;
-      }
-      case "checkout.session.expired":
-      case "checkout.session.async_payment_failed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutFailed(session);
+      case "payment_intent.payment_failed":
+      case "payment_intent.canceled": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        await handlePaymentFailed(pi);
         break;
       }
       default:
-        // Inne eventy ignorujemy — Stripe wymaga jednak 200.
+        // Pozostałe eventy ignorujemy — Stripe wymaga 200 nawet wtedy.
         break;
     }
   } catch (err) {
@@ -72,59 +67,98 @@ export async function POST(req: Request) {
   return NextResponse.json({ received: true }, { status: 200 });
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const bookingId = session.metadata?.bookingId;
+type PaymentType = "deposit" | "remainder";
+
+async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
+  const bookingId = pi.metadata?.bookingId;
+  const paymentType = (pi.metadata?.paymentType as PaymentType) ?? "deposit";
+
   if (!bookingId) {
     console.warn(
-      "[stripe-webhook] checkout.session.completed bez bookingId w metadata",
-      session.id,
+      "[stripe-webhook] payment_intent.succeeded bez bookingId w metadata",
+      pi.id,
     );
-    return;
-  }
-
-  const paid = session.payment_status === "paid";
-  if (!paid) {
     return;
   }
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { id: true, status: true, qrToken: true, amountTotal: true },
+    select: {
+      id: true,
+      status: true,
+      email: true,
+      name: true,
+      userId: true,
+      amountPaid: true,
+    },
   });
 
   if (!booking) {
-    console.warn(
-      "[stripe-webhook] Booking not found for bookingId:",
-      bookingId,
-    );
+    console.warn("[stripe-webhook] Booking not found:", bookingId);
     return;
   }
 
-  if (booking.status === "CONFIRMED") {
+  // Idempotency — ten sam event może przyjść wielokrotnie.
+  if (paymentType === "deposit" && booking.status !== "PENDING") return;
+  if (paymentType === "remainder" && booking.status === "FULLY_PAID") return;
+
+  const paidNow = pi.amount_received ?? pi.amount ?? 0;
+  const userId =
+    booking.userId ?? (await linkOrCreateUser(booking.email, booking.name));
+
+  if (paymentType === "deposit") {
+    const newToken = `RH-${crypto
+      .randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 16)
+      .toUpperCase()}`;
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: "DEPOSIT_PAID",
+        qrToken: newToken,
+        amountPaid: paidNow,
+        depositPaidAt: new Date(),
+        stripePaymentIntentId: pi.id,
+        userId,
+      },
+    });
     return;
   }
 
-  const newToken = `RH-${crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`;
-  const amountPaid = session.amount_total ?? 0;
-
+  // paymentType === "remainder"
   await prisma.booking.update({
     where: { id: booking.id },
     data: {
-      status: "CONFIRMED",
-      qrToken: newToken,
-      amountPaid,
-      depositPaidAt: new Date(),
-      stripeSessionId: session.id,
+      status: "FULLY_PAID",
+      amountPaid: booking.amountPaid + paidNow,
+      remainderPaidAt: new Date(),
+      userId,
     },
   });
 }
 
-async function handleCheckoutFailed(session: Stripe.Checkout.Session) {
-  const bookingId = session.metadata?.bookingId;
+async function handlePaymentFailed(pi: Stripe.PaymentIntent) {
+  const bookingId = pi.metadata?.bookingId;
   if (!bookingId) return;
 
+  // Tylko PENDING wracają do CANCELLED — opłaconych nie ruszamy.
   await prisma.booking.updateMany({
     where: { id: bookingId, status: "PENDING" },
     data: { status: "CANCELLED" },
   });
+}
+
+async function linkOrCreateUser(
+  email: string,
+  name: string | null,
+): Promise<string> {
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: name ? { name } : {},
+    create: { email, name: name ?? undefined },
+    select: { id: true },
+  });
+  return user.id;
 }

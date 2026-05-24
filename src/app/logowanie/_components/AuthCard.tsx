@@ -26,7 +26,19 @@ export default function AuthCard() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // DODANO: Prawdziwa logika logowania
+  // DODANO: Automatyczny scroll do karty po wejściu na stronę
+  useEffect(() => {
+    // Krótkie opóźnienie upewnia się, że strona w pełni się wyrenderowała
+    const timer = setTimeout(() => {
+      const mainElement = document.getElementById("auth-main");
+      if (mainElement) {
+        mainElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Prawdziwa logika logowania
   const handleGoogleAuth = async () => {
     setError(null);
 
@@ -40,7 +52,6 @@ export default function AuthCard() {
       setIsLoading(true);
       // Uruchomienie logowania przez Google.
       // callbackUrl wskazuje, gdzie użytkownik ma zostać przekierowany po udanym logowaniu.
-      // Zmień "/panel-kursanta" na ścieżkę, która u Ciebie pasuje.
       await signIn("google", { callbackUrl: "/panel" });
     } catch (err) {
       console.error("Błąd autentykacji:", err);
@@ -52,11 +63,19 @@ export default function AuthCard() {
   const isRegister = mode === "register";
 
   return (
-    <main className="w-full flex items-center justify-center p-4">
+    <div className="w-full flex items-center justify-center p-4 md:p-0">
       {/* GŁÓWNY KONTENER (MORSKIE TŁO)
-          Mobile: pionowy stack (auto-height, jeden formularz na ekranie),
-          md+: side-by-side z przesuwającą się białą kartą. */}
-      <div className="relative font-montserrat bg-transparent md:bg-[#76ADB6] w-full max-w-[900px] mx-auto md:rounded-[56px] md:overflow-hidden md:shadow-2xl z-10 flex flex-col md:flex-row md:h-[475px]">
+          Mobile: działa jak padding dla białej karty, z zachowanym backgroundem.
+          Desktop: side-by-side z przesuwającą się białą kartą. */}
+      <div className="relative font-montserrat bg-[#76ADB6] w-full max-w-[900px] mx-auto rounded-[40px] md:rounded-[56px] shadow-2xl z-10 flex items-center justify-center md:items-stretch md:justify-start md:flex-row p-3 sm:p-4 md:p-0 overflow-hidden md:h-[475px]">
+        {/* DEKORACYJNE LOGO – MOBILE (wycentrowane za białą kartą) */}
+        <img
+          src="/logotypy/logo-sygnet.svg"
+          alt=""
+          aria-hidden="true"
+          className="md:hidden absolute inset-0 m-auto w-[340px] h-[340px] opacity-30 pointer-events-none z-0"
+        />
+
         {/* DEKORACYJNE LOGO W TLE (LEWA STRONA) — ukryte na mobile */}
         <img
           src="/logotypy/logo-sygnet.svg"
@@ -77,7 +96,7 @@ export default function AuthCard() {
         {/* WARSTWA TEKSTOWA W TLE (LEWA I PRAWA STRONA — tylko md+)  */}
         {/* ========================================================= */}
 
-        {/* Lewa strona tła (Widoczna, gdy biała karta jest po prawej) */}
+        {/* Lewa strona tła */}
         <div className="hidden md:flex w-1/2 h-full flex-col justify-center items-center text-center text-white z-10 select-none">
           <motion.div
             animate={{
@@ -93,7 +112,6 @@ export default function AuthCard() {
             <p className="font-montserrat text-base text-white/80 leading-[170%] -mt-4">
               Masz już konto?
             </p>
-            {/* Przycisk przełączający bez hovera */}
             <Button
               onClick={() => setMode("login")}
               className="bg-white text-[#76ADB6] font-montserrat font-semibold hover:bg-white active:scale-95 transition-transform"
@@ -103,7 +121,7 @@ export default function AuthCard() {
           </motion.div>
         </div>
 
-        {/* Prawa strona tła (Widoczna, gdy biała karta jest po lewej) */}
+        {/* Prawa strona tła */}
         <div className="hidden md:flex w-1/2 h-full flex-col justify-center items-center text-center text-white z-10 select-none">
           <motion.div
             animate={{
@@ -132,20 +150,10 @@ export default function AuthCard() {
         {/* PRZESUWAJĄCA SIĘ BIAŁA KARTA (md+) / Statyczna karta (mobile) */}
         {/* ========================================================= */}
         <motion.div
-          className="relative md:absolute md:top-0 w-full md:w-1/2 md:h-full bg-white z-20 shadow-xl md:shadow-xl overflow-hidden flex flex-col justify-center items-center rounded-[32px] md:rounded-none"
-          animate={
-            isDesktop
-              ? {
-                  left: isRegister ? "50%" : "0%",
-                  borderRadius: isRegister
-                    ? "50px 56px 56px 50px"
-                    : "56px 50px 50px 56px",
-                }
-              : undefined
-          }
+          className="relative md:absolute md:top-0 w-full md:w-1/2 md:max-w-none md:h-full bg-white z-20 shadow-xl overflow-hidden flex flex-col justify-center items-center rounded-[40px] md:rounded-[56px] py-8 md:py-0"
+          animate={isDesktop ? { left: isRegister ? "50%" : "0%" } : undefined}
           transition={{ type: "spring", stiffness: 280, damping: 30 }}
         >
-          {/* AnimatePresence zapewnia płynne przenikanie się formularzy wewnątrz karty */}
           <AnimatePresence mode="wait">
             {isRegister ? (
               // --- FORMULARZ REJESTRACJI ---
@@ -155,21 +163,22 @@ export default function AuthCard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-5 justify-center p-6 md:p-12 items-center text-center w-full text-[#0B3B4C]"
+                className="flex flex-col gap-5 justify-center px-6 md:p-12 items-center text-center w-full text-[#0B3B4C]"
               >
                 <h2 className="font-jakarta font-extrabold text-[28px] md:text-[36px] leading-[110%]">
                   Zarejestruj się
                 </h2>
-                <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-full">
-                  Wybierz metodę rejestracji, aby przejść do panelu kursanta
+                <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-[280px] md:max-w-full mx-auto">
+                  Wybierz metodę rejestracji, aby przejść do panelu
                 </p>
 
                 <Button
                   onClick={handleGoogleAuth}
                   isLoading={isLoading}
                   leftIcon={<GoogleLogo size={24} weight="bold" />}
+                  className="w-full max-w-[280px]"
                 >
-                  Zarejestruj się przez Google
+                  Rejestracja przez Google
                 </Button>
 
                 {error && (
@@ -177,7 +186,7 @@ export default function AuthCard() {
                 )}
 
                 {/* CUSTOMOWY CHECKBOX */}
-                <div className="flex items-start gap-3 mt-2 max-w-full">
+                <div className="flex items-start gap-3 mt-2 max-w-[280px] md:max-w-full text-left">
                   <div className="relative flex items-center shrink-0 mt-0.5">
                     <input
                       type="checkbox"
@@ -197,7 +206,7 @@ export default function AuthCard() {
 
                   <label
                     htmlFor="register-terms"
-                    className="font-montserrat text-[12px] text-gray-500 leading-[150%] text-left cursor-pointer select-none"
+                    className="font-montserrat text-[12px] text-gray-500 leading-[150%] cursor-pointer select-none"
                   >
                     Akceptuję{" "}
                     <Link
@@ -225,21 +234,22 @@ export default function AuthCard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-col gap-6 justify-center p-6 md:p-0 items-center text-center w-full text-[#0B3B4C]"
+                className="flex flex-col gap-6 justify-center px-6 md:p-0 items-center text-center w-full text-[#0B3B4C]"
               >
                 <h2 className="font-jakarta font-extrabold text-[28px] md:text-[36px] leading-[110%]">
                   Zaloguj się
                 </h2>
-                <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-full px-3 -mt-4">
-                  Wybierz metodę logowania, aby przejść do panelu kursanta
+                <p className="font-montserrat text-[15px] text-gray-500 leading-[150%] max-w-[280px] md:max-w-full mx-auto px-3 -mt-4">
+                  Wybierz metodę logowania, aby przejść do panelu
                 </p>
 
                 <Button
                   onClick={handleGoogleAuth}
                   isLoading={isLoading}
                   leftIcon={<GoogleLogo size={24} weight="bold" />}
+                  className="w-full max-w-[280px]"
                 >
-                  Zaloguj się przez Google
+                  Logowanie przez Google
                 </Button>
 
                 {error && (
@@ -249,8 +259,8 @@ export default function AuthCard() {
             )}
           </AnimatePresence>
 
-          {/* MOBILE-ONLY: przełącznik trybu (na md+ rolę tę pełnią boczne panele) */}
-          <div className="md:hidden flex items-center justify-center gap-2 pb-6 -mt-2">
+          {/* MOBILE-ONLY: przełącznik trybu */}
+          <div className="md:hidden flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 mt-6">
             <span className="font-montserrat text-[13px] text-gray-500">
               {isRegister ? "Masz już konto?" : "Nie masz jeszcze konta?"}
             </span>
@@ -264,6 +274,6 @@ export default function AuthCard() {
           </div>
         </motion.div>
       </div>
-    </main>
+    </div>
   );
 }

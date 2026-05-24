@@ -62,7 +62,7 @@ export async function GET(
     id: o.id,
     kind: "order" as const,
     title: o.service.name,
-    description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zL�`,
+    description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zł`,
     startTime: o.slot.startTime.toISOString(),
     endTime: o.slot.endTime.toISOString(),
     status: o.status,

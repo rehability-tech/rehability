@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
 import { Toaster } from "sonner";
 import UserMobileBottomNav from "./_components/UserMobileBottomNav";
+import OneSignalProvider from "@/components/notifications/OneSignalProvider";
+import NotificationPrompt from "@/components/notifications/NotificationPrompt";
 
 export default async function PanelLayout({
   children,
@@ -18,6 +20,9 @@ export default async function PanelLayout({
 
   return (
     <div className="relative min-h-screen font-montserrat overflow-x-hidden">
+      <OneSignalProvider userId={session.user.id} />
+      <NotificationPrompt />
+
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#dafbff_0%,#ffffff_50%,#f5fbfc_100%)]" />
         <div className="absolute -top-40 -left-20 w-[420px] h-[420px] rounded-full bg-brand-primary/20 blur-[120px]" />
@@ -37,7 +42,7 @@ export default async function PanelLayout({
           },
         }}
       />
-      <main className="pb-28 lg:pb-12 max-w-md lg:max-w-6xl mx-auto w-full px-4 lg:px-8">
+      <main className="pb-28 lg:pb-0 max-w-md lg:max-w-none mx-auto lg:mx-0 w-full px-4 lg:px-0">
         {children}
       </main>
       <UserMobileBottomNav />

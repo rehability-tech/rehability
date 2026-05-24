@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Fork,
+  ForkKnife,
   Lightning,
   Leaf,
   Megaphone,
@@ -31,7 +31,7 @@ const EVENT_TYPE_CONFIG: Record<
   { icon: React.ReactNode; color: string; dot: string }
 > = {
   MEAL: {
-    icon: <Fork size={14} weight="fill" />,
+    icon: <ForkKnife size={14} weight="fill" />,
     color: "text-orange-600 bg-orange-50 border-orange-200",
     dot: "bg-orange-400",
   },

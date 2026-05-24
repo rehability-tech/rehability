@@ -26,7 +26,9 @@
       "Bash(mkdir -p \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\src\\\\app\\\\admin\\\\campy\\\\[id]\\\\uczestnicy\")",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(Object.keys\\(p.dependencies||{}\\).join\\('\\\\n'\\)\\)\")",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('next:',p.dependencies.next,'react:',p.dependencies.react,'framer:',p.dependencies['framer-motion']\\)\")",
-      "Bash(grep -E \"\\\\\\\\\\(site\\\\\\\\\\)/page.tsx|\\\\\\\\\\(site\\\\\\\\\\)/_components/HeroSection|^src/app/layout.tsx|^next.config\")"
+      "Bash(grep -E \"\\\\\\\\\\(site\\\\\\\\\\)/page.tsx|\\\\\\\\\\(site\\\\\\\\\\)/_components/HeroSection|^src/app/layout.tsx|^next.config\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const b=fs.readFileSync\\('src/app/panel/[bookingId]/harmonogram/page.tsx'\\);const s=b.toString\\('binary'\\);const idx=s.indexOf\\('M'\\);for\\(let i=s.indexOf\\('h1'\\); i<s.indexOf\\('h1'\\)+200; i++\\){const c=b[i];process.stdout.write\\(i+': 0x'+c.toString\\(16\\).padStart\\(2,'0'\\)+' '+\\(c>=32&&c<127?String.fromCharCode\\(c\\):'?'\\)+'\\\\n'\\)}\")",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\components\\sections\\admin\\editor",

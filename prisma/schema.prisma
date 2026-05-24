@@ -76,7 +76,7 @@ model Booking {
   email     String
   phone     String?
 
-  // PENDING | CONFIRMED | CANCELLED | PENDING_INVITATION | EXPIRED
+  // PENDING | DEPOSIT_PAID | FULLY_PAID | CANCELLED | PENDING_INVITATION | EXPIRED
   status    String   @default("PENDING")
 
   // --- Bilet QR ---
@@ -90,8 +90,9 @@ model Booking {
   depositPaidAt   DateTime?
   remainderPaidAt DateTime?
 
-  // --- Stripe Checkout ---
-  stripeSessionId String?   @unique
+  // --- Stripe ---
+  stripeSessionId       String?   @unique // legacy (Checkout Session)
+  stripePaymentIntentId String?   @unique
   amountTotal     Int       @default(0) // grosze
   amountPaid      Int       @default(0) // grosze
 
@@ -265,7 +266,15 @@ model HealthProfile {
 
   updatedAt DateTime @updatedAt
 }
-
+model Activity {
+  id        String   @id @default(cuid())
+  pillar    String   // np. "CAMP", "VOD", "BLOG", "SYSTEM"
+  kind      String   // np. "PAYMENT", "SIGNUP", "HEALTH_FILLED"
+  who       String   // np. "Kasia R." albo "System"
+  text      String   // np. "Opłaciła zadatek"
+  meta      String?  // np. "+600 zł" (opcjonalne)
+  createdAt DateTime @default(now())
+}
 // ==========================================
 // AUTORYZACJA (NEXTAUTH)
 // ==========================================
@@ -311,10 +320,33 @@ model User {
 
   role          Role      @default(USER)
 
+  // --- Powiadomienia (OneSignal + in-app) ---
+  isNotificationEnabled  Boolean   @default(false)
+  notificationPromptedAt DateTime?
+  oneSignalPlayerId      String?
+
   accounts      Account[]
   sessions      Session[]
   bookings      Booking[]
   healthProfile HealthProfile?
+  notifications Notification[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String?  @db.Text
+  // INFO | SUCCESS | WARNING | BOOKING | PAYMENT | HEALTH | SPA | SYSTEM
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  link      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
 }
 
 model VerificationToken {

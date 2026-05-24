@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.100.12"],
-  // Mniejsze payloady HTML/JSON i bez ujawniania stacka.
+  allowedDevOrigins: ["*.ngrok-free.app"],
+  devIndicators: {
+    position: "top-right", // Możesz też użyć "top-left"
+  },
   compress: true,
   poweredByHeader: false,
   images: {

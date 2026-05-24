@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
 import { DebugNav } from "./_components/DebugNav";
 import { ConsentBanner } from "@/components/ConsentBanner";
+import PWARegister from "@/components/PWARegister";
 
 // 1. Optymalizacja czcionek z Google Fonts (zmienne CSS zgodne z Twoim @theme)
 const fontHeading = Plus_Jakarta_Sans({
@@ -46,6 +47,19 @@ export const metadata: Metadata = {
       },
     ],
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Rehability",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#287d88",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -89,6 +103,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen  ">
+        <PWARegister />
         <DebugNav />
         <main>{children}</main>
         <ConsentBanner />

@@ -1,5 +1,11 @@
 "use client";
-
+/*
+Harmonogram
+-- [] Poprawić cronjoba do generowania co miesiąc planu na blogi
+-- [] Sprawdzić czy statusy wyświetlają się poprawnie
+-- [] Ogarnąć cronjoba do publikowania blogów autoamtycznie 
+-- [] Zmiana statusu bloga jeśli zostanie on napisany samodzielnie 
+*/
 import React, { useEffect, useState } from "react";
 import { Plus, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,7 +30,9 @@ export default function AdminBlogList() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`/api/admin/blog?t=${Date.now()}`, { cache: "no-store" });
+        const res = await fetch(`/api/admin/blog?t=${Date.now()}`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Błąd pobierania");
         setPosts(await res.json());
       } catch (err) {
@@ -37,7 +45,9 @@ export default function AdminBlogList() {
   }, []);
 
   const handleUpdateLocalStatus = (id: string, newStatus: string) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)),
+    );
   };
 
   const filtered = posts.filter((p) => filter === "ALL" || p.status === filter);
@@ -65,7 +75,10 @@ export default function AdminBlogList() {
           </p>
         </div>
 
-        <Button href="/admin/blog/dodaj/dane-podstawowe" rightIcon={<Plus size={18} weight="bold" />}>
+        <Button
+          href="/admin/blog/dodaj/dane-podstawowe"
+          rightIcon={<Plus size={18} weight="bold" />}
+        >
           Nowy artykuł
         </Button>
       </header>
@@ -87,7 +100,9 @@ export default function AdminBlogList() {
             <span
               className={cn(
                 "text-[11px] font-bold px-1.5 py-0.5 rounded-full",
-                filter === value ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500",
+                filter === value
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-gray-500",
               )}
             >
               {counts[value]}
@@ -100,14 +115,22 @@ export default function AdminBlogList() {
       <div className="flex flex-col gap-4 relative min-h-[300px]">
         {isLoading && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm rounded-[24px]">
-            <CircleNotch size={32} weight="bold" className="text-brand-primary animate-spin mb-4" />
-            <p className="text-sm font-montserrat text-gray-500 font-medium">Wczytywanie artykułów...</p>
+            <CircleNotch
+              size={32}
+              weight="bold"
+              className="text-brand-primary animate-spin mb-4"
+            />
+            <p className="text-sm font-montserrat text-gray-500 font-medium">
+              Wczytywanie artykułów...
+            </p>
           </div>
         )}
 
         {!isLoading && filtered.length === 0 && (
           <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 flex flex-col items-center justify-center py-20 px-4 text-center">
-            <h3 className="font-jakarta font-bold text-lg text-[#0B3B4C] mb-2">Brak artykułów</h3>
+            <h3 className="font-jakarta font-bold text-lg text-[#0B3B4C] mb-2">
+              Brak artykułów
+            </h3>
             <p className="font-montserrat text-sm text-gray-500 max-w-sm">
               Nie znaleziono postów dla wybranego filtru.
             </p>
@@ -117,7 +140,11 @@ export default function AdminBlogList() {
         {!isLoading && (
           <AnimatePresence>
             {filtered.map((post) => (
-              <BlogPostCard key={post.id} post={post} onChangeStatus={handleUpdateLocalStatus} />
+              <BlogPostCard
+                key={post.id}
+                post={post}
+                onChangeStatus={handleUpdateLocalStatus}
+              />
             ))}
           </AnimatePresence>
         )}

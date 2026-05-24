@@ -8,31 +8,47 @@ export const metadata = {
 };
 
 type Props = {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{
+    session_id?: string;
+    payment_intent?: string;
+  }>;
 };
 
-async function getBookingBySession(sessionId: string | undefined) {
-  if (!sessionId) return null;
-  return prisma.booking.findFirst({
-    where: { stripeSessionId: sessionId },
+const BOOKING_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  status: true,
+  amountPaid: true,
+  camp: {
     select: {
       id: true,
-      name: true,
-      email: true,
-      status: true,
-      amountPaid: true,
-      camp: {
-        select: {
-          id: true,
-          title: true,
-          location: true,
-          startDate: true,
-          endDate: true,
-          heroImage: true,
-        },
-      },
+      title: true,
+      location: true,
+      startDate: true,
+      endDate: true,
+      heroImage: true,
     },
-  });
+  },
+} as const;
+
+async function getBooking(
+  paymentIntentId: string | undefined,
+  sessionId: string | undefined,
+) {
+  if (paymentIntentId) {
+    return prisma.booking.findFirst({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: BOOKING_SELECT,
+    });
+  }
+  if (sessionId) {
+    return prisma.booking.findFirst({
+      where: { stripeSessionId: sessionId },
+      select: BOOKING_SELECT,
+    });
+  }
+  return null;
 }
 
 function firstName(full: string | null): string {
@@ -61,11 +77,12 @@ function formatDateRange(start: Date, end: Date) {
 }
 
 export default async function CampSuccessPage({ searchParams }: Props) {
-  const { session_id } = await searchParams;
-  const booking = await getBookingBySession(session_id);
+  const { session_id, payment_intent } = await searchParams;
+  const booking = await getBooking(payment_intent, session_id);
 
   const name = firstName(booking?.name ?? null);
-  const isConfirmed = booking?.status === "CONFIRMED";
+  const isConfirmed =
+    booking?.status === "DEPOSIT_PAID" || booking?.status === "FULLY_PAID";
   const amountPaid = booking?.amountPaid
     ? (booking.amountPaid / 100).toLocaleString("pl-PL", {
         style: "currency",
@@ -106,7 +123,10 @@ export default async function CampSuccessPage({ searchParams }: Props) {
         gdyby nie dotarło.
       </div>
 
-      <BookingFallback hasSession={!!session_id} hasBooking={!!booking}>
+      <BookingFallback
+        hasSession={!!(session_id || payment_intent)}
+        hasBooking={!!booking}
+      >
         <Link
           href="/campy"
           className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-white/70 backdrop-blur-md border border-white/40 text-brand-secondary text-[13px] font-semibold hover:bg-white transition"

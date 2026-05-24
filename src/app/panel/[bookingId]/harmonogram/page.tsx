@@ -50,7 +50,7 @@ export default async function HarmonogramPage({ params }: Props) {
     id: o.id,
     kind: "order" as const,
     title: o.service.name,
-    description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zL�`,
+    description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zł`,
     startTime: o.slot.startTime.toISOString(),
     endTime: o.slot.endTime.toISOString(),
     type: "ORDER",
@@ -67,7 +67,7 @@ export default async function HarmonogramPage({ params }: Props) {
     <div className="pt-6">
       <div className="mb-6">
         <h1 className="font-jakarta font-bold text-2xl text-[#0B3B4C]">
-          MAlj harmonogram
+          Mój harmonogram
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           Plan wyjazdu i Twoje zarezerwowane zabiegi

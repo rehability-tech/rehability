@@ -2,10 +2,9 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
 
 import SingleCampHero from "./SingleCampHero";
-// Import naszego głównego renderera wszystkich bloków (odzyskanego Pixel-Perfect)
+import CampBookingForm, { type CurrentUser } from "./CampBookingForm";
 import BlockRenderer from "@/components/block-renderer/BlockRenderer";
 
 interface CampPageClientProps {
@@ -17,9 +16,14 @@ interface CampPageClientProps {
   location?: string;
   dateRange?: string;
   price?: string;
-  // --- ZMIANA: PUSZCZAMY BLOKI BEZPOŚREDNIO ---
+  priceValue: number;
+  depositValue: number;
+  allowBringFriend: boolean;
   blocks: any[];
   mapUrl?: string | null;
+  currentUser: CurrentUser | null;
+  initialVariant?: "standard" | "duo";
+  initialStep?: number;
 }
 
 export default function CampPageClient({
@@ -31,8 +35,14 @@ export default function CampPageClient({
   location,
   dateRange,
   price,
+  priceValue,
+  depositValue,
+  allowBringFriend,
   blocks,
   mapUrl,
+  currentUser,
+  initialVariant,
+  initialStep,
 }: CampPageClientProps) {
   return (
     <main className="min-h-screen bg-[#FDFDFD] pb-24 font-montserrat">
@@ -54,19 +64,19 @@ export default function CampPageClient({
           transition={{ duration: 0.5 }}
           className="max-w-[1200px] w-full flex flex-col text-left mx-auto"
         >
-          {/* RENDERER BLOKÓW ODPALANY LOKALNIE */}
           <BlockRenderer blocks={blocks} mapUrl={mapUrl} />
 
-          <div className="flex justify-center mt-16 pt-8 border-t border-gray-100">
-            <Button
-              showArrow
-              onClick={() => {
-                console.log(`Kliknięto zapis na wyjazd: ${campId}`);
-                // TODO: Logika przewinięcia / modala
-              }}
-            >
-              Przejdź do formularza zapisu
-            </Button>
+          <div className="mt-16 pt-8 border-t border-gray-100">
+            <CampBookingForm
+              campId={campId}
+              campTitle={title}
+              price={priceValue}
+              deposit={depositValue}
+              allowBringFriend={allowBringFriend}
+              currentUser={currentUser}
+              initialVariant={initialVariant}
+              initialStep={initialStep}
+            />
           </div>
         </motion.div>
       </section>

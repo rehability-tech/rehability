@@ -14,7 +14,7 @@ export default async function PanelIndexPage() {
   const booking = await prisma.booking.findFirst({
     where: {
       email: session.user.email,
-      status: { in: ["CONFIRMED", "PENDING"] },
+      status: { in: ["DEPOSIT_PAID", "FULLY_PAID", "PENDING"] },
     },
     orderBy: { createdAt: "desc" },
     select: { id: true },

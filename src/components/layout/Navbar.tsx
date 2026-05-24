@@ -109,10 +109,12 @@ export function Navbar({ session }: NavbarProps) {
   // Upewnij się, że TypeScript poprawnie mapuje role w Session, jeśli nie to użyj "as jakistyp"
   const dashboardLink =
     (session?.user as any)?.role === "ADMIN" ? "/admin" : "/panel";
-  console.log(session);
+  const isLogowanie = path === "/logowanie";
 
   return (
-    <header className={`absolute top-0 left-0 right-0 z-50 w-full py-4`}>
+    <header
+      className={` top-0 left-0 right-0 z-50 w-full py-4 ${isLogowanie ? "block" : "absolute"}`}
+    >
       <div
         className={`container flex items-center justify-between ${
           isGabinetRoute &&

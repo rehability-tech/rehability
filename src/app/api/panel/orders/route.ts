@@ -20,12 +20,11 @@ export async function POST(req: NextRequest) {
   const parsed = createOrderSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "NieprawidL�owe dane" }, { status: 400 });
+    return NextResponse.json({ error: "Nieprawidłowe dane" }, { status: 400 });
   }
 
   const { slotId, bookingId } = parsed.data;
 
-  // Weryfikacja LLe booking naleLLy do sesji
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     select: { userId: true, email: true },
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Pobierz slot i sprawdLs dostępnoL�ć (z blokadą przez transakcję)
   const order = await prisma.$transaction(async (tx) => {
     const slot = await tx.serviceSlot.findUnique({
       where: { id: slotId },

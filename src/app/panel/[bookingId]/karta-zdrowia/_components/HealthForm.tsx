@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   CircleNotch,
   CheckCircle,
-  Fork,
+  ForkKnife,
   FirstAid,
   PhoneCall,
   Warning,
@@ -177,7 +177,7 @@ export default function HealthForm({
         className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5"
       >
         <SectionHeader
-          icon={<Fork size={18} weight="duotone" />}
+          icon={<ForkKnife size={18} weight="duotone" />}
           title="Dieta i żywienie"
         />
 
