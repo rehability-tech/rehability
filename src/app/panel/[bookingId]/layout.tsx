@@ -1,47 +1,24 @@
 import React from "react";
 import { getServerSession } from "next-auth/next";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
-import { prisma } from "@/lib/prisma";
-import UserSidebar from "../_components/UserSidebar";
-import UserTopbar from "../_components/UserTopbar";
+import { Toaster } from "sonner";
 
-interface Props {
+import OneSignalProvider from "@/components/notifications/OneSignalProvider";
+import NotificationPrompt from "@/components/notifications/NotificationPrompt";
+
+export default async function PanelLayout({
+  children,
+}: {
   children: React.ReactNode;
-  params: Promise<{ bookingId: string }>;
-}
-
-export default async function BookingLayout({ children, params }: Props) {
-  const { bookingId } = await params;
+}) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session) {
     redirect("/logowanie");
   }
 
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    select: { userId: true, email: true },
-  });
-
-  if (!booking) {
-    notFound();
-  }
-
-  const ownsById = booking.userId === session.user.id;
-  const ownsByEmail = booking.email === session.user.email;
-
-  if (!ownsById && !ownsByEmail) {
-    redirect("/panel");
-  }
-
-  if (!booking.userId && ownsByEmail) {
-    await prisma.booking.update({
-      where: { id: bookingId },
-      data: { userId: session.user.id },
-    });
-  }
-
+  // Przygotowujemy usera dla Topbaru
   const user = {
     name: session.user.name,
     image: session.user.image,
@@ -49,18 +26,47 @@ export default async function BookingLayout({ children, params }: Props) {
   };
 
   return (
-    <>
-      <UserSidebar bookingId={bookingId} />
+    // Główny kontener - na PC dzieli się na Sidebar (260px) i resztę
+    <div className="relative min-h-screen font-montserrat overflow-x-hidden flex flex-col lg:grid lg:grid-cols-[260px_1fr] bg-[#F7FAFB]">
+      <OneSignalProvider userId={session.user.id} />
+      <NotificationPrompt />
 
-      <div className="lg:pl-64 min-h-screen">
-        <div className="hidden lg:block">
-          <UserTopbar user={user} bookingId={bookingId} />
+      {/* 1. SIDEBAR DLA PC */}
+
+      {/* 2. GŁÓWNA STREFA TREŚCI (Prawa strona) */}
+      <div className="flex flex-col min-w-0 min-h-screen relative z-10">
+        {/* Dekoracyjne Tła - Ograniczone tylko do strefy contentu! */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#dafbff_0%,#ffffff_50%,#f5fbfc_100%)] opacity-50" />
+          <div className="absolute -top-40 -left-20 w-[420px] h-[420px] rounded-full bg-brand-primary/20 blur-[120px]" />
+          <div className="absolute top-1/3 -right-32 w-[380px] h-[380px] rounded-full bg-brand-yellow/25 blur-[120px]" />
         </div>
 
-        <div className="max-w-[1400px] mx-auto w-full lg:px-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {/* TOPBAR */}
+
+        {/* DYNAMICZNY CONTENT (Hub, Campy, VOD) */}
+        <main className="flex-1 pb-28 lg:pb-12 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-6 lg:pt-8">
           {children}
-        </div>
+        </main>
       </div>
-    </>
+
+      {/* 3. PASEK DOLNY (Tylko Mobile) */}
+
+      {/* TOASTER POWIADOMIEŃ */}
+      <Toaster
+        position="top-center"
+        gap={8}
+        toastOptions={{
+          classNames: {
+            toast:
+              "!bg-white !border !border-gray-100 !shadow-lg !rounded-2xl !font-montserrat !text-[#0B3B4C] !py-4 !px-5",
+            title: "!font-jakarta !font-semibold !text-[14px] !text-[#0B3B4C]",
+            description: "!text-[13px] !text-gray-500",
+            success: "!border-l-4 !border-l-[#287D88]",
+            error: "!border-l-4 !border-l-red-400",
+          },
+        }}
+      />
+    </div>
   );
 }

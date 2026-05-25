@@ -1,39 +1,84 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
-import { prisma } from "@/lib/prisma";
+import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 
-export default async function PanelIndexPage() {
+import HubCampWidget from "./_components/HubCampWidget";
+import HubVodWidget from "./_components/HubVodWidget";
+import HubRecentUpdates from "./_components/HubRecentUpdates"; // <--- Nasz nowy komponent
+
+export default async function PanelHubPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
     redirect("/logowanie");
   }
 
-  // Szukamy rezerwacji po adresie e-mail uLLytkownika
-  const booking = await prisma.booking.findFirst({
-    where: {
-      email: session.user.email,
-      status: { in: ["DEPOSIT_PAID", "FULLY_PAID", "PENDING"] },
-    },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
+  // Wyciągamy pierwsze słowo z imienia
+  const firstName = session.user.name ? session.user.name.split(" ")[0] : "";
 
-  if (!booking) {
-    return (
-      <div className="pt-16 flex flex-col items-center justify-center text-center px-4">
-        <p className="text-5xl mb-4">dzZ�d�Z</p>
-        <h1 className="font-jakarta font-bold text-2xl text-[#0B3B4C]">
-          Nie masz jeszcze rezerwacji
+  // Dynamiczne powitanie na podstawie godziny
+  const hour = new Date().getHours();
+  let greeting = "Dzień dobry";
+  if (hour < 6) greeting = "Dobrej nocy";
+  else if (hour > 18) greeting = "Dobry wieczór";
+
+  // W przyszłości pobierzemy tu info o subskrypcji VOD
+  const hasActiveVod = false;
+
+  return (
+    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* NAGŁÓWEK */}
+      <div className="mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/15 mb-3">
+          <Sparkle size={14} weight="fill" className="text-brand-primary" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary">
+            Panel Główny
+          </span>
+        </div>
+
+        <h1 className="font-jakarta font-bold text-3xl md:text-4xl text-brand-secondary tracking-tight">
+          {greeting}
+          {firstName ? `, ${firstName}` : ""} 👋
         </h1>
-        <p className="text-gray-500 text-sm mt-2 max-w-xs">
-          Po opłaceniu zadatku i potwierdzeniu rezerwacji pojawi się tu TwAlj
-          panel uczestniczki.
+        <p className="text-brand-secondary/50 text-[14px] md:text-[15px] mt-2 font-montserrat max-w-lg leading-relaxed">
+          Zarządzaj swoimi nadchodzącymi wyjazdami i korzystaj z naszej cyfrowej
+          platformy treningowej.
         </p>
       </div>
-    );
-  }
 
-  redirect(`/panel/${booking.id}`);
+      {/* SIATKA GŁÓWNYCH WIDŻETÓW */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        {/* Moduł 1: Campy (Pobiera dane samodzielnie na kliencie!) */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary">
+              Strefa Campów
+            </h2>
+          </div>
+          <HubCampWidget />
+        </div>
+
+        {/* Moduł 2: VOD */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary">
+              Strefa Cyfrowa
+            </h2>
+          </div>
+          <HubVodWidget hasAccess={hasActiveVod} />
+        </div>
+      </div>
+
+      {/* SEKCJA NOWOŚCI (Pod kartami) */}
+      <div className="mt-10 lg:mt-12 flex flex-col gap-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary">
+            Ostatnie nowości w Rehability
+          </h2>
+        </div>
+        <HubRecentUpdates />
+      </div>
+    </div>
+  );
 }

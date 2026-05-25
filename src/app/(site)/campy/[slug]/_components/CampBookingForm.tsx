@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import StripePaymentStep from "./StripePaymentStep";
+import Link from "next/link";
 
 const COLORS = {
   text: "#0B3B4C",
@@ -66,7 +67,10 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-function splitName(full: string | null): { firstName: string; lastName: string } {
+function splitName(full: string | null): {
+  firstName: string;
+  lastName: string;
+} {
   if (!full) return { firstName: "", lastName: "" };
   const parts = full.trim().split(/\s+/);
   if (parts.length === 1) return { firstName: parts[0], lastName: "" };
@@ -94,9 +98,7 @@ export default function CampBookingForm({
   const isLogged = !!currentUser;
   const initialNameParts = splitName(currentUser?.name ?? null);
 
-  const [step, setStep] = useState<Step>(
-    clampStep(initialStep, isLogged),
-  );
+  const [step, setStep] = useState<Step>(clampStep(initialStep, isLogged));
   const [direction, setDirection] = useState<1 | -1>(1);
   const [variant, setVariant] = useState<Variant>(initialVariant ?? "standard");
   const [customer, setCustomer] = useState<Customer>({
@@ -122,7 +124,8 @@ export default function CampBookingForm({
     if (!rodo) e.rodo = "Wymagana zgoda RODO.";
     if (!health) e.health = "Wymagane oświadczenie zdrowotne.";
     if (isDuo) {
-      if (!friend.firstName.trim()) e.friendFirstName = "Podaj imię przyjaciółki.";
+      if (!friend.firstName.trim())
+        e.friendFirstName = "Podaj imię przyjaciółki.";
       if (!friend.lastName.trim()) e.friendLastName = "Podaj nazwisko.";
       if (!isValidEmail(friend.email)) e.friendEmail = "Nieprawidłowy email.";
       if (
@@ -215,7 +218,9 @@ export default function CampBookingForm({
       goTo(5);
     } catch (err) {
       console.error(err);
-      setSubmitError("Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.");
+      setSubmitError(
+        "Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.",
+      );
       setSubmitting(false);
     }
   }
@@ -266,7 +271,11 @@ export default function CampBookingForm({
           <Stepper step={step} />
         </header>
 
-        <motion.div layout transition={SPRING} className="px-6 sm:px-10 py-8 min-h-[420px]">
+        <motion.div
+          layout
+          transition={SPRING}
+          className="px-6 sm:px-10 py-8 min-h-[420px]"
+        >
           <AnimatePresence mode="wait" initial={false} custom={direction}>
             <motion.div
               key={step}
@@ -358,8 +367,7 @@ export default function CampBookingForm({
               <PrimaryButton
                 onClick={handleNext}
                 disabled={
-                  (step === 2 && !isLogged) ||
-                  (step === 3 && !step3Valid)
+                  (step === 2 && !isLogged) || (step === 3 && !step3Valid)
                 }
               >
                 Dalej <ArrowRight size={16} weight="bold" />
@@ -421,8 +429,7 @@ function Stepper({ step }: { step: Step }) {
                 initial={false}
                 animate={{
                   scale: active ? 1.1 : 1,
-                  background:
-                    done || active ? COLORS.accent : "#f3f4f6",
+                  background: done || active ? COLORS.accent : "#f3f4f6",
                   color: done || active ? "#ffffff" : "#9ca3af",
                 }}
                 transition={SPRING}
@@ -529,8 +536,9 @@ function Step2Login({
           Zaloguj się, żeby kontynuować
         </h3>
         <p className="text-sm text-gray-500 mt-1 max-w-prose">
-          Twoje konto powiążemy z rezerwacją — dzięki temu zobaczysz harmonogram,
-          QR-bilet i opłacisz pozostałą część w panelu uczestniczki.
+          Twoje konto powiążemy z rezerwacją — dzięki temu zobaczysz
+          harmonogram, QR-bilet i opłacisz pozostałą część w panelu
+          uczestniczki.
         </p>
       </Item>
 
@@ -545,7 +553,10 @@ function Step2Login({
               <GoogleLogo size={22} weight="bold" />
             </span>
             <div className="text-left">
-              <div className="font-jakarta font-bold text-base" style={{ color: COLORS.text }}>
+              <div
+                className="font-jakarta font-bold text-base"
+                style={{ color: COLORS.text }}
+              >
                 Kontynuuj z Google
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -563,7 +574,12 @@ function Step2Login({
 
       <Item>
         <div className="flex items-start gap-3 text-[12px] text-gray-500 rounded-xl bg-gray-50 px-4 py-3">
-          <ShieldCheck size={16} weight="duotone" style={{ color: COLORS.accent }} className="shrink-0 mt-0.5" />
+          <ShieldCheck
+            size={16}
+            weight="duotone"
+            style={{ color: COLORS.accent }}
+            className="shrink-0 mt-0.5"
+          />
           <p>
             Po zalogowaniu wrócisz dokładnie tu, z wybranym wariantem (
             <strong>{variant === "duo" ? "Duo" : "Standard"}</strong>). Twoich
@@ -655,8 +671,15 @@ function Step3Details({
 
       <Item>
         <div className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-          <ShieldCheck size={16} weight="duotone" style={{ color: COLORS.accent }} />
-          <span className="text-sm font-semibold truncate" style={{ color: COLORS.text }}>
+          <ShieldCheck
+            size={16}
+            weight="duotone"
+            style={{ color: COLORS.accent }}
+          />
+          <span
+            className="text-sm font-semibold truncate"
+            style={{ color: COLORS.text }}
+          >
             {currentUser.email}
           </span>
         </div>
@@ -692,7 +715,11 @@ function Step3Details({
         <Item>
           <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-5">
             <div className="flex items-center gap-2 mb-3">
-              <UsersThree size={18} weight="duotone" style={{ color: COLORS.accent }} />
+              <UsersThree
+                size={18}
+                weight="duotone"
+                style={{ color: COLORS.accent }}
+              />
               <h4 className="font-jakarta font-bold">Twoja przyjaciółka</h4>
             </div>
             <p className="text-xs text-gray-500 mb-4">
@@ -735,7 +762,14 @@ function Step3Details({
             label={
               <>
                 Zgadzam się na przetwarzanie moich danych osobowych zgodnie z{" "}
-                <strong>polityką prywatności (RODO)</strong>.
+                <Link
+                  target="_blank"
+                  className="font-bold"
+                  href={"/polityka-prywatnosci"}
+                >
+                  polityką prywatności (RODO)
+                </Link>
+                .
               </>
             }
           />
@@ -745,8 +779,9 @@ function Step3Details({
             error={errors.health}
             label={
               <>
-                Oświadczam, że nie mam <strong>przeciwwskazań zdrowotnych</strong>{" "}
-                do udziału w wyjeździe.
+                Oświadczam, że nie mam{" "}
+                <strong>przeciwwskazań zdrowotnych</strong> do udziału w
+                wyjeździe.
               </>
             }
           />
@@ -781,14 +816,23 @@ function Step4Summary({
     <Stagger>
       <Item>
         <h3 className="font-jakarta font-bold text-lg">Podsumowanie</h3>
-        <p className="text-sm text-gray-500 mt-1">Sprawdź dane przed płatnością.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Sprawdź dane przed płatnością.
+        </p>
       </Item>
 
       <Item>
         <div className="rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Heart size={16} weight="duotone" style={{ color: COLORS.accent }} />
-            <h4 className="font-jakarta font-bold text-base" style={{ color: COLORS.text }}>
+            <Heart
+              size={16}
+              weight="duotone"
+              style={{ color: COLORS.accent }}
+            />
+            <h4
+              className="font-jakarta font-bold text-base"
+              style={{ color: COLORS.text }}
+            >
               {campTitle}
             </h4>
           </div>
@@ -818,12 +862,17 @@ function Step4Summary({
         >
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-gray-600">Cena za osobę</span>
-            <span className="font-jakarta font-bold" style={{ color: COLORS.text }}>
+            <span
+              className="font-jakarta font-bold"
+              style={{ color: COLORS.text }}
+            >
               {formatPLN(price)}
             </span>
           </div>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-sm text-gray-600">Zadatek (do zapłaty teraz)</span>
+            <span className="text-sm text-gray-600">
+              Zadatek (do zapłaty teraz)
+            </span>
             <span
               className="text-2xl font-jakarta font-bold"
               style={{ color: COLORS.accent }}
@@ -850,7 +899,11 @@ function Step4Summary({
       {submitError && (
         <Item>
           <div className="flex items-start gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
-            <WarningCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
+            <WarningCircle
+              size={18}
+              weight="fill"
+              className="shrink-0 mt-0.5"
+            />
             <span>{submitError}</span>
           </div>
         </Item>
@@ -1001,7 +1054,10 @@ function VariantCard({
         <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">
           /os.
         </div>
-        <div className="font-jakarta font-bold text-lg" style={{ color: COLORS.text }}>
+        <div
+          className="font-jakarta font-bold text-lg"
+          style={{ color: COLORS.text }}
+        >
           {formatPLN(pricePerPerson)}
         </div>
       </div>

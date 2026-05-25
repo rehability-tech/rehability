@@ -60,7 +60,17 @@ model Camp {
   events       CampEvent[]
   pageViews    CampView[]
 }
+// DO DODANIA NA DOLE PLIKU SCHEMA.PRISMA:
 
+model SystemUpdate {
+  id          String   @id @default(cuid())
+  type        String   // "VOD" | "CAMP" | "BLOG" | "SYSTEM"
+  title       String
+  description String   @db.Text
+  link        String?  
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
 model CampView {
   id          String   @id @default(cuid())
   campId      String
