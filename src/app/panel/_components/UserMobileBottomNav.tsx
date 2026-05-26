@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 // CZYSTSZA NAWIGACJA: Tylko 4 główne filary platformy
 const items = [
   { key: "hub", href: "/panel", label: "Start", icon: SquaresFour },
-  { key: "campy", href: "/panel/campy", label: "Campy", icon: Tent },
+  { key: "campy", href: "/panel/wyjazdy", label: "Wyjazdy", icon: Tent },
   { key: "vod", href: "/panel/vod", label: "VOD", icon: MonitorPlay },
   { key: "profil", href: "/panel/profil", label: "Profil", icon: User },
 ];

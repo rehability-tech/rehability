@@ -19,14 +19,14 @@ Przebudowa strony głównej panelu administratora (`/admin`) na funkcjonalny, mo
 Zamiast trzech wielkich kart filarów, rozbijamy dane na użyteczne widgety:
 
 - [ ] **Widget 1: Finanse / Quick Stats (Główny KPI)**
-  - Co zawiera: Przychód z tego miesiąca (Camp + VOD), liczba nowych rejestracji.
+  - Co zawiera: Przychód z tego miesiąca (Wyjazdy + VOD), liczba nowych rejestracji.
   - Wygląd: Najbardziej wyeksponowany kafelek, subtelny gradient `brand-primary`.
 - [ ] **Widget 2: Centrum Akcji (To-Do list systemu)**
-  - Co zawiera: Rzeczy wymagające Twojej uwagi. Np. "3 nieopłacone reszty za Camp", "2 niewypełnione karty zdrowia", "1 nowy komentarz na blogu".
+  - Co zawiera: Rzeczy wymagające Twojej uwagi. Np. "3 nieopłacone reszty za Wyjazd", "2 niewypełnione karty zdrowia", "1 nowy komentarz na blogu".
   - Wygląd: Minimalistyczna lista z ikonami (czerwone/żółte akcenty przy pilnych sprawach).
 
 - [ ] **Widget 3: Najbliższe Wydarzenia (Timeline)**
-  - Co zawiera: Odliczanie do najbliższego Campa + informacja o liczbie wolnych miejsc. Jeśli jest aktywny Camp - status "W trakcie".
+  - Co zawiera: Odliczanie do najbliższego Wyjazdu + informacja o liczbie wolnych miejsc. Jeśli jest aktywny Wyjazd - status "W trakcie".
 
 - [ ] **Widget 4: Mini-Moduły Filarów (Skróty)**
-  - Co zawiera: 3 małe, kwadratowe kafelki służące jako szybka nawigacja do: Zarządzania Campami, V
+  - Co zawiera: 3 małe, kwadratowe kafelki służące jako szybka nawigacja do: Zarządzania Wyjazdami, V

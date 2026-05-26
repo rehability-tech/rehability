@@ -27,8 +27,8 @@ const drawerSections = [
     highlight: true,
   },
   {
-    label: "System Campów",
-    href: "/admin/campy",
+    label: "System Wyjazdów",
+    href: "/admin/wyjazdy",
     icon: Tent,
     iconBg: "bg-brand-primary/10 text-brand-primary",
   },

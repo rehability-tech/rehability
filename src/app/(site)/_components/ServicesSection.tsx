@@ -40,7 +40,7 @@ const SERVICES = [
     buttonHref: "/w-budowie",
   },
   {
-    title: "Campy",
+    title: "Wyjazdy",
     image: "/images/services/campy.jpg",
     bullets: [
       "100% praktyki i intensywny trening zaawansowanych technik manualnych.",
@@ -48,7 +48,7 @@ const SERVICES = [
       "Budowanie wartościowych relacji i wymiana branżowych doświadczeń.",
     ],
     buttonText: "Zobacz nadchodzące terminy",
-    buttonHref: "/campy",
+    buttonHref: "/wyjazdy",
   },
 ];
 

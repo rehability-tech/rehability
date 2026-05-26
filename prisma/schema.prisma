@@ -19,7 +19,7 @@ model Review {
   createdAt DateTime @default(now())
 }
 
-model Camp {
+model Trip {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -38,7 +38,7 @@ model Camp {
   tags         String[]
   heroImage    String?
   description  String?  @db.Text
-  services     CampService[]
+  services     TripService[]
   blocks       Json?    @default("[]")
 
   // ── SEO (mirror modelu Post) ─────────────────────
@@ -57,8 +57,8 @@ model Camp {
   views        Int      @default(0)
 
   bookings     Booking[]
-  events       CampEvent[]
-  pageViews    CampView[]
+  events       TripEvent[]
+  pageViews    TripView[]
 }
 // DO DODANIA NA DOLE PLIKU SCHEMA.PRISMA:
 
@@ -67,20 +67,20 @@ model SystemUpdate {
   type        String   // "VOD" | "CAMP" | "BLOG" | "SYSTEM"
   title       String
   description String   @db.Text
-  link        String?  
+  link        String?
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
-model CampView {
+model TripView {
   id          String   @id @default(cuid())
-  campId      String
-  camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   visitorHash String
   day         DateTime @db.Date
   createdAt   DateTime @default(now())
 
-  @@unique([campId, visitorHash, day])
-  @@index([campId, day])
+  @@unique([tripId, visitorHash, day])
+  @@index([tripId, day])
 }
 
 model Booking {
@@ -88,8 +88,8 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campId    String
-  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   // Powiązanie z kontem uczestniczki (wypełniane po rejestracji / dopasowaniu e-mail)
   userId    String?
@@ -187,31 +187,31 @@ model ExtraService {
   updatedAt   DateTime @updatedAt
 }
 
-model CampService {
+model TripService {
   id          String   @id @default(cuid())
   name        String
   duration    Int      // minuty
   price       Decimal
   description String?  @db.Text
 
-  campId      String
-  camp        Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   slots       ServiceSlot[]
   orders      ServiceOrder[]
 }
 
 // Ogólny punkt harmonogramu wyjazdu widoczny dla wszystkich uczestniczek
-model CampEvent {
+model TripEvent {
   id          String        @id @default(cuid())
-  campId      String
-  camp        Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
+  tripId      String
+  trip        Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   title       String
   description String?       @db.Text
   startTime   DateTime      // pełna data + godzina
   endTime     DateTime?
-  type        CampEventType @default(GENERAL)
+  type        TripEventType @default(GENERAL)
   icon        String?       // nazwa ikony z @phosphor-icons
   isPublished Boolean       @default(true)
   sortOrder   Int           @default(0)
@@ -219,7 +219,7 @@ model CampEvent {
   createdAt   DateTime      @default(now())
 }
 
-enum CampEventType {
+enum TripEventType {
   GENERAL
   MEAL
   ACTIVITY
@@ -231,7 +231,7 @@ enum CampEventType {
 model ServiceSlot {
   id        String      @id @default(cuid())
   serviceId String
-  service   CampService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service   TripService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   startTime DateTime    // pełna data + godzina
   endTime   DateTime    // startTime + service.duration
@@ -256,7 +256,7 @@ model ServiceOrder {
 
   // Denormalizacja — szybki dostęp bez JOIN
   serviceId String
-  service   CampService @relation(fields: [serviceId], references: [id])
+  service   TripService @relation(fields: [serviceId], references: [id])
 
   price     Decimal  // snapshot ceny z momentu rezerwacji
 

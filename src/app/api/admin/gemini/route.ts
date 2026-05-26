@@ -116,7 +116,7 @@ export async function POST(req: Request) {
       // AGENT: COPYWRITER (KOLOROWANE WYRÓŻNIENIA I PUSTE ZDJĘCIA Z PODPOWIEDZIĄ)
       // =======================================================================
       case "generateSingleBlock":
-        systemInstruction = `Jesteś Elitarnym Copywriterem w branży turystyki premium, retreatów i campów. 
+        systemInstruction = `Jesteś Elitarnym Copywriterem w branży turystyki premium, retreatów i wyjazdów. 
         Piszesz niesamowicie angażująco (engaging), budząc emocje, zmysły i pragnienie ucieczki od codzienności.
         
         Kontekst całego wyjazdu: "${overallContext}"
@@ -428,9 +428,9 @@ export async function POST(req: Request) {
         ===== ZASADA #2: ZAWSZE KOTWICZYSZ SIĘ W TYTULE CAMPA =====
         W danych wyjazdu pole "Tytuł wyjazdu" to NIE jest formalność — to nazwa, którą organizator nadał temu konkretnemu wydarzeniu i ona NIESIE SENS (np. "Przełam swoje granice", "Powrót do siebie", "Mama też zasługuje").
         metaTitle i metaDescription MUSZĄ rezonować z tym tytułem — albo:
-          (a) używać tytułu campa dosłownie (po dwukropku / pauzie) np. "Przełam swoje granice — wyjazd dla kobiet w Górach Sowich 2024", lub
+          (a) używać tytułu wyjazdu dosłownie (po dwukropku / pauzie) np. "Przełam swoje granice — wyjazd dla kobiet w Górach Sowich 2024", lub
           (b) zachować jego ducha / metaforę / obietnicę emocjonalną (jeśli tytuł mówi o łamaniu granic, w meta MUSI być coś o odwadze / wyjściu ze strefy komfortu / mocy).
-        ZAKAZANE: zignorować tytuł i napisać meta jak dla generycznego wyjazdu typu "Luksusowy wyjazd w góry". Jeżeli zwrócisz meta, w której nie da się rozpoznać CHARAKTERU campa wynikającego z tytułu → zawiodłeś.
+        ZAKAZANE: zignorować tytuł i napisać meta jak dla generycznego wyjazdu typu "Luksusowy wyjazd w góry". Jeżeli zwrócisz meta, w której nie da się rozpoznać CHARAKTERU wyjazdu wynikającego z tytułu → zawiodłeś.
 
         ===== ZASADA #3: METADANE WYNIKAJĄ Z TREŚCI =====
         Otrzymujesz konkretne dane wyjazdu: tytuł, podtytuł, lokalizację, daty, tagi, opis I PEŁNĄ TREŚĆ BLOKÓW STRONY (sekcja "Treść bloków").
@@ -462,14 +462,14 @@ export async function POST(req: Request) {
         Przed zwróceniem JSON-a policz znaki w obu polach. Jeśli przekraczasz limit, SKRÓĆ.
 
         STRUKTURA WYJŚCIA:
-        - metaTitle: po polsku, zawiera nazwę konkretnej lokalizacji + polskojęzyczną tematykę z treści. Jeśli sam tytuł campa zawiera angielskie słowo (np. "Glamping"), DOPISZ obok polski odpowiednik (np. "Glamping (luksusowe namioty) w Górach Sowich") albo zastąp je polskim wariantem w meta.
+        - metaTitle: po polsku, zawiera nazwę konkretnej lokalizacji + polskojęzyczną tematykę z treści. Jeśli sam tytuł wyjazdu zawiera angielskie słowo (np. "Glamping"), DOPISZ obok polski odpowiednik (np. "Glamping (luksusowe namioty) w Górach Sowich") albo zastąp je polskim wariantem w meta.
         - metaDescription: po polsku, konkretna obietnica z treści + sezon/data + call-to-action. Zero angielskich słów chyba że to nazwa marki obok której jest polskie tłumaczenie.
         - focusKeyword: 100% polski długi ogon 4-7 słów (lokalizacja + tematyka + sezon).
 
         ===== CHECKLISTA AKCEPTACJI — ZANIM ZWRÓCISZ JSON, POTWIERDŹ KAŻDY PUNKT =====
         Audytor SEO sprawdzi twój output po tych regułach. Każde NIE = obniżenie scoringu (-15 critical / -7 warning) i odrzucenie wyjścia. Wykonaj samokontrolę:
 
-        1. [CRITICAL] Czy metaTitle zawiera tytuł campa (dosłownie lub z zachowanym duchem/metaforą)? Jeśli tytuł brzmi "Przełam swoje granice" — w metaTitle musi pojawić się "Przełam swoje granice" albo bliskoznaczna fraza ("Wyjdź ze strefy komfortu").
+        1. [CRITICAL] Czy metaTitle zawiera tytuł wyjazdu (dosłownie lub z zachowanym duchem/metaforą)? Jeśli tytuł brzmi "Przełam swoje granice" — w metaTitle musi pojawić się "Przełam swoje granice" albo bliskoznaczna fraza ("Wyjdź ze strefy komfortu").
         2. [CRITICAL] Czy focusKeyword ma 100% polskich słów? Sprawdź każde słowo. Jeśli jest "wellness", "glamping", "retreat", "slow", "mindfulness", "detox" itp. — NAPRAW.
         3. [CRITICAL] Czy w metaTitle pojawia się NAZWA KONKRETNEJ LOKALIZACJI z treści (miasto / pasmo / region)?
         4. [CRITICAL] Czy w metaDescription pojawia się NAZWA KONKRETNEJ LOKALIZACJI? Jeśli lokalizacja ma format "miasto — region", podaj OBA (np. "w Pawęzowie w Bieszczadach") — sama nazwa regionu to za mało dla SEO lokalnego.
@@ -512,10 +512,10 @@ export async function POST(req: Request) {
         C2. metaDescription istnieje i ma > 0 znaków.
         C3. focusKeyword istnieje i ma > 0 znaków.
         C4. ogImage = "ustawione".
-        C5. metaTitle zawiera co najmniej 1 słowo (≥3 znaki) z tytułu campa LUB synonim oddający jego sens.
+        C5. metaTitle zawiera co najmniej 1 słowo (≥3 znaki) z tytułu wyjazdu LUB synonim oddający jego sens.
         C6. focusKeyword NIE zawiera żadnego z tych słów: wellness, glamping, retreat, slow, mindfulness, detox, coaching, workout, empowerment, storytelling, lifestyle. (Sprawdzaj case-insensitive).
-        C7. metaTitle zawiera nazwę miasta/regionu/pasma górskiego z lokalizacji campa (lub jej rdzeń — "Jarnołówku" liczy się jako "Jarnołówek").
-        C8. metaDescription zawiera nazwę miasta/regionu/pasma górskiego z lokalizacji campa.
+        C7. metaTitle zawiera nazwę miasta/regionu/pasma górskiego z lokalizacji wyjazdu (lub jej rdzeń — "Jarnołówku" liczy się jako "Jarnołówek").
+        C8. metaDescription zawiera nazwę miasta/regionu/pasma górskiego z lokalizacji wyjazdu.
         C9. focusKeyword ma 4-7 słów. ALGORYTM LICZENIA (wykonaj DOSŁOWNIE):
             (a) usuń wiodące/końcowe spacje
             (b) split po jednym lub więcej znakach białych
@@ -531,7 +531,7 @@ export async function POST(req: Request) {
         W1. metaTitle ma 50-60 znaków włącznie. Jeśli < 50 lub > 60: FAIL.
         W2. metaDescription ma 130-155 znaków włącznie. Jeśli < 130 lub > 155: FAIL.
         W3. metaDescription zawiera jeden z konkretnych CTA: "Zarezerwuj", "Sprawdź", "Dołącz", "Zapisz", "Zgłoś", "Odbierz". Case-insensitive, dowolna odmiana.
-        W4. Jeśli camp ma startDate — metaDescription zawiera nazwę miesiąca lub rok.
+        W4. Jeśli trip ma startDate — metaDescription zawiera nazwę miesiąca lub rok.
 
         [INFO — każdy FAIL: -2 score, +1 rekomendacja]
         I1. metaTitle ma element emocjonalny/intrygujący (czasownik akcji, obietnica, dwukropek z tematem) — nie sama lista faktów.
@@ -545,7 +545,7 @@ export async function POST(req: Request) {
           C2: "Brak metaDescription"
           C3: "Brak focusKeyword"
           C4: "Brak OG Image"
-          C5: "metaTitle nie nawiązuje do tytułu campa"
+          C5: "metaTitle nie nawiązuje do tytułu wyjazdu"
           C6: "Angielskie słowo w focusKeyword"
           C7: "Brak lokalizacji w metaTitle"
           C8: "Brak lokalizacji w metaDescription"
@@ -562,7 +562,7 @@ export async function POST(req: Request) {
         - "Optymalna długość metaTitle i metaDescription" (jeśli W1+W2 PASS)
         - "Lokalizacja obecna w obu polach SEO" (jeśli C7+C8 PASS)
         - "Wyraźny call-to-action w opisie" (jeśli W3 PASS)
-        - "Tytuł campa wybrzmiewa w meta tytule" (jeśli C5 PASS)
+        - "Tytuł wyjazdu wybrzmiewa w meta tytule" (jeśli C5 PASS)
         - "focusKeyword w 100% po polsku" (jeśli C6 PASS)
         - "focusKeyword to dobrze stargetowany długi ogon" (jeśli C9 PASS)
         Jeśli mniej niż 2 PASS-y kwalifikują się — zwróć ile się da.
@@ -595,24 +595,24 @@ export async function POST(req: Request) {
         systemInstruction = `Jesteś SEO redaktorem POPRAWIAJĄCYM istniejące pola SEO. NIE generujesz od zera — TYLKO INKREMENTALNIE poprawiasz to co dostajesz, dotykając WYŁĄCZNIE pól wymienionych w rekomendacjach.
 
         Otrzymasz:
-        - dane campa (tytuł, lokalizacja, daty, opis, bloki treści)
+        - dane wyjazdu (tytuł, lokalizacja, daty, opis, bloki treści)
         - AKTUALNE pola SEO (metaTitle, metaDescription, focusKeyword, ogImage)
         - listę rekomendacji do naprawy (kody C1-I2, title, hint)
 
         ===== ŻELAZNE ZASADY (NIE WOLNO ZŁAMAĆ) =====
         1. KAŻDE pole którego rekomendacje NIE DOTYCZĄ — ZWRACASZ NIETKNIĘTE, znak w znak. Jeśli żadna rekomendacja nie dotyczy focusKeyword — zwracasz go IDENTYCZNIE jak dostałeś. Bez przetłumaczeń, bez "polerowania".
-        2. Pole którego rekomendacje DOTYCZĄ — zmieniasz MINIMALNIE: napraw konkretny problem opisany w rekomendacji i ANI SŁOWA WIĘCEJ. Zachowaj wszystkie nazwy własne (miasto, region, miesiąc, rok, tytuł campa) z aktualnej wersji.
+        2. Pole którego rekomendacje DOTYCZĄ — zmieniasz MINIMALNIE: napraw konkretny problem opisany w rekomendacji i ANI SŁOWA WIĘCEJ. Zachowaj wszystkie nazwy własne (miasto, region, miesiąc, rok, tytuł wyjazdu) z aktualnej wersji.
         3. NIE wolno wprowadzić nowych braków. Np. jeśli aktualny metaTitle ma lokalizację "Góry Sowie" — naprawiony też MUSI mieć "Góry Sowie". Jeśli aktualny focusKeyword ma "czerwiec 2024" — naprawiony też MUSI mieć "czerwiec 2024".
         4. POLICZ słowa focusKeyword PRZED ZWROTEM: split po spacjach, KAŻDE niepuste słowo liczy się jako 1 (włącznie z "w", "i", "z"). Wynik MUSI być 4-7. "wyjątkowy wyjazd w górach czerwiec" = 5 słów ✓.
         5. POLICZ znaki: metaTitle 50-60, metaDescription 130-155.
 
         ===== ROZSZYFROWANIE KODÓW REKOMENDACJI =====
         Każda rekomendacja ma kod (C1-I2). Reaguj DOKŁADNIE na ten kod:
-        - C1: dopisz metaTitle (50-60 znaków z lokalizacją i tematem campa)
+        - C1: dopisz metaTitle (50-60 znaków z lokalizacją i tematem wyjazdu)
         - C2: dopisz metaDescription (130-155 znaków z lokalizacją + CTA + datą)
         - C3: dopisz focusKeyword (4-7 polskich słów: lokalizacja + tematyka + sezon)
         - C4: zostaw ogImage jak jest (to nie tutaj naprawiamy)
-        - C5: w metaTitle dopisz odniesienie do tytułu campa
+        - C5: w metaTitle dopisz odniesienie do tytułu wyjazdu
         - C6: usuń angielskie słowo z focusKeyword, zastąp polskim odpowiednikiem
         - C7: dopisz nazwę lokalizacji do metaTitle (z zachowaniem 50-60 znaków)
         - C8: dopisz nazwę lokalizacji do metaDescription

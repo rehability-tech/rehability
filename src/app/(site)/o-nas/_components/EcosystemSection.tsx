@@ -28,7 +28,7 @@ const ECOSYSTEM_CARDS = [
   {
     id: "campy",
     icon: Mountains,
-    title: "Campy Wellness",
+    title: "Wyjazdy Wellness",
     description:
       "Ekskluzywne wyjazdy holistyczne. Całkowity reset dla ciała i umysłu z dala od miasta, łączący mądry ruch z głębokim relaksem.",
   },

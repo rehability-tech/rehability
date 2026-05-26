@@ -33,8 +33,8 @@ const mockSearchData = [
   },
   {
     id: "4",
-    title: "Lista aktywnych Campów",
-    href: "/admin/campy",
+    title: "Lista aktywnych Wyjazdów",
+    href: "/admin/wyjazdy",
     icon: Tent,
   },
 ];

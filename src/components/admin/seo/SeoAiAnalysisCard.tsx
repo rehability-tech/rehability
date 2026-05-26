@@ -24,7 +24,7 @@ interface Props {
   onRefresh: () => void;
   onFix: () => void;
   isFixing: boolean;
-  // Treść loading state — "wyjazdu" dla campów, "artykułu" dla bloga.
+  // Treść loading state — "wyjazdu" dla wyjazdów, "artykułu" dla bloga.
   contentLabel?: string;
 }
 

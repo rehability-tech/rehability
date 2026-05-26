@@ -28,7 +28,11 @@ export async function generateWeeklySchedule(): Promise<{ weekStart: Date; creat
   const weekStart = getNextMonday();
 
   // Idempotency: skip if plan for this week already exists
-  const existing = await prisma.blogScheduleEntry.count({ where: { weekStart } });
+  const weekEndExclusive = new Date(weekStart);
+  weekEndExclusive.setDate(weekStart.getDate() + 7);
+  const existing = await prisma.blogScheduleEntry.count({
+    where: { scheduledDate: { gte: weekStart, lt: weekEndExclusive } },
+  });
   if (existing > 0) {
     return { weekStart, created: 0 };
   }
@@ -62,7 +66,7 @@ Zwróć tablicę JSON (bez żadnych nagłówków, tylko surowy JSON):
 
   await prisma.blogScheduleEntry.createMany({
     data: posts.map((p) => ({
-      weekStart,
+      scheduledDate: weekStart,
       title: p.title,
       topic: p.topic,
       category: p.category,

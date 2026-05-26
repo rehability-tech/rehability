@@ -61,7 +61,7 @@ const HeaderBlock = () => (
       Nowoczesna <span className="text-brand-primary">fizjoterapia</span> w
       Prudniku.
     </h1>
-    <Button showArrow href="/campy">
+    <Button showArrow href="/wyjazdy">
       Zobacz terminy
     </Button>
   </motion.div>
@@ -137,7 +137,7 @@ const CampyBlock = () => (
     <div className="mask-shape-2 w-full aspect-square relative bg-gray-100">
       <Image
         src="/images/hero/campy_hero.jpg"
-        alt="Campy i wyjazdy"
+        alt="Wyjazdy i wyjazdy"
         fill
         loading="eager"
         sizes="(max-width: 1024px) 45vw, 25vw"

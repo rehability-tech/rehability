@@ -1,4 +1,4 @@
-// Wspólne utility SEO używane na stronach SEO campów I bloga. Dwa miejsca
+// Wspólne utility SEO używane na stronach SEO wyjazdów I bloga. Dwa miejsca
 // dzielą tę samą logikę dopasowania słów kluczowych, scoringu i typów rekomendacji,
 // żeby nie rozjeżdżały się reguły.
 

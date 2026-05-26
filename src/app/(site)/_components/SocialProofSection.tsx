@@ -136,9 +136,9 @@ export function SocialProofSection() {
               <p className="typography-paragraph text-brand-secondary/80 mt-6 mb-8 max-w-[450px]">
                 Niezależnie czy preferujesz naukę we własnym tempie na
                 platformie VOD, czy intensywny trening na żywo podczas naszych
-                Campów – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
+                Wyjazdów – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
               </p>
-              {/* Strefa edukacji = VOD + Campy. Brak /platforma-vod —
+              {/* Strefa edukacji = VOD + Wyjazdy. Brak /platforma-vod —
                   placeholder /w-budowie do czasu uruchomienia. */}
               <Button showArrow variant="primary" href="/w-budowie">
                 Poznaj strefę edukacji
@@ -240,7 +240,7 @@ export function SocialProofSection() {
             </h2>
             <p className="typography-paragraph text-brand-secondary/80 mt-6 mb-8 max-w-[450px]">
               Niezależnie czy preferujesz naukę we własnym tempie na platformie
-              VOD, czy intensywny trening na żywo podczas naszych Campów –
+              VOD, czy intensywny trening na żywo podczas naszych Wyjazdów –
               przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
             </p>
             <Button showArrow variant="primary" href="/w-budowie">

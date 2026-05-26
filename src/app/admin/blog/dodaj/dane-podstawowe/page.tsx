@@ -9,8 +9,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
-import { FormInput, FormTextarea } from "@/app/admin/campy/dodaj/_components/FormFields";
-import AiGeneratorModal from "@/app/admin/campy/dodaj/_components/AiGeneratorModal";
+import { FormInput, FormTextarea } from "@/app/admin/wyjazdy/dodaj/_components/FormFields";
+import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
 import NeonAiPanel, {
   type NeonStep,
   type StepStatus,

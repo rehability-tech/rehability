@@ -14,18 +14,28 @@ import {
   ArrowLeft,
   Layout,
 } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+
+type NavItem = {
+  key: string;
+  label: string;
+  icon: Icon;
+  href?: string;
+  exact?: boolean;
+  action?: "back";
+};
 
 // 1. Główne opcje nawigacji
 const mainItems = [
   { key: "dashboard", href: "/admin", label: "Start", icon: SquaresFour },
-  { key: "campy", href: "/admin/campy", label: "Campy", icon: Tent },
+  { key: "campy", href: "/admin/wyjazdy", label: "Wyjazdy", icon: Tent },
   { key: "blog", href: "/admin/blog", label: "Blog", icon: Article },
   { key: "vod", href: "/admin/vod", label: "VOD", icon: MonitorPlay },
 ];
 
 // Opcja "Wstecz", stała
-const backButton = {
+const backButton: NavItem = {
   key: "sub-back",
   action: "back",
   label: "Wróć",
@@ -36,37 +46,37 @@ export default function AdminMobileNavBar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Sprawdzamy czy jesteśmy w jakiejś zakładce /admin/campy
-  const isCampyMode = pathname?.startsWith("/admin/campy");
+  // Sprawdzamy czy jesteśmy w jakiejś zakładce /admin/wyjazdy
+  const isCampyMode = pathname?.startsWith("/admin/wyjazdy");
 
-  // Magia: wyciągamy ID (lub slug) campu z obecnego URLa!
-  // Pasuje do wzorca np. /admin/campy/clr9k0b4s0000.../cokolwiek
-  const campIdMatch = pathname?.match(/\/admin\/campy\/([a-zA-Z0-9_-]+)/);
+  // Magia: wyciągamy ID (lub slug) wyjazdu z obecnego URLa!
+  // Pasuje do wzorca np. /admin/wyjazdy/clr9k0b4s0000.../cokolwiek
+  const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
   const currentCampId = campIdMatch ? campIdMatch[1] : null;
 
-  // 2. Dynamiczne sub-menu zależne od tego, w jakim campie jesteśmy
-  const subItems = useMemo(() => {
-    // Jeśli nie jesteśmy wewnątrz konkretnego campu (np. na liście wszystkich campów)
+  // 2. Dynamiczne sub-menu zależne od tego, w jakim wyjeździe jesteśmy
+  const subItems = useMemo<NavItem[]>(() => {
+    // Jeśli nie jesteśmy wewnątrz konkretnego wyjazdu (np. na liście wszystkich wyjazdów)
     // nie chcemy w ogóle pokazywać paska z sub-menu
     if (!currentCampId) return [];
 
     return [
       {
         key: "sub-hub",
-        href: `/admin/campy/${currentCampId}`,
+        href: `/admin/wyjazdy/${currentCampId}`,
         label: "Pulpit",
         icon: Layout,
         exact: true, // Wymaga dokładnego matchu, by nie podświetlać się wszędzie
       },
       {
         key: "sub-users",
-        href: `/admin/campy/${currentCampId}/uczestnicy`, // Przykładowa dynamiczna ścieżka
+        href: `/admin/wyjazdy/${currentCampId}/uczestnicy`, // Przykładowa dynamiczna ścieżka
         label: "Ludzie",
         icon: Users,
       },
       {
         key: "sub-stats",
-        href: `/admin/campy/${currentCampId}/finanse`,
+        href: `/admin/wyjazdy/${currentCampId}/finanse`,
         label: "Finanse",
         icon: ChartBar,
       },
@@ -100,7 +110,7 @@ export default function AdminMobileNavBar() {
                 ? pathname === "/admin"
                 : pathname?.startsWith(item.href);
 
-            // Całkowicie ukrywamy inne przyciski jeśli jesteśmy WEWNĄTRZ konkretnego campu
+            // Całkowicie ukrywamy inne przyciski jeśli jesteśmy WEWNĄTRZ konkretnego wyjazdu
             const isHidden = !!currentCampId && !isCampyPill;
             const isCampyDisabled = !!currentCampId && isCampyPill;
 
@@ -162,11 +172,11 @@ export default function AdminMobileNavBar() {
             let isActive = false;
             if (item.href) {
               isActive = item.exact
-                ? pathname === item.href // np. Pulpit (/admin/campy/[id]) musi pasować w 100%
-                : pathname?.startsWith(item.href); // np. Ludzie (/admin/campy/[id]/uczestnicy)
+                ? pathname === item.href // np. Pulpit (/admin/wyjazdy/[id]) musi pasować w 100%
+                : pathname?.startsWith(item.href); // np. Ludzie (/admin/wyjazdy/[id]/uczestnicy)
             }
 
-            const isVisible = !!currentCampId; // Pokaż submenu tylko jeśli jesteśmy wewnątrz campu
+            const isVisible = !!currentCampId; // Pokaż submenu tylko jeśli jesteśmy wewnątrz wyjazdu
             const isBackButton = item.action === "back";
 
             return (
@@ -184,7 +194,7 @@ export default function AdminMobileNavBar() {
               >
                 {isBackButton ? (
                   <button
-                    onClick={() => router.push("/admin/campy")} // Bezpieczny powrót na główną listę campów
+                    onClick={() => router.push("/admin/wyjazdy")} // Bezpieczny powrót na główną listę wyjazdów
                     aria-label={item.label}
                     className={cn(
                       "relative flex items-center justify-center gap-2",

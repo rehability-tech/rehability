@@ -45,7 +45,7 @@ export default async function PanelLayout({
         </div>
         {/* TOPBAR */}
         <UserTopBar user={user} /> {/* Poprawione */}
-        {/* DYNAMICZNY CONTENT (Hub, Campy, VOD) */}
+        {/* DYNAMICZNY CONTENT (Hub, Wyjazdy, VOD) */}
         <main className="flex-1 pb-28 lg:pb-12 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-6 lg:pt-8">
           {children}
         </main>

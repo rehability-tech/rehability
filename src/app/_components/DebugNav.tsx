@@ -19,18 +19,18 @@ const DEBUG_ROUTES = [
     ],
   },
   {
-    group: "Campy (Frontend)",
+    group: "Wyjazdy (Frontend)",
     routes: [
-      { name: "Campy (Lista)", path: "/campy" },
-      { name: "Camp (Przykładowy)", path: "/campy/miedzy-nami-kobietami" },
+      { name: "Wyjazdy (Lista)", path: "/wyjazdy" },
+      { name: "Wyjazd (Przykładowy)", path: "/wyjazdy/miedzy-nami-kobietami" },
     ],
   },
   {
     group: "Panel Admina",
     routes: [
       { name: "Dashboard", path: "/admin" },
-      { name: "Dodaj nowego Campa", path: "/admin/campy/dodaj" },
-      { name: "Lista Campów (Edycja)", path: "/admin/campy" },
+      { name: "Dodaj nowego Wyjazdu", path: "/admin/wyjazdy/dodaj" },
+      { name: "Lista Wyjazdów (Edycja)", path: "/admin/wyjazdy" },
     ],
   },
 ];

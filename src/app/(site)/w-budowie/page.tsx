@@ -1,13 +1,16 @@
 import React from "react";
 import Link from "next/link";
 import { Wrench } from "@phosphor-icons/react/dist/ssr";
+import { getServerSession } from "next-auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { authOptions } from "@/lib/auth/auth";
 
-export default function UnderConstructionPage() {
+export default async function UnderConstructionPage() {
+  const session = await getServerSession(authOptions);
   return (
     <main className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center ">
-      <Navbar />
+      <Navbar session={session} />
       <div className="w-24 h-24 bg-[#ECF6F6] rounded-full flex items-center justify-center mb-8 shadow-sm mt-24">
         <Wrench size={48} weight="duotone" className="text-[#287D88]" />
       </div>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
 import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 
-import HubCampWidget from "./_components/HubCampWidget";
+import HubTripsWidget from "./_components/HubTripsWidget";
 import HubVodWidget from "./_components/HubVodWidget";
 import HubRecentUpdates from "./_components/HubRecentUpdates"; // <--- Nasz nowy komponent
 
@@ -49,14 +49,14 @@ export default async function PanelHubPage() {
 
       {/* SIATKA GŁÓWNYCH WIDŻETÓW */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Moduł 1: Campy (Pobiera dane samodzielnie na kliencie!) */}
+        {/* Moduł 1: Wyjazdy (Pobiera dane samodzielnie na kliencie!) */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary">
-              Strefa Campów
+              Strefa Wyjazdów
             </h2>
           </div>
-          <HubCampWidget />
+          <HubTripsWidget />
         </div>
 
         {/* Moduł 2: VOD */}

@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 
 export interface CreateCheckoutInput {
-  campId: string;
+  tripId: string;
   name: string;
   email: string;
   phone: string;
@@ -37,7 +37,7 @@ function getAppUrl(): string {
 }
 
 function validate(input: CreateCheckoutInput): string | null {
-  if (!input.campId) return "Brak identyfikatora wyjazdu.";
+  if (!input.tripId) return "Brak identyfikatora wyjazdu.";
   if (!input.name || input.name.trim().length < 3)
     return "Podaj imię i nazwisko.";
   if (!input.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email))
@@ -54,8 +54,8 @@ export async function createCheckoutSession(
   if (validationError) return { ok: false, error: validationError };
 
   try {
-    const camp = await prisma.camp.findUnique({
-      where: { id: input.campId, status: "PUBLISHED" },
+    const trip = await prisma.trip.findUnique({
+      where: { id: input.tripId, status: "PUBLISHED" },
       select: {
         id: true,
         title: true,
@@ -67,20 +67,20 @@ export async function createCheckoutSession(
       },
     });
 
-    if (!camp) {
+    if (!trip) {
       return {
         ok: false,
         error: "Ten wyjazd nie jest już dostępny do rezerwacji.",
       };
     }
 
-    if (camp._count.bookings >= camp.capacity) {
+    if (trip._count.bookings >= trip.capacity) {
       return { ok: false, error: "Brak wolnych miejsc na ten wyjazd." };
     }
 
-    const totalPln = camp.price ? Number(camp.price) : 0;
-    const depositPln = camp.deposit
-      ? Number(camp.deposit)
+    const totalPln = trip.price ? Number(trip.price) : 0;
+    const depositPln = trip.deposit
+      ? Number(trip.deposit)
       : DEFAULT_DEPOSIT_PLN;
 
     const amountTotal = Math.round(totalPln * 100);
@@ -88,7 +88,7 @@ export async function createCheckoutSession(
 
     const booking = await prisma.booking.create({
       data: {
-        campId: camp.id,
+        tripId: trip.id,
         name: input.name.trim(),
         email: input.email.trim().toLowerCase(),
         phone: input.phone.trim(),
@@ -113,28 +113,28 @@ export async function createCheckoutSession(
             currency: "pln",
             unit_amount: amountPaid,
             product_data: {
-              name: `Zadatek · ${camp.title}`,
-              description: `Rezerwacja miejsca na wyjeździe „${camp.title}". Zadatek bezzwrotny.`,
-              images: camp.heroImage ? [camp.heroImage] : undefined,
-              metadata: { campId: camp.id },
+              name: `Zadatek · ${trip.title}`,
+              description: `Rezerwacja miejsca na wyjeździe „${trip.title}". Zadatek bezzwrotny.`,
+              images: trip.heroImage ? [trip.heroImage] : undefined,
+              metadata: { tripId: trip.id },
             },
           },
         },
       ],
       metadata: {
         bookingId: booking.id,
-        campId: camp.id,
+        tripId: trip.id,
         kind: "CAMP_DEPOSIT",
       },
       payment_intent_data: {
         metadata: {
           bookingId: booking.id,
-          campId: camp.id,
+          tripId: trip.id,
           kind: "CAMP_DEPOSIT",
         },
       },
-      success_url: `${appUrl}/campy/sukces?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/campy/${camp.id}?canceled=1`,
+      success_url: `${appUrl}/wyjazdy/sukces?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/wyjazdy/${trip.id}?canceled=1`,
       locale: "pl",
     });
 

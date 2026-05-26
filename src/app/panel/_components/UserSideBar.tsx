@@ -25,7 +25,7 @@ const MENU_SECTIONS = [
   {
     title: "Strefa Wyjazdów",
     items: [
-      { key: "campy", href: "/panel/campy", label: "Moje Campy", icon: Tent },
+      { key: "campy", href: "/panel/wyjazdy", label: "Moje Wyjazdy", icon: Tent },
       {
         key: "karta",
         href: "/panel/karta-zdrowia",

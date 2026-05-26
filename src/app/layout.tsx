@@ -86,7 +86,7 @@ export default function RootLayout({
   return (
     <html lang="pl" className={`${fontHeading.variable} ${fontBody.variable}`}>
       <head>
-        {/* Preconnect do CDN ze zdjęciami campów – usuwa ~150ms TLS handshake przy pierwszym <img>. */}
+        {/* Preconnect do CDN ze zdjęciami wyjazdów – usuwa ~150ms TLS handshake przy pierwszym <img>. */}
         <link
           rel="preconnect"
           href="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com"

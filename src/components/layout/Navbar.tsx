@@ -14,14 +14,14 @@ import {
   SquaresFour,
   User as UserIcon,
   MonitorPlay, // Nowa ikona dla VOD
-  Tent, // Nowa ikona dla Campów (lub użyj MapTrifold/CalendarBlank)
+  Tent, // Nowa ikona dla Wyjazdów (lub użyj MapTrifold/CalendarBlank)
 } from "@phosphor-icons/react/dist/ssr";
 
 const NAV_LINKS = [
   { label: "Start", href: "/" },
   { label: "O nas", href: "/o-nas" },
   { label: "Gabinet", href: "/gabinet" },
-  { label: "Campy", href: "/campy" },
+  { label: "Wyjazdy", href: "/wyjazdy" },
   { label: "Blog", href: "/blog" },
 ];
 
@@ -100,8 +100,8 @@ export function Navbar({ session }: NavbarProps) {
   const currentPathname = path.split("/");
   const isGabinetRoute =
     path === "/gabinet" ||
-    path === "/campy" ||
-    path === `/campy/${currentPathname[2]}`;
+    path === "/wyjazdy" ||
+    path === `/wyjazdy/${currentPathname[2]}`;
 
   // Ustalanie uprawnień i linków na podstawie roli
   const isAdmin = (session?.user as any)?.role === "ADMIN";
@@ -253,16 +253,16 @@ export function Navbar({ session }: NavbarProps) {
                       </Link>
                     </motion.div>
 
-                    {/* Campy */}
+                    {/* Wyjazdy */}
                     <motion.div variants={itemVariants}>
                       <Link
-                        // Jeśli admin -> /admin/campy, w przeciwnym razie -> /moje-campy
-                        href={isAdmin ? "/admin/campy" : "/moje-campy"}
+                        // Jeśli admin -> /admin/wyjazdy, w przeciwnym razie -> /moje-campy
+                        href={isAdmin ? "/admin/wyjazdy" : "/moje-campy"}
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
                       >
                         <Tent size={18} />
-                        {isAdmin ? "Campy" : "Moje Campy"}
+                        {isAdmin ? "Wyjazdy" : "Moje Wyjazdy"}
                       </Link>
                     </motion.div>
 

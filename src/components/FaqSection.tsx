@@ -31,7 +31,7 @@ const FAQ_DATA = [
   },
   {
     question:
-      "Dla kogo przeznaczone są Campy Wellness? Czy muszę być w świetnej formie fizycznej, żeby wziąć w nich udział?",
+      "Dla kogo przeznaczone są Wyjazdy Wellness? Czy muszę być w świetnej formie fizycznej, żeby wziąć w nich udział?",
     answer:
       "Nasze wyjazdy są dla każdego! Nie musisz być w szczytowej formie. Program jest dostosowany tak, aby zarówno osoby bardzo aktywne, jak i te, które dopiero zaczynają swoją drogę ze świadomym ruchem, czuły się bezpiecznie i komfortowo.",
   },

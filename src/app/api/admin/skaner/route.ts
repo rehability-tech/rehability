@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const booking = await prisma.booking.findUnique({
     where: { qrToken: parsed.data.qrToken },
     include: {
-      camp: { select: { title: true, startDate: true, endDate: true } },
+      trip: { select: { title: true, startDate: true, endDate: true } },
       user: {
         include: {
           healthProfile: true,
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       isCheckedIn: true,
       checkedInAt: booking.checkedInAt?.toISOString() ?? new Date().toISOString(),
     },
-    camp: booking.camp,
+    trip: booking.trip,
     healthProfile: booking.user?.healthProfile ?? null,
   });
 }

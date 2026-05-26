@@ -14,8 +14,8 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const services = await prisma.campService.findMany({
-    where: { campId },
+  const services = await prisma.tripService.findMany({
+    where: { tripId: campId },
     include: {
       slots: {
         where: { isActive: true },

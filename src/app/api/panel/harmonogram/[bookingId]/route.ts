@@ -16,7 +16,7 @@ export async function GET(
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { userId: true, email: true, campId: true },
+    select: { userId: true, email: true, tripId: true },
   });
 
   if (!booking) {
@@ -32,8 +32,8 @@ export async function GET(
   }
 
   const [campEvents, serviceOrders] = await Promise.all([
-    prisma.campEvent.findMany({
-      where: { campId: booking.campId, isPublished: true },
+    prisma.tripEvent.findMany({
+      where: { tripId: booking.tripId, isPublished: true },
       orderBy: [{ startTime: "asc" }, { sortOrder: "asc" }],
     }),
     prisma.serviceOrder.findMany({

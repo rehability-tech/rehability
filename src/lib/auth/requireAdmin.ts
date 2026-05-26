@@ -8,7 +8,7 @@ export async function requireAdmin() {
   // Sprawdzamy czy w ogóle jest sesja i czy rola to ADMIN
   if (!session || session.user?.role !== "ADMIN") {
     return {
-      isAuthorized: false,
+      isAuthorized: false as const,
       // Gotowa odpowiedź 403 (Forbidden), którą od razu wyrzucisz z API
       response: NextResponse.json(
         { error: "Brak dostępu. Wymagane uprawnienia administratora." },
@@ -20,7 +20,7 @@ export async function requireAdmin() {
 
   // Jeśli wszystko gra, zwracamy zielone światło i pełną sesję (np. żeby wyciągnąć ID admina)
   return {
-    isAuthorized: true,
+    isAuthorized: true as const,
     response: null,
     session: session,
   };

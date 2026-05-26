@@ -26,9 +26,9 @@ const PopularCourses = dynamic(() =>
     default: m.PopularCourses,
   })),
 );
-const UpcomingCamps = dynamic(() =>
-  import("./_components/UpcomingCamps").then((m) => ({
-    default: m.UpcomingCamps,
+const UpcomingTrips = dynamic(() =>
+  import("./_components/UpcomingTrips").then((m) => ({
+    default: m.UpcomingTrips,
   })),
 );
 const KnowledgeBase = dynamic(() =>
@@ -56,9 +56,9 @@ export const metadata = {
 
 export const revalidate = 600;
 
-async function getFeaturedCamp() {
+async function getFeaturedTrip() {
   try {
-    const campRaw = await prisma.camp.findFirst({
+    const campRaw = await prisma.trip.findFirst({
       where: { isFeatured: true, status: "PUBLISHED" },
       orderBy: { startDate: "asc" },
       select: {
@@ -86,7 +86,7 @@ async function getFeaturedCamp() {
 }
 
 export default async function HomePage() {
-  const featuredCamp = await getFeaturedCamp();
+  const featuredTrip = await getFeaturedTrip();
   const session = await getServerSession(authOptions); // <--- POBRANIE SESJI NA SERWERZE
 
   // Jeśli używasz specyficznej konfiguracji autoryzacji (authOptions),
@@ -102,7 +102,7 @@ export default async function HomePage() {
         <ServicesSection />
         <AppPresentation />
         <PopularCourses />
-        {featuredCamp && <UpcomingCamps featuredCamp={featuredCamp} />}
+        {featuredTrip && <UpcomingTrips featuredTrip={featuredTrip} />}
         <KnowledgeBase />
         <FAQSection />
         <ContactSection />

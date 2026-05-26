@@ -42,7 +42,7 @@ const getInitials = (name?: string | null) => {
 // ----------------------------------------------------------------------
 const mockSearchData = [
   { id: "1", title: "Mój Start", href: "/panel", icon: SquaresFour },
-  { id: "2", title: "Moje Campy", href: "/panel/campy", icon: Tent },
+  { id: "2", title: "Moje Wyjazdy", href: "/panel/wyjazdy", icon: Tent },
   { id: "3", title: "Platforma VOD", href: "/panel/vod", icon: MonitorPlay },
   { id: "4", title: "Mój Profil", href: "/panel/profil", icon: UserIcon },
 ];

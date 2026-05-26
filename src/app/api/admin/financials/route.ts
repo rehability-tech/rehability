@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       startDate = startOfYear(now); // Od 1 stycznia bieżącego roku
     }
 
-    // 2. Pobieramy opłacone rezerwacje na Campy z wybranego okresu
+    // 2. Pobieramy opłacone rezerwacje na Wyjazdy z wybranego okresu
     const bookings = await prisma.booking.findMany({
       where: {
         status: { in: ["DEPOSIT_PAID", "FULLY_PAID"] },

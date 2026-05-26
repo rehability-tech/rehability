@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Regulamin | Rehability",
   description:
-    "Regulamin świadczenia usług drogą elektroniczną przez platformę Rehability — kursy VOD, campy, gabinet.",
+    "Regulamin świadczenia usług drogą elektroniczną przez platformę Rehability — kursy VOD, wyjazdy, gabinet.",
 };
 
 export default async function RegulaminPage() {
@@ -59,7 +59,7 @@ export default async function RegulaminPage() {
                   panelu kursanta po opL�aceniu dostępu.
                 </li>
                 <li>
-                  <strong>Camp</strong> — stacjonarne wydarzenie zdrowotne
+                  <strong>Wyjazd</strong> — stacjonarne wydarzenie zdrowotne
                   organizowane przez UsL�ugodawcę.
                 </li>
               </ul>

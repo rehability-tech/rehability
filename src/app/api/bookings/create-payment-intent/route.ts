@@ -19,7 +19,7 @@ const FriendSchema = z.object({
 
 const BodySchema = z
   .object({
-    campId: z.string().min(1),
+    tripId: z.string().min(1),
     variant: z.enum(["standard", "duo"]),
     customer: z.object({
       firstName: z.string().trim().min(1, "Podaj imię."),
@@ -81,8 +81,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const camp = await prisma.camp.findUnique({
-    where: { id: data.campId },
+  const trip = await prisma.trip.findUnique({
+    where: { id: data.tripId },
     select: {
       id: true,
       title: true,
@@ -94,19 +94,19 @@ export async function POST(req: Request) {
     },
   });
 
-  if (!camp || camp.status !== "PUBLISHED") {
+  if (!trip || trip.status !== "PUBLISHED") {
     return NextResponse.json({ error: "Wyjazd jest niedostępny." }, { status: 404 });
   }
 
-  if (data.variant === "duo" && !camp.allowBringFriend) {
+  if (data.variant === "duo" && !trip.allowBringFriend) {
     return NextResponse.json(
       { error: "Ten wyjazd nie wspiera opcji 'zabierz przyjaciółkę'." },
       { status: 422 },
     );
   }
 
-  const depositGrosze = Math.round(Number(camp.deposit) * 100);
-  const totalGrosze = Math.round(Number(camp.price) * 100);
+  const depositGrosze = Math.round(Number(trip.deposit) * 100);
+  const totalGrosze = Math.round(Number(trip.price) * 100);
 
   if (depositGrosze <= 0) {
     return NextResponse.json(
@@ -117,12 +117,12 @@ export async function POST(req: Request) {
 
   const occupiedSeats = await prisma.booking.count({
     where: {
-      campId: camp.id,
+      tripId: trip.id,
       status: { in: ["PENDING", "DEPOSIT_PAID", "FULLY_PAID", "PENDING_INVITATION"] },
     },
   });
   const seatsNeeded = data.variant === "duo" ? 2 : 1;
-  if (occupiedSeats + seatsNeeded > camp.capacity) {
+  if (occupiedSeats + seatsNeeded > trip.capacity) {
     return NextResponse.json(
       { error: "Brak wolnych miejsc na ten wyjazd." },
       { status: 409 },
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
   const { bookerId } = await prisma.$transaction(async (tx) => {
     const booker = await tx.booking.create({
       data: {
-        campId: camp.id,
+        tripId: trip.id,
         userId: sessionUserId ?? null,
         name: fullName,
         email: sessionEmail,
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
 
       await tx.booking.create({
         data: {
-          campId: camp.id,
+          tripId: trip.id,
           name: friendName,
           email: data.friend.email,
           status: "PENDING_INVITATION",
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
       metadata: {
         bookingId: bookerId,
         paymentType: "deposit",
-        campId: camp.id,
+        tripId: trip.id,
       },
     });
   } catch (err) {

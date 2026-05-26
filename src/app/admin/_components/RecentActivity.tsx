@@ -262,7 +262,7 @@ export default function RecentActivity() {
                     {pillar === "ALL"
                       ? "Wszystko"
                       : pillar === "CAMP"
-                        ? "Tylko Campy"
+                        ? "Tylko Wyjazdy"
                         : pillar === "VOD"
                           ? "Platforma VOD"
                           : "Publikacje"}

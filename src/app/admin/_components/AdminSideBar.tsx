@@ -28,12 +28,12 @@ import { cn } from "@/lib/utils"; // Zakładam, że masz ten popularny helper
 export default function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const campId = searchParams.get("id");
+  const tripId = searchParams.get("id");
 
-  const isInsideCampContext = pathname.startsWith("/admin/campy");
-  const isCreatingCamp = pathname.startsWith("/admin/campy/dodaj");
+  const isInsideCampContext = pathname.startsWith("/admin/wyjazdy");
+  const isCreatingCamp = pathname.startsWith("/admin/wyjazdy/dodaj");
   const isManagingCamp =
-    isInsideCampContext && !isCreatingCamp && pathname !== "/admin/campy";
+    isInsideCampContext && !isCreatingCamp && pathname !== "/admin/wyjazdy";
 
   const isCreatingPost = pathname.startsWith("/admin/blog/dodaj");
 
@@ -61,45 +61,45 @@ export default function AdminSidebar() {
   const createCampSteps = [
     {
       name: "1. Dane podst.",
-      href: "/admin/campy/dodaj/dane-podstawowe",
+      href: "/admin/wyjazdy/dodaj/dane-podstawowe",
       icon: <ListNumbers size={16} />,
       requiresId: false,
     },
     {
       name: "2. Edytor treści",
-      href: "/admin/campy/dodaj/edytor-tresci",
+      href: "/admin/wyjazdy/dodaj/edytor-tresci",
       icon: <ImageIcon size={16} />,
       requiresId: true,
     },
     {
       name: "3. SEO",
-      href: "/admin/campy/dodaj/seo",
+      href: "/admin/wyjazdy/dodaj/seo",
       icon: <MagnifyingGlass size={16} />,
       requiresId: true,
     },
     {
       name: "4. Podsumowanie",
-      href: "/admin/campy/dodaj/podsumowanie",
+      href: "/admin/wyjazdy/dodaj/podsumowanie",
       icon: <Article size={16} />,
       requiresId: true,
     },
   ];
 
   const manageCampSteps = [
-    { name: "Ogólne", href: "/admin/campy/edycja", icon: <Info size={16} /> },
+    { name: "Ogólne", href: "/admin/wyjazdy/edycja", icon: <Info size={16} /> },
     {
       name: "Uczestniczki",
-      href: "/admin/campy/uczestniczki",
+      href: "/admin/wyjazdy/uczestniczki",
       icon: <UserList size={16} />,
     },
     {
       name: "Płatności",
-      href: "/admin/campy/platnosci",
+      href: "/admin/wyjazdy/platnosci",
       icon: <CreditCard size={16} />,
     },
     {
       name: "Live / QR",
-      href: "/admin/campy/live",
+      href: "/admin/wyjazdy/live",
       icon: <QrCode size={16} />,
     },
   ];
@@ -152,26 +152,26 @@ export default function AdminSidebar() {
             Zarządzanie
           </span>
 
-          <Link href="/admin/campy">
+          <Link href="/admin/wyjazdy">
             <div
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
-                pathname === "/admin/campy"
+                pathname === "/admin/wyjazdy"
                   ? "bg-brand-primary/10 text-brand-primary font-semibold"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
               )}
             >
               <Tent
                 size={20}
-                weight={pathname === "/admin/campy" ? "fill" : "duotone"}
+                weight={pathname === "/admin/wyjazdy" ? "fill" : "duotone"}
                 className={
-                  pathname === "/admin/campy"
+                  pathname === "/admin/wyjazdy"
                     ? "text-brand-primary"
                     : "text-gray-400 group-hover:text-gray-700"
                 }
               />
               <span className="font-montserrat text-[13px] font-medium tracking-wide">
-                Wszystkie Campy
+                Wszystkie Wyjazdy
               </span>
             </div>
           </Link>
@@ -185,9 +185,9 @@ export default function AdminSidebar() {
               <div className="flex flex-col relative">
                 {createCampSteps.map((step, idx) => {
                   const isSubActive = pathname === step.href;
-                  const isDisabled = step.requiresId && !campId;
-                  const targetHref = campId
-                    ? `${step.href}?id=${campId}`
+                  const isDisabled = step.requiresId && !tripId;
+                  const targetHref = tripId
+                    ? `${step.href}?id=${tripId}`
                     : step.href;
                   const isLast = idx === createCampSteps.length - 1;
 
@@ -254,13 +254,13 @@ export default function AdminSidebar() {
           {isManagingCamp && (
             <div className="mt-2 flex flex-col animate-in slide-in-from-top-2 duration-300 bg-brand-primary/5 rounded-2xl p-2 mx-1 border border-brand-primary/10">
               <span className="px-2 py-1.5 text-[10px] font-bold text-brand-primary uppercase tracking-wider mb-1">
-                Panel Campa
+                Panel Wyjazdu
               </span>
               <div className="flex flex-col gap-0.5">
                 {manageCampSteps.map((step) => {
                   const isSubActive = pathname.includes(step.href);
-                  const targetHref = campId
-                    ? `${step.href}?id=${campId}`
+                  const targetHref = tripId
+                    ? `${step.href}?id=${tripId}`
                     : step.href;
 
                   return (
@@ -368,9 +368,9 @@ export default function AdminSidebar() {
               <div className="flex flex-col relative">
                 {createPostSteps.map((step, idx) => {
                   const isSubActive = pathname === step.href;
-                  const isDisabled = step.requiresId && !campId;
-                  const targetHref = campId
-                    ? `${step.href}?id=${campId}`
+                  const isDisabled = step.requiresId && !tripId;
+                  const targetHref = tripId
+                    ? `${step.href}?id=${tripId}`
                     : step.href;
                   const isLast = idx === createPostSteps.length - 1;
 
