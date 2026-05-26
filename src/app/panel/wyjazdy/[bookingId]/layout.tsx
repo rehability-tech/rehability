@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
 import { Toaster } from "sonner";
 
-import OneSignalProvider from "@/components/notifications/OneSignalProvider";
 import NotificationPrompt from "@/components/notifications/NotificationPrompt";
 
 export default async function PanelLayout({
@@ -21,7 +20,6 @@ export default async function PanelLayout({
   return (
     // Zdejmujemy overflow-x-hidden stąd, przeniesiemy go głębiej, aby nie psuć pozycjonowania fixed (jeśli go używasz)
     <div className="relative min-h-screen font-montserrat flex flex-col">
-      <OneSignalProvider userId={session.user.id} />
       <NotificationPrompt />
 
       {/* 1. SIDEBAR DLA PC */}
