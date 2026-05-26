@@ -9,6 +9,7 @@ import UserTopBar from "./_components/UserTopBar";
 import UserSideBar from "./_components/UserSideBar";
 import OneSignalProvider from "@/components/notifications/OneSignalProvider";
 import NotificationPrompt from "@/components/notifications/NotificationPrompt";
+import PWAInstallPrompt from "./_components/PWAInstallPrompt";
 
 export default async function PanelLayout({
   children,
@@ -33,7 +34,7 @@ export default async function PanelLayout({
     <div className="relative min-h-screen font-montserrat flex flex-col lg:grid lg:grid-cols-[260px_1fr] bg-[#F7FAFB]">
       <OneSignalProvider userId={session.user.id} />
       <NotificationPrompt />
-      {/* 1. SIDEBAR DLA PC */}
+      <PWAInstallPrompt />
       <UserSideBar /> {/* Poprawione */}
       {/* 2. GŁÓWNA STREFA TREŚCI (Prawa strona) */}
       <div className="flex flex-col min-w-0 min-h-screen relative z-10">
