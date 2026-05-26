@@ -81,6 +81,8 @@ export default function OneSignalProvider({ userId }: Props) {
           await OneSignal.init({
             appId: APP_ID,
             allowLocalhostAsSecureOrigin: true,
+            serviceWorkerPath: "sw.js",
+            serviceWorkerParam: { scope: "/" },
           });
         });
       }}

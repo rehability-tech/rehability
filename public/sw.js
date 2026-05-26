@@ -18,3 +18,4 @@ self.addEventListener("fetch", (event) => {
   // Passthrough — nie chcemy interferować ze streamami Next.js (RSC, server actions).
   // Brak respondWith() = przeglądarka leci normalnie do sieci.
 });
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
