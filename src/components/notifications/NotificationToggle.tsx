@@ -9,14 +9,6 @@ interface Preferences {
   oneSignalPlayerId: string | null;
 }
 
-/**
- * Przełącznik powiadomień push do użycia w widokach ustawień
- * (zarówno /admin/ustawienia jak i /panel/.../ustawienia).
- *
- * - Włączenie → wywołuje OneSignal.requestPermission() (modal przeglądarki).
- * - Wyłączenie → OneSignal.User.PushSubscription.optOut().
- * - Synchronizacja stanu z DB odbywa się przez OneSignalProvider w layout (event 'change').
- */
 export default function NotificationToggle() {
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [pending, setPending] = useState(false);
@@ -25,7 +17,7 @@ export default function NotificationToggle() {
     fetch("/api/user/notification-preferences")
       .then((r) => r.json())
       .then((d) => setPrefs(d.preferences))
-      .catch(() => {});
+      .catch((err) => console.error("Failed to load preferences:", err));
   }, []);
 
   async function toggle() {
@@ -33,37 +25,64 @@ export default function NotificationToggle() {
     setPending(true);
 
     if (prefs.isNotificationEnabled) {
+      // WYŁĄCZANIE POWIADOMIEŃ
       withOneSignal(async (OneSignal) => {
         try {
           await OneSignal.User.PushSubscription.optOut();
+
+          // API call i state update wewnątrz try, po pomyślnym opt-out
+          await fetch("/api/user/notification-preferences", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isNotificationEnabled: false }),
+          });
+
+          setPrefs({ ...prefs, isNotificationEnabled: false });
         } catch (err) {
           console.error("[NotificationToggle] optOut failed:", err);
+        } finally {
+          setPending(false); // Zwalniamy blokadę przycisku na samym końcu
         }
       });
-      setPrefs({ ...prefs, isNotificationEnabled: false });
     } else {
+      // WŁĄCZANIE POWIADOMIEŃ
       withOneSignal(async (OneSignal) => {
         try {
           const sub = OneSignal.User.PushSubscription;
+
           if (sub.id) {
             await sub.optIn();
           } else {
             await OneSignal.Notifications.requestPermission();
           }
+
+          if (OneSignal.Notifications.permission) {
+            const playerId = OneSignal.User.PushSubscription.id;
+
+            if (playerId) {
+              await fetch("/api/user/notification-preferences", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  isNotificationEnabled: true,
+                  oneSignalPlayerId: playerId,
+                }),
+              });
+
+              setPrefs({
+                ...prefs,
+                isNotificationEnabled: true,
+                oneSignalPlayerId: playerId,
+              });
+            }
+          }
         } catch (err) {
           console.error("[NotificationToggle] enable failed:", err);
+        } finally {
+          setPending(false);
         }
       });
     }
-
-    // Daj OneSignalProvider chwilę na zsynchronizowanie z backendem,
-    // potem dociągnij realny stan.
-    setTimeout(async () => {
-      const res = await fetch("/api/user/notification-preferences");
-      const d = await res.json();
-      setPrefs(d.preferences);
-      setPending(false);
-    }, 800);
   }
 
   if (!prefs) {

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import Script from "next/script";
-import { withOneSignal } from "@/lib/notifications/onesignal";
+// POPRAWKA: Zmiana importu na naszą nową, bezpieczną funkcję
+import { getOneSignal } from "@/lib/notifications/onesignal";
 
 const APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
@@ -16,7 +17,7 @@ interface Props {
  * - Wpina się raz, na poziomie layoutu (admin oraz /panel).
  * - Po zalogowaniu wywołuje OneSignal.login(userId) — przypisuje urządzenie do konta.
  * - Słucha zmian subscription i przy każdym opt-in/opt-out aktualizuje
- *   user.oneSignalPlayerId + user.isNotificationEnabled w bazie.
+ * user.oneSignalPlayerId + user.isNotificationEnabled w bazie.
  */
 export default function OneSignalProvider({ userId }: Props) {
   const lastSyncedRef = useRef<{ id: string | null; opted: boolean } | null>(
@@ -26,7 +27,11 @@ export default function OneSignalProvider({ userId }: Props) {
   useEffect(() => {
     if (!APP_ID || !userId) return;
 
-    withOneSignal(async (OneSignal) => {
+    // POPRAWKA: Zamiana withOneSignal na asynchroniczne wywołanie getOneSignal
+    async function initAndSync() {
+      const OneSignal = await getOneSignal();
+      if (!OneSignal) return;
+
       try {
         await OneSignal.login(userId);
 
@@ -54,7 +59,9 @@ export default function OneSignalProvider({ userId }: Props) {
       } catch (err) {
         console.error("[OneSignal] init/login error:", err);
       }
-    });
+    }
+
+    initAndSync();
   }, [userId]);
 
   if (!APP_ID) return null;

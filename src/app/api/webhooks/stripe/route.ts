@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { sendNotificationToAdmins } from "@/lib/notifications/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,6 +91,7 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       name: true,
       userId: true,
       amountPaid: true,
+      trip: { select: { title: true } }, // Zaciągamy tytuł wyjazdu do powiadomienia
     },
   });
 
@@ -103,6 +105,9 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
   if (paymentType === "remainder" && booking.status === "FULLY_PAID") return;
 
   const paidNow = pi.amount_received ?? pi.amount ?? 0;
+  const formattedAmount = (paidNow / 100).toFixed(2);
+  const userName = booking.name || booking.email;
+
   const userId =
     booking.userId ?? (await linkOrCreateUser(booking.email, booking.name));
 
@@ -124,6 +129,17 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
         userId,
       },
     });
+
+    // Asynchroniczna wysyłka bez blokowania wykonania webhooka
+    sendNotificationToAdmins({
+      title: "🎉 Nowa wpłata: Zadatek",
+      message: `${userName} opłacił(a) zadatek (${formattedAmount} PLN) za wyjazd: ${booking.trip?.title}.`,
+      type: "PAYMENT",
+      link: `/admin/wyjazdy/${booking.id}`,
+    }).catch((err) =>
+      console.error("[stripe-webhook] Błąd wysyłki powiadomień:", err),
+    );
+
     return;
   }
 
@@ -137,6 +153,15 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       userId,
     },
   });
+
+  sendNotificationToAdmins({
+    title: "💰 Wpłata: Reszta kwoty",
+    message: `${userName} dopłacił(a) resztę (${formattedAmount} PLN) za wyjazd: ${booking.trip?.title}.`,
+    type: "PAYMENT",
+    link: `/admin/wyjazdy/${booking.id}`,
+  }).catch((err) =>
+    console.error("[stripe-webhook] Błąd wysyłki powiadomień:", err),
+  );
 }
 
 async function handlePaymentFailed(pi: Stripe.PaymentIntent) {

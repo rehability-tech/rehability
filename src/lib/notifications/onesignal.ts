@@ -41,8 +41,29 @@ export interface OneSignal {
   };
 }
 
-export async function withOneSignal(cb: (os: OneSignal) => void) {
-  if (typeof window === "undefined") return;
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(cb);
+// @/lib/notifications/onesignal.ts
+
+// ... Twoje interfejsy pozostają bez zmian ...
+
+// Usuń stare withOneSignal i wklej to:
+export async function getOneSignal(): Promise<OneSignal | null> {
+  if (typeof window === "undefined") return null;
+
+  // Jeśli już jest dostępny, od razu zwracamy
+  if (window.OneSignal) return window.OneSignal;
+
+  // Jeśli ładuje się z opóźnieniem (defer/async), sprawdzamy co 500ms (max 3 sekundy)
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts++;
+      if (window.OneSignal) {
+        clearInterval(timer);
+        resolve(window.OneSignal);
+      } else if (attempts >= 6) {
+        clearInterval(timer);
+        resolve(null); // Timeout po 3 sekundach
+      }
+    }, 500);
+  });
 }

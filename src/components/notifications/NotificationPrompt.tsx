@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BellRinging, X } from "@phosphor-icons/react/dist/ssr";
-import { withOneSignal } from "@/lib/notifications/onesignal";
+// Zmieniony import - korzystamy teraz z niezawodnego pobierania
+import { getOneSignal } from "@/lib/notifications/onesignal";
 
 // Po ilu dniach od ostatniego pytania możemy zapytać ponownie.
 const REMIND_AFTER_DAYS = 14;
@@ -21,15 +22,6 @@ interface Props {
   force?: boolean;
 }
 
-/**
- * Soft-prompt powiadomień. Renderuje się tylko jeśli:
- * - użytkownik nie ma jeszcze włączonych powiadomień,
- * - oraz minęło REMIND_AFTER_DAYS od ostatniego pytania,
- *   lub jest to pierwsze pytanie po FIRST_PROMPT_AFTER_DAYS.
- *
- * Kliknięcie "Włącz" otwiera natywne prompty OneSignal/przeglądarki.
- * "Może później" — odracza pytanie o REMIND_AFTER_DAYS dni.
- */
 export default function NotificationPrompt({ force = false }: Props) {
   const [visible, setVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +36,7 @@ export default function NotificationPrompt({ force = false }: Props) {
         const { preferences } = (await res.json()) as {
           preferences: Preferences | null;
         };
+
         if (!preferences) return;
         if (preferences.isNotificationEnabled) return;
         if (cancelled) return;
@@ -85,25 +78,59 @@ export default function NotificationPrompt({ force = false }: Props) {
 
   async function handleEnable() {
     setSubmitting(true);
-    await markPrompted();
-    withOneSignal(async (OneSignal) => {
-      try {
-        await OneSignal.Notifications.requestPermission();
-        // Synchronizacja playerId/isNotificationEnabled odbędzie się przez
-        // event listener w OneSignalProvider.
-      } catch (err) {
-        console.error("[NotificationPrompt] requestPermission failed:", err);
+
+    try {
+      // 1. Oznaczamy, że zapytaliśmy (niezależnie od wyniku)
+      await markPrompted();
+
+      // 2. Pobieramy instancję bezpiecznie (czekając w razie potrzeby)
+      const OneSignal = await getOneSignal();
+
+      if (!OneSignal) {
+        console.warn(
+          "[NotificationPrompt] OneSignal niedostępny. Prawdopodobnie AdBlock.",
+        );
+        return; // Zamykamy modal (w finally), bez rzucania błędów użytkownikowi
       }
-    });
-    setVisible(false);
-    setSubmitting(false);
+
+      // 3. Prosimy przeglądarkę o uprawnienia (Natywny Popup)
+      await OneSignal.Notifications.requestPermission();
+
+      // 4. Jeśli zgoda udzielona - rejestrujemy playerId w bazie
+      if (OneSignal.Notifications.permission) {
+        const playerId = OneSignal.User.PushSubscription.id;
+        if (playerId) {
+          await fetch("/api/user/notification-preferences", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              isNotificationEnabled: true,
+              oneSignalPlayerId: playerId,
+            }),
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[NotificationPrompt] handleEnable failed:", err);
+    } finally {
+      setVisible(false);
+      setSubmitting(false);
+    }
   }
 
   async function handleLater() {
     setSubmitting(true);
-    await markPrompted();
-    setVisible(false);
-    setSubmitting(false);
+    try {
+      await markPrompted();
+    } catch (err) {
+      console.error(
+        "[NotificationPrompt] handleLater markPrompted failed:",
+        err,
+      );
+    } finally {
+      setVisible(false);
+      setSubmitting(false);
+    }
   }
 
   return (

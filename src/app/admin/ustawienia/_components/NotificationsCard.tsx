@@ -8,7 +8,8 @@ import {
   CheckCircle,
   Warning,
 } from "@phosphor-icons/react/dist/ssr";
-import { withOneSignal } from "@/lib/notifications/onesignal";
+// Zmieniony import - tylko getOneSignal
+import { getOneSignal } from "@/lib/notifications/onesignal";
 
 type PermState = "unsupported" | "default" | "granted" | "denied";
 
@@ -20,26 +21,41 @@ function readPermission(): PermState {
 
 export default function NotificationsCard() {
   const [perm, setPerm] = useState<PermState>("default");
+  const [isOptedIn, setIsOptedIn] = useState(false);
   const [working, setWorking] = useState(false);
 
+  // 1. Zaktualizowany useEffect używający getOneSignal
   useEffect(() => {
     setPerm(readPermission());
-    withOneSignal((OneSignal) => {
-      OneSignal.User.PushSubscription.addEventListener("change", () => {
-        setPerm(readPermission());
-      });
-    });
+
+    async function initOneSignalState() {
+      const OneSignal = await getOneSignal();
+      if (OneSignal) {
+        setIsOptedIn(OneSignal.User.PushSubscription.optedIn);
+
+        OneSignal.User.PushSubscription.addEventListener("change", (e) => {
+          setPerm(readPermission());
+          setIsOptedIn(e.current.optedIn);
+        });
+      }
+    }
+
+    initOneSignalState();
   }, []);
+
+  const isActive = perm === "granted" && isOptedIn;
+  const isBlocked = perm === "denied";
+  const isUnsupported = perm === "unsupported";
 
   async function handleToggle() {
     if (working) return;
 
-    if (perm === "unsupported") {
+    if (isUnsupported) {
       toast.error("Twoja przeglądarka nie wspiera powiadomień push");
       return;
     }
 
-    if (perm === "denied") {
+    if (isBlocked) {
       toast.error(
         "Powiadomienia są zablokowane w przeglądarce — odblokuj je w ustawieniach strony (kłódka obok adresu).",
         { duration: 6000 },
@@ -48,35 +64,54 @@ export default function NotificationsCard() {
     }
 
     setWorking(true);
+
     try {
-      if (perm === "granted") {
-        // Opt-out: tylko OneSignal (uprawnienia przeglądarki zostają — to celowe)
-        await new Promise<void>((resolve) => {
-          withOneSignal(async (OneSignal) => {
-            try {
-              await OneSignal.User.PushSubscription.optOut();
-              toast.success("Powiadomienia wyłączone na tym urządzeniu");
-            } catch (err) {
-              console.error("[NotificationsCard] optOut:", err);
-            } finally {
-              resolve();
-            }
-          });
-          setTimeout(resolve, 1200);
+      // 2. Pobieramy instancję bezpiecznie przed samą akcją
+      const OneSignal = await getOneSignal();
+
+      if (!OneSignal) {
+        toast.error(
+          "Brak dostępu do OneSignal. Sprawdź, czy Twój AdBlocker (np. uBlock, Brave) nie blokuje skryptu, i odśwież stronę.",
+        );
+        return;
+      }
+
+      if (isActive) {
+        // WYŁĄCZANIE (Opt-out)
+        await OneSignal.User.PushSubscription.optOut();
+
+        await fetch("/api/user/notification-preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isNotificationEnabled: false }),
         });
+
+        setIsOptedIn(false);
+        toast.success("Powiadomienia wyłączone na tym urządzeniu");
       } else {
+        // WŁĄCZANIE (Opt-in)
         const result = await Notification.requestPermission();
         setPerm(result as PermState);
+
         if (result === "granted") {
+          const sub = OneSignal.User.PushSubscription;
+          if (!sub.optedIn) await sub.optIn();
+
+          const playerId = sub.id;
+
+          if (playerId) {
+            await fetch("/api/user/notification-preferences", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                isNotificationEnabled: true,
+                oneSignalPlayerId: playerId,
+              }),
+            });
+          }
+
+          setIsOptedIn(true);
           toast.success("Powiadomienia włączone");
-          withOneSignal(async (OneSignal) => {
-            try {
-              const sub = OneSignal.User.PushSubscription;
-              if (!sub.optedIn) await sub.optIn();
-            } catch (err) {
-              console.error("[NotificationsCard] optIn:", err);
-            }
-          });
         } else if (result === "denied") {
           toast.error("Odrzucono prośbę o powiadomienia");
         }
@@ -88,10 +123,6 @@ export default function NotificationsCard() {
       setWorking(false);
     }
   }
-
-  const isActive = perm === "granted";
-  const isBlocked = perm === "denied";
-  const isUnsupported = perm === "unsupported";
 
   return (
     <div
