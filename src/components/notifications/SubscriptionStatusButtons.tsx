@@ -9,7 +9,7 @@ import {
   DownloadSimple,
   Warning,
 } from "@phosphor-icons/react/dist/ssr";
-import { withOneSignal } from "@/lib/notifications/onesignal";
+import { getOneSignal } from "@/lib/notifications/onesignal";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -37,12 +37,16 @@ export default function SubscriptionStatusButtons() {
   useEffect(() => {
     setPerm(readPermission());
 
-    // OneSignal jeśli załadowany — słuchaj zmian subskrypcji (np. opt-out z innego miejsca)
-    withOneSignal((OneSignal) => {
-      OneSignal.User.PushSubscription.addEventListener("change", () => {
-        setPerm(readPermission());
-      });
-    });
+    async function initOneSignal() {
+      const OneSignal = await getOneSignal();
+      if (OneSignal) {
+        OneSignal.User.PushSubscription.addEventListener("change", () => {
+          setPerm(readPermission());
+        });
+      }
+    }
+
+    initOneSignal();
   }, []);
 
   // --- PWA install prompt ---
@@ -85,23 +89,38 @@ export default function SubscriptionStatusButtons() {
     }
 
     setWorking(true);
+
     try {
-      // Główna ścieżka — natywny prompt przeglądarki. Działa zawsze (HTTPS/localhost).
+      const OneSignal = await getOneSignal();
+      if (!OneSignal) {
+        toast.error(
+          "Brak dostępu do OneSignal. Sprawdź, czy nie używasz AdBlocka.",
+        );
+        return;
+      }
+
       const result = await Notification.requestPermission();
       setPerm(result as PermState);
 
       if (result === "granted") {
-        toast.success("Powiadomienia włączone");
+        const sub = OneSignal.User.PushSubscription;
+        if (!sub.optedIn) await sub.optIn();
 
-        // Best-effort: jeśli OneSignal jest skonfigurowany, dociągnij subskrypcję pushową
-        withOneSignal(async (OneSignal) => {
-          try {
-            const sub = OneSignal.User.PushSubscription;
-            if (!sub.optedIn) await sub.optIn();
-          } catch (err) {
-            console.error("[SubscriptionStatusButtons] OneSignal optIn:", err);
-          }
-        });
+        const playerId = sub.id;
+
+        if (playerId) {
+          // Zapisujemy wygenerowane ID do bazy
+          await fetch("/api/user/notification-preferences", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              isNotificationEnabled: true,
+              oneSignalPlayerId: playerId,
+            }),
+          });
+        }
+
+        toast.success("Powiadomienia włączone");
       } else if (result === "denied") {
         toast.error("Odrzucono prośbę o powiadomienia");
       }
@@ -114,7 +133,6 @@ export default function SubscriptionStatusButtons() {
   }
 
   async function handleInstall() {
-    // Ścieżka 1: natywny prompt (Chrome/Edge na desktop/Android, gdy beforeinstallprompt wystrzelił)
     if (installEvent) {
       await installEvent.prompt();
       const { outcome } = await installEvent.userChoice;
@@ -122,7 +140,6 @@ export default function SubscriptionStatusButtons() {
       return;
     }
 
-    // Ścieżka 2: iOS Safari — brak API, pokazujemy instrukcję
     if (isIOS) {
       toast.info(
         "Na iPhone: kliknij ikonę 'Udostępnij' (kwadrat ze strzałką) na dole ekranu, a potem 'Do ekranu początkowego'.",
@@ -131,7 +148,6 @@ export default function SubscriptionStatusButtons() {
       return;
     }
 
-    // Ścieżka 3: Desktop / Android bez wystrzelonego eventu — generyczna instrukcja
     toast.info(
       "Otwórz menu przeglądarki (⋮ w prawym górnym rogu) i wybierz 'Zainstaluj aplikację' lub 'Dodaj do ekranu głównego'.",
       { duration: 9000 },
@@ -142,7 +158,6 @@ export default function SubscriptionStatusButtons() {
 
   return (
     <div className="flex flex-col gap-3 mb-6">
-      {/* === STAN: AKTYWNE === */}
       {perm === "granted" && (
         <button
           disabled
@@ -162,7 +177,6 @@ export default function SubscriptionStatusButtons() {
         </button>
       )}
 
-      {/* === STAN: DEFAULT (mozna pytać) === */}
       {perm === "default" && (
         <button
           onClick={handleEnable}
@@ -188,7 +202,6 @@ export default function SubscriptionStatusButtons() {
         </button>
       )}
 
-      {/* === STAN: DENIED (zablokowane w przeglądarce) === */}
       {perm === "denied" && (
         <button
           onClick={handleEnable}
@@ -208,7 +221,6 @@ export default function SubscriptionStatusButtons() {
         </button>
       )}
 
-      {/* === STAN: UNSUPPORTED === */}
       {perm === "unsupported" && (
         <div className="flex-1 flex items-center gap-3 p-4 rounded-2xl bg-brand-secondary/5 border border-brand-secondary/10">
           <div className="w-11 h-11 rounded-xl bg-brand-secondary/10 text-brand-secondary/50 flex items-center justify-center shrink-0">
@@ -225,7 +237,6 @@ export default function SubscriptionStatusButtons() {
         </div>
       )}
 
-      {/* === PWA INSTALL — zawsze widoczny gdy app nie jest jeszcze zainstalowana === */}
       {showInstallButton && (
         <button
           onClick={handleInstall}

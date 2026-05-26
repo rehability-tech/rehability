@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { BellRinging, BellSlash } from "@phosphor-icons/react/dist/ssr";
-import { withOneSignal } from "@/lib/notifications/onesignal";
+import { getOneSignal } from "@/lib/notifications/onesignal";
 
 interface Preferences {
   isNotificationEnabled: boolean;
@@ -24,64 +25,65 @@ export default function NotificationToggle() {
     if (!prefs || pending) return;
     setPending(true);
 
-    if (prefs.isNotificationEnabled) {
-      // WYŁĄCZANIE POWIADOMIEŃ
-      withOneSignal(async (OneSignal) => {
-        try {
-          await OneSignal.User.PushSubscription.optOut();
+    try {
+      const OneSignal = await getOneSignal();
+      if (!OneSignal) {
+        toast.error(
+          "Brak dostępu do OneSignal. Sprawdź, czy nie używasz AdBlocka.",
+        );
+        return;
+      }
 
-          // API call i state update wewnątrz try, po pomyślnym opt-out
-          await fetch("/api/user/notification-preferences", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isNotificationEnabled: false }),
-          });
+      if (prefs.isNotificationEnabled) {
+        // WYŁĄCZANIE POWIADOMIEŃ
+        await OneSignal.User.PushSubscription.optOut();
 
-          setPrefs({ ...prefs, isNotificationEnabled: false });
-        } catch (err) {
-          console.error("[NotificationToggle] optOut failed:", err);
-        } finally {
-          setPending(false); // Zwalniamy blokadę przycisku na samym końcu
+        await fetch("/api/user/notification-preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isNotificationEnabled: false }),
+        });
+
+        setPrefs({ ...prefs, isNotificationEnabled: false });
+        toast.success("Powiadomienia zostały wyłączone");
+      } else {
+        // WŁĄCZANIE POWIADOMIEŃ
+        const sub = OneSignal.User.PushSubscription;
+
+        if (sub.id) {
+          await sub.optIn();
+        } else {
+          await OneSignal.Notifications.requestPermission();
         }
-      });
-    } else {
-      // WŁĄCZANIE POWIADOMIEŃ
-      withOneSignal(async (OneSignal) => {
-        try {
-          const sub = OneSignal.User.PushSubscription;
 
-          if (sub.id) {
-            await sub.optIn();
-          } else {
-            await OneSignal.Notifications.requestPermission();
-          }
+        if (OneSignal.Notifications.permission) {
+          const playerId = OneSignal.User.PushSubscription.id;
 
-          if (OneSignal.Notifications.permission) {
-            const playerId = OneSignal.User.PushSubscription.id;
-
-            if (playerId) {
-              await fetch("/api/user/notification-preferences", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  isNotificationEnabled: true,
-                  oneSignalPlayerId: playerId,
-                }),
-              });
-
-              setPrefs({
-                ...prefs,
+          if (playerId) {
+            await fetch("/api/user/notification-preferences", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
                 isNotificationEnabled: true,
                 oneSignalPlayerId: playerId,
-              });
-            }
+              }),
+            });
+
+            setPrefs({
+              ...prefs,
+              isNotificationEnabled: true,
+              oneSignalPlayerId: playerId,
+            });
+            toast.success("Powiadomienia zostały włączone");
           }
-        } catch (err) {
-          console.error("[NotificationToggle] enable failed:", err);
-        } finally {
-          setPending(false);
         }
-      });
+      }
+    } catch (err) {
+      console.error("[NotificationToggle] toggle failed:", err);
+      toast.error("Nie udało się zaktualizować ustawień");
+    } finally {
+      // Gwarantowane zdjęcie blokady
+      setPending(false);
     }
   }
 
