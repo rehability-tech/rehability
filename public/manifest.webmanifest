@@ -1,7 +1,7 @@
 {
-  "name": "Rehability — Panel Uczestniczki",
+  "name": "Rehability — Panel Uczestnika",
   "short_name": "Rehability",
-  "description": "Panel uczestniczki Campa Rehability — harmonogram, karta zdrowia, usługi SPA.",
+  "description": "Panel uczestnika Campa Rehability — harmonogram, karta zdrowia, usługi SPA.",
   "start_url": "/panel",
   "scope": "/",
   "display": "standalone",
@@ -11,10 +11,22 @@
   "lang": "pl",
   "icons": [
     {
-      "src": "/logotypy/logo-sygnet.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
