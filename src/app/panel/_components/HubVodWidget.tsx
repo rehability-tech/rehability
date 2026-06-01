@@ -8,6 +8,7 @@ import {
   LockKey,
   PlayCircle,
   VideoCamera,
+  Wrench,
 } from "@phosphor-icons/react/dist/ssr";
 
 interface HubVodWidgetProps {
@@ -24,10 +25,10 @@ export default function HubVodWidget({ hasAccess }: HubVodWidgetProps) {
 
         {/* TOP: Pigułka i Ikonka */}
         <div className="flex justify-between items-start mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 border border-gray-200 h-max">
-            <Sparkle size={14} weight="fill" className="text-gray-500" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-              Platforma VOD
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-yellow/20 border border-brand-yellow/40 h-max">
+            <Wrench size={14} weight="fill" className="text-brand-secondary" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-secondary">
+              W budowie
             </span>
           </div>
 
@@ -42,29 +43,25 @@ export default function HubVodWidget({ hasAccess }: HubVodWidgetProps) {
         {/* TREŚĆ */}
         <div className="flex-1">
           <h3 className="font-jakarta font-bold text-[22px] lg:text-2xl text-brand-secondary leading-tight mb-3">
-            Brak dostępu do
+            Platforma VOD
             <br />
-            Platformy VOD
+            jest w budowie
           </h3>
           <p className="text-gray-500 text-[13.5px] leading-relaxed max-w-sm">
-            Trenuj w domu z naszymi materiałami wideo. Joga, rozciąganie
-            powięziowe i treningi na wyciągnięcie ręki.
+            Pracujemy nad biblioteką treningów wideo — joga, rozciąganie
+            powięziowe i programy domowe. Wkrótce udostępnimy ją w panelu.
           </p>
         </div>
 
         {/* AKCJA */}
         <div className="mt-8">
-          <Link
-            href="/sklep"
-            className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-brand-secondary/20 text-brand-secondary font-semibold text-[14px] shadow-sm hover:shadow-md transition"
+          <span
+            aria-disabled="true"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gray-100 border border-gray-200 text-gray-400 font-semibold text-[14px] cursor-not-allowed select-none"
           >
-            Wykup dostęp
-            <ArrowRight
-              size={16}
-              weight="bold"
-              className="group-hover:translate-x-0.5 transition-transform"
-            />
-          </Link>
+            <LockKey size={16} weight="fill" />
+            Wkrótce dostępne
+          </span>
         </div>
       </div>
     );

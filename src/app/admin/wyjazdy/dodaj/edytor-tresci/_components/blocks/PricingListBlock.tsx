@@ -47,6 +47,8 @@ export default function PricingListBlock({
         name: dbRef.name,
         duration: dbRef.duration?.toString() || "",
         price: dbRef.price?.toString() || "",
+        description: dbRef.description ?? "",
+        image: dbRef.image ?? null,
       };
     });
     onChange({ items: [...manualItems, ...newDbItems] });
@@ -85,7 +87,14 @@ export default function PricingListBlock({
             onChange({
               items: [
                 ...priceItems,
-                { id: crypto.randomUUID(), name: "", duration: "", price: "" },
+                {
+                  id: crypto.randomUUID(),
+                  name: "",
+                  duration: "",
+                  price: "",
+                  description: "",
+                  image: null,
+                },
               ],
             })
           }

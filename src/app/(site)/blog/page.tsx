@@ -3,22 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { BlogGrid, type BlogListItem } from "./_components/BlogGrid";
 
 export const metadata: Metadata = {
-  title: "Blog | Rehability",
+  title: "Blog o Fizjoterapii, Treningu i Wellness",
   description:
-    "Sprawdzona wiedza z zakresu fizjoterapii, mindfulness i zdrowego stylu życia — pisana przez specjalistów Rehability.",
-  alternates: { canonical: "https://rehability.pl/blog" },
+    "Ekspercka wiedza z zakresu fizjoterapii uroginekologicznej, bezpiecznego treningu siłowego w domu i domowych sposobów na ból lędźwi.",
+  alternates: { canonical: "/blog" },
   openGraph: {
     type: "website",
-    url: "https://rehability.pl/blog",
-    title: "Blog | Rehability",
+    url: "/blog",
+    title: "Blog o Fizjoterapii, Treningu i Wellness",
     description:
-      "Sprawdzona wiedza z zakresu fizjoterapii, mindfulness i zdrowego stylu życia — pisana przez specjalistów Rehability.",
+      "Ekspercka wiedza z zakresu fizjoterapii uroginekologicznej, bezpiecznego treningu siłowego w domu i domowych sposobów na ból lędźwi.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blog | Rehability",
+    title: "Blog o Fizjoterapii, Treningu i Wellness",
     description:
-      "Sprawdzona wiedza z zakresu fizjoterapii, mindfulness i zdrowego stylu życia — pisana przez specjalistów Rehability.",
+      "Ekspercka wiedza z zakresu fizjoterapii uroginekologicznej, bezpiecznego treningu siłowego w domu i domowych sposobów na ból lędźwi.",
   },
 };
 

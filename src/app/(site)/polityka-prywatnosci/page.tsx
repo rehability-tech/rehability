@@ -5,9 +5,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Polityka prywatności | Rehability",
+  title: "Polityka prywatności",
   description:
-    "Zasady przetwarzania danych osobowych użytkowników platformy Rehability oraz informacje wymagane przez RODO.",
+    "Zasady przetwarzania danych osobowych użytkowników platformy oraz informacje wymagane przez RODO.",
+  alternates: { canonical: "/polityka-prywatnosci" },
 };
 
 export default async function PolitykaPrywatnosciPage() {

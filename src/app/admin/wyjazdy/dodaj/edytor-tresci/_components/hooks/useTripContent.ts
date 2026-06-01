@@ -87,15 +87,19 @@ export function useTripContent(editId: string | null) {
           body: JSON.stringify(contentData),
         });
 
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data?.error || "Błąd zapisu");
+        }
 
         if (source === "auto" || source === "toolbar") {
           setShowAutosaveTooltip(true);
           setTimeout(() => setShowAutosaveTooltip(false), 3000);
         }
         if (source !== "auto") toast.success("Zapisano pomyślnie!");
-      } catch (error) {
-        if (source !== "auto") toast.error("Błąd zapisu!");
+      } catch (error: any) {
+        if (source !== "auto")
+          toast.error(error?.message || "Błąd zapisu!");
       } finally {
         setSavingSource(null);
       }

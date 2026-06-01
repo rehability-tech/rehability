@@ -17,6 +17,8 @@ import {
   Funnel,
   BellRinging,
   BellSlash,
+  CheckSquareOffset,
+  Clock,
 } from "@phosphor-icons/react/dist/ssr";
 
 type ActivityPillar = "CAMP" | "VOD" | "BLOG" | "SYSTEM";
@@ -30,7 +32,8 @@ interface ActivityEntry {
     | "POST_PUBLISHED"
     | "HEALTH_FILLED"
     | "SIGNUP"
-    | "SERVICE_ORDER";
+    | "SERVICE_BOUGHT"
+    | "CHECK_IN";
   who: string;
   text: string;
   meta?: string;
@@ -70,11 +73,23 @@ const KIND_VISUAL: Record<
     bg: "bg-brand-primary/10",
     color: "text-brand-primary",
   },
-  SERVICE_ORDER: {
+  SERVICE_BOUGHT: {
     icon: Sparkle,
     bg: "bg-brand-yellow/30",
     color: "text-brand-secondary",
   },
+  CHECK_IN: {
+    icon: CheckSquareOffset,
+    bg: "bg-emerald-50",
+    color: "text-emerald-600",
+  },
+};
+
+// Fallback dla nieznanych kindÃ³w (np. legacy z bazy lub nowe nie dopisane jeszcze).
+const FALLBACK_VISUAL = {
+  icon: Clock,
+  bg: "bg-gray-100",
+  color: "text-gray-500",
 };
 
 // --- WIDGET LOADER ---
@@ -290,7 +305,7 @@ export default function RecentActivity() {
           <AnimatePresence mode="popLayout">
             {filteredEntries.length > 0 ? (
               filteredEntries.map((e, i) => {
-                const v = KIND_VISUAL[e.kind];
+                const v = KIND_VISUAL[e.kind] ?? FALLBACK_VISUAL;
                 const Icon = v.icon;
 
                 // Zamieniamy suchą datę z bazy na np. "15 minut temu"

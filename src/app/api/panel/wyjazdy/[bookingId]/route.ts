@@ -1,12 +1,11 @@
+// src/app/api/panel/wyjazdy/[bookingId]/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-// 1. Zdefiniowanie schematu Zod (poza główną funkcją, by nie tworzyć go co zapytanie)
 const routeParamsSchema = z.object({
-  // Zod od razu sprawdzi, czy to poprawny format CUID wygenerowany przez Prismę
   bookingId: z.string().cuid("Nieprawidłowy format ID rezerwacji"),
 });
 
@@ -20,14 +19,10 @@ export async function GET(
     return NextResponse.json({ error: "Brak autoryzacji" }, { status: 401 });
   }
 
-  // Czekamy na params (Next.js 15)
   const resolvedParams = await params;
-
-  // 2. Walidacja parametrów przez Zod
   const parsedParams = routeParamsSchema.safeParse(resolvedParams);
 
   if (!parsedParams.success) {
-    // Fail-fast: Zwracamy 400 Bad Request, zanim dotkniemy bazy danych
     return NextResponse.json(
       {
         error: "Nieprawidłowe zapytanie",
@@ -37,10 +32,10 @@ export async function GET(
     );
   }
 
-  // Wyciągamy bezpieczny, zwalidowany bookingId
   const { bookingId } = parsedParams.data;
 
   try {
+    // 1. Pobieramy główne dane o rezerwacji i wyjeździe
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId, email: session.user.email },
       include: {
@@ -48,13 +43,19 @@ export async function GET(
           include: {
             events: {
               where: { isPublished: true },
-              orderBy: { startTime: "asc" },
-              take: 4,
             },
           },
         },
         user: {
           include: { healthProfile: true },
+        },
+        serviceOrders: {
+          where: {
+            status: { in: ["PAID", "PENDING"] },
+          },
+          include: {
+            service: true,
+          },
         },
       },
     });
@@ -66,7 +67,58 @@ export async function GET(
       );
     }
 
-    // Od razu formatujemy dane, żeby frontend dostał gotowca bez ułamków
+    // 2. Budujemy połączony harmonogram
+    let fullSchedule: any[] | null = null;
+    const isSchedulePublished = Boolean(
+      (booking.trip as any).isSchedulePublished,
+    );
+
+    if (isSchedulePublished) {
+      const regularEvents = booking.trip.events.map((ev) => ({
+        id: ev.id,
+        title: ev.title,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        place: ev.description || "Na miejscu",
+        icon: ev.icon || "Sparkle",
+        itemType: "EVENT" as const,
+      }));
+
+      const personalReservations = booking.serviceOrders
+        .filter((order) => order.startTime && order.endTime)
+        .map((order) => ({
+          id: order.id,
+          title: order.service?.name || "Usługa SPA",
+          startTime: order.startTime!,
+          endTime: order.endTime!,
+          place: "Strefa Wellness",
+          icon: "Drop",
+          itemType: "RESERVATION" as const,
+        }));
+
+      fullSchedule = [...regularEvents, ...personalReservations].sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
+    }
+
+    // 3. Równoległe pobieranie powiadomień globalnych i personalnych (Optymalizacja czasu I/O)
+    const [systemUpdates, personalNotifications] = await Promise.all([
+      // Aktualności (Marketing, dla wszystkich)
+      prisma.systemUpdate.findMany({
+        where: { isPublished: true },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+      // Powiadomienia TYLKO dla tej użytkowniczki (Transakcyjne)
+      prisma.notification.findMany({
+        where: { user: { email: session.user.email } },
+        orderBy: { createdAt: "desc" },
+        take: 5, // Chronimy payload przed niepotrzebnym puchnięciem
+      }),
+    ]);
+
+    // 4. Formatujemy odpowiedź
     return NextResponse.json({
       booking: {
         id: booking.id,
@@ -91,16 +143,13 @@ export async function GET(
         price: Number(booking.trip.price || 0),
       },
       healthFilled: !!booking.user?.healthProfile,
-
-      agendaPreview: booking.trip.events.map((ev: any) => ({
-        time: ev.startTime,
-        title: ev.title,
-        place: ev.description || "Na miejscu",
-        icon: ev.icon || "Sparkle",
-      })),
+      isSchedulePublished,
+      fullSchedule,
+      systemUpdates,
+      personalNotifications, // <-- Dodane do zwrotki
     });
   } catch (error) {
-    console.error("Błąd API:", error);
+    console.error("[API] Błąd pobierania danych wyjazdu:", error);
     return NextResponse.json({ error: "Błąd serwera" }, { status: 500 });
   }
 }

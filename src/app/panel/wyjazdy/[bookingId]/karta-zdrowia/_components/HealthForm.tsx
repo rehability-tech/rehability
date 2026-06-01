@@ -1,325 +1,328 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CircleNotch,
   CheckCircle,
-  ForkKnife,
-  FirstAid,
-  PhoneCall,
-  Warning,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
 
-interface HealthData {
-  dietType: string;
-  foodIntolerances: string[];
-  foodNotes: string;
-  chronicConditions: string;
-  medications: string;
-  injuries: string;
-  allergies: string;
-  emergencyName: string;
-  emergencyPhone: string;
-}
+import { EMPTY_HEALTH, type HealthData } from "./health-types";
+import HealthSummary from "./HealthSummary";
+import WelcomeStep from "./WelcomeStep";
+import DietStep from "./DietStep";
+import ConditionsStep from "./ConditionsStep";
+import EmergencyStep from "./EmergencyStep";
 
-const DIET_OPTIONS = [
-  { value: "OMNIVORE", label: "Wszystkożerna" },
-  { value: "VEGETARIAN", label: "Wegetariańska" },
-  { value: "VEGAN", label: "Wegańska" },
-  { value: "OTHER", label: "Inna" },
-];
+const TOTAL_STEPS = 3;
 
-const INTOLERANCE_OPTIONS = [
-  "Gluten",
-  "Laktoza",
-  "Orzechy",
-  "Jaja",
-  "Ryby",
-  "Owoce morza",
-  "Soja",
-];
-
-const EMPTY: HealthData = {
-  dietType: "",
-  foodIntolerances: [],
-  foodNotes: "",
-  chronicConditions: "",
-  medications: "",
-  injuries: "",
-  allergies: "",
-  emergencyName: "",
-  emergencyPhone: "",
+const slideVariants = {
+  enter: (dir: number) => ({
+    x: dir > 0 ? 30 : -30,
+    opacity: 0,
+    scale: 0.98,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.35, ease: [0.25, 1, 0.5, 1] as const },
+  },
+  exit: (dir: number) => ({
+    x: dir < 0 ? 30 : -30,
+    opacity: 0,
+    scale: 0.98,
+    transition: { duration: 0.25, ease: [0.25, 1, 0.5, 1] as const },
+  }),
 };
-
-function SectionHeader({
-  icon,
-  title,
-}: {
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-[#287D88]">{icon}</span>
-      <h2 className="font-jakarta font-bold text-base text-[#0B3B4C]">
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-        {label}
-      </label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={3}
-        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#0B3B4C] placeholder-gray-400 focus:outline-none focus:border-[#287D88] focus:bg-white transition-colors resize-none"
-      />
-    </div>
-  );
-}
-
-function TextInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-[#0B3B4C] placeholder-gray-400 focus:outline-none focus:border-[#287D88] focus:bg-white transition-colors"
-      />
-    </div>
-  );
-}
 
 export default function HealthForm({
   initial,
 }: {
   initial: HealthData | null;
 }) {
-  const [data, setData] = useState<HealthData>(initial ?? EMPTY);
+  const router = useRouter();
+  const pathname = usePathname();
+  const segments = pathname.split("/");
+  // URL: /panel/wyjazdy/[bookingId]/karta-zdrowia → segments[3] to bookingId
+  const bookingId = segments[3];
+
+  const [data, setData] = useState<HealthData>(initial ?? EMPTY_HEALTH);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const set = <K extends keyof HealthData>(key: K, value: HealthData[K]) => {
+  const isFilledInitially = !!initial?.emergencyPhone;
+  const [mode, setMode] = useState<"summary" | "wizard">(
+    isFilledInitially ? "summary" : "wizard",
+  );
+  const [step, setStep] = useState(isFilledInitially ? 0 : -1);
+  const [direction, setDirection] = useState(1);
+
+  const topRef = useRef<HTMLDivElement>(null);
+  const progress = step >= 0 ? ((step + 1) / TOTAL_STEPS) * 100 : 0;
+
+  useEffect(() => {
+    if (step >= 0 && mode === "wizard") {
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [step, mode]);
+
+  const setField = <K extends keyof HealthData>(
+    key: K,
+    value: HealthData[K],
+  ) => {
     setSaved(false);
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toggleIntolerance = (item: string) => {
-    set(
-      "foodIntolerances",
-      data.foodIntolerances.includes(item)
-        ? data.foodIntolerances.filter((i) => i !== item)
-        : [...data.foodIntolerances, item]
-    );
+  const saveProfileData = async (isFinal = false) => {
+    const res = await fetch("/api/panel/health-profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, bookingId, isFinal }),
+    });
+    if (!res.ok) throw new Error("Błąd zapisu");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const startSurvey = () => {
+    setDirection(1);
+    setStep(0);
+  };
+
+  const startEdit = () => {
+    setMode("wizard");
+    setDirection(1);
+    setStep(0);
+  };
+
+  const handleNextStep = async () => {
+    if (step < TOTAL_STEPS - 1) {
+      setSaving(true);
+      try {
+        await saveProfileData();
+        setDirection(1);
+        setStep((p) => p + 1);
+      } catch {
+        toast.error("Wystąpił problem przy zapisie postępu.");
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const prevStep = () => {
+    if (step > 0) {
+      setDirection(-1);
+      setStep((p) => p - 1);
+    } else if (step === 0) {
+      if (isFilledInitially) {
+        router.back();
+      } else {
+        setDirection(-1);
+        setStep(-1);
+      }
+    }
+  };
+
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("/api/panel/health-profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Błąd zapisu");
+      await saveProfileData(true);
       setSaved(true);
-      toast.success("Karta zdrowia zapisana");
+      toast.success("Karta zdrowia zaktualizowana!");
+      router.push(`/panel/wyjazdy/${bookingId}`);
     } catch {
-      toast.error("Nie udało się zapisać danych");
-    } finally {
+      toast.error("Nie udało się zapisać danych.");
       setSaving(false);
     }
   };
 
+  if (mode === "summary") {
+    return <HealthSummary data={data} onEdit={startEdit} />;
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pb-8">
-      {/* Dieta */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5"
-      >
-        <SectionHeader
-          icon={<ForkKnife size={18} weight="duotone" />}
-          title="Dieta i żywienie"
-        />
+    <div className="flex flex-col w-full min-h-[60vh]">
+      <div ref={topRef} className="-mt-6 pt-6" />
 
-        <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-600 mb-2">
-            Rodzaj diety
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {DIET_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => set("dietType", opt.value)}
-                className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  data.dietType === opt.value
-                    ? "bg-[#0B3B4C] text-white border-[#0B3B4C]"
-                    : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#287D88]"
-                }`}
+      {/* PASEK POSTĘPU */}
+      <AnimatePresence>
+        {step >= 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 shrink-0"
+          >
+            <div className="flex justify-between items-center mb-2 mt-2">
+              <span className="text-[10px] font-bold text-brand-secondary/40 uppercase tracking-widest">
+                Krok {step + 1} z {TOTAL_STEPS}
+              </span>
+              <span className="text-[11px] font-bold text-brand-primary">
+                {Math.round(progress)}%
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-brand-primary to-brand-yellow rounded-full"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <form
+        onSubmit={handleFinalSubmit}
+        className="flex-1 flex flex-col relative"
+      >
+        <div className="relative flex-1 flex flex-col overflow-x-hidden px-1">
+          <AnimatePresence mode="wait" custom={direction}>
+            {step === -1 && (
+              <motion.div
+                key="step-welcome"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col"
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+                <WelcomeStep />
+              </motion.div>
+            )}
+
+            {step === 0 && (
+              <motion.div
+                key="step-diet"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col"
+              >
+                <DietStep data={data} setField={setField} />
+              </motion.div>
+            )}
+
+            {step === 1 && (
+              <motion.div
+                key="step-conditions"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col"
+              >
+                <ConditionsStep data={data} setField={setField} />
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                key="step-emergency"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col"
+              >
+                <EmergencyStep data={data} setField={setField} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-600 mb-2">
-            Nietolerancje pokarmowe
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {INTOLERANCE_OPTIONS.map((item) => (
+        {/* PRZYCISKI NAWIGACYJNE WIZARDA */}
+        <div className="mt-8 pt-4 flex items-center justify-between gap-3 border-t border-gray-100/60 shrink-0">
+          {step === -1 ? (
+            <button
+              type="button"
+              onClick={startSurvey}
+              className="group relative overflow-hidden w-full flex items-center justify-center gap-2 bg-brand-primary text-white font-bold h-12 rounded-[16px] shadow-[0_6px_16px_-4px_rgba(40,125,136,0.4)] hover:bg-[#1f646d] transition-all duration-300"
+            >
+              <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/30 rounded-full blur-lg pointer-events-none" />
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              <span className="relative z-10 flex items-center gap-1.5 text-[13.5px]">
+                Rozpocznij Ankietę
+                <ArrowRight size={16} weight="bold" />
+              </span>
+            </button>
+          ) : (
+            <>
               <button
-                key={item}
                 type="button"
-                onClick={() => toggleIntolerance(item)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  data.foodIntolerances.includes(item)
-                    ? "bg-[#287D88] text-white border-[#287D88]"
-                    : "bg-gray-50 text-gray-500 border-gray-200"
-                }`}
+                onClick={prevStep}
+                disabled={saving}
+                className="flex items-center justify-center w-12 h-12 rounded-[16px] bg-white border border-gray-100 shadow-sm text-brand-secondary hover:bg-gray-50 hover:border-gray-200 transition-all shrink-0 disabled:opacity-50"
               >
-                {item}
+                <ArrowLeft size={18} weight="bold" />
               </button>
-            ))}
-          </div>
+
+              {step < TOTAL_STEPS - 1 ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  disabled={saving}
+                  className="relative overflow-hidden flex-1 flex items-center justify-center gap-2 bg-brand-primary text-white font-bold h-12 rounded-[16px] shadow-[0_6px_16px_-4px_rgba(40,125,136,0.4)] hover:bg-[#1f646d] transition-colors disabled:opacity-70"
+                >
+                  <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/30 rounded-full blur-lg pointer-events-none" />
+                  <span className="relative z-10 flex items-center gap-1.5 text-[13.5px]">
+                    {saving ? (
+                      <>
+                        <CircleNotch size={18} className="animate-spin" />
+                        Zapisuję...
+                      </>
+                    ) : (
+                      <>
+                        Następny krok
+                        <ArrowRight size={16} weight="bold" />
+                      </>
+                    )}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="group relative overflow-hidden flex-1 flex items-center justify-center gap-2 bg-brand-primary text-white font-bold h-12 rounded-[16px] shadow-[0_6px_16px_-4px_rgba(40,125,136,0.4)] hover:bg-[#1f646d] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/30 rounded-full blur-lg pointer-events-none" />
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+
+                  <span className="relative z-10 flex items-center gap-1.5 text-[13.5px]">
+                    {saving ? (
+                      <CircleNotch size={18} className="animate-spin" />
+                    ) : saved ? (
+                      <CheckCircle size={18} weight="fill" />
+                    ) : (
+                      <ShieldCheck size={18} weight="bold" />
+                    )}
+                    <span>
+                      {saving
+                        ? "Zapisuję..."
+                        : saved
+                          ? "Gotowe!"
+                          : "Zapisz Kartę"}
+                    </span>
+                  </span>
+                </button>
+              )}
+            </>
+          )}
         </div>
-
-        <Textarea
-          label="Dodatkowe uwagi dietetyczne"
-          value={data.foodNotes}
-          onChange={(v) => set("foodNotes", v)}
-          placeholder="Np. dieta bezglutenowa, uczulenie na..."
-        />
-      </motion.div>
-
-      {/* Zdrowie */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5"
-      >
-        <SectionHeader
-          icon={<FirstAid size={18} weight="duotone" />}
-          title="Stan zdrowia"
-        />
-
-        <Textarea
-          label="Choroby przewlekłe"
-          value={data.chronicConditions}
-          onChange={(v) => set("chronicConditions", v)}
-          placeholder="Np. cukrzyca, nadciśnienie, astma..."
-        />
-        <Textarea
-          label="Przyjmowane leki"
-          value={data.medications}
-          onChange={(v) => set("medications", v)}
-          placeholder="Nazwy leków i dawkowanie..."
-        />
-        <Textarea
-          label="Kontuzje i ograniczenia ruchowe"
-          value={data.injuries}
-          onChange={(v) => set("injuries", v)}
-          placeholder="Np. ból kręgosłupa, po operacji kolana..."
-        />
-        <Textarea
-          label="Alergie (inne niż pokarmowe)"
-          value={data.allergies}
-          onChange={(v) => set("allergies", v)}
-          placeholder="Np. alergia na kosmetyki, metale, leki..."
-        />
-      </motion.div>
-
-      {/* Kontakt awaryjny */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5"
-      >
-        <SectionHeader
-          icon={<PhoneCall size={18} weight="duotone" />}
-          title="Kontakt awaryjny"
-        />
-
-        <TextInput
-          label="Imię i nazwisko osoby kontaktowej"
-          value={data.emergencyName}
-          onChange={(v) => set("emergencyName", v)}
-          placeholder="Np. Jan Kowalski"
-        />
-        <TextInput
-          label="Numer telefonu"
-          value={data.emergencyPhone}
-          onChange={(v) => set("emergencyPhone", v)}
-          placeholder="+48 000 000 000"
-          type="tel"
-        />
-      </motion.div>
-
-      {/* Zastrzeżenie RODO */}
-      <div className="flex gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
-        <Warning size={16} className="text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-700">
-          Dane zdrowotne są przetwarzane wyłącznie w celu zapewnienia Ci
-          bezpieczeństwa podczas wyjazdu i nie są udostępniane osobom trzecim.
-        </p>
-      </div>
-
-      <motion.button
-        type="submit"
-        disabled={saving}
-        whileTap={{ scale: 0.98 }}
-        className="w-full flex items-center justify-center gap-2 bg-[#0B3B4C] text-white font-bold py-4 rounded-2xl shadow-md hover:bg-[#0d4a5f] transition-colors disabled:opacity-60"
-      >
-        {saving ? (
-          <CircleNotch size={18} className="animate-spin" />
-        ) : saved ? (
-          <CheckCircle size={18} weight="fill" />
-        ) : null}
-        {saving ? "Zapisuję..." : saved ? "Zapisano!" : "Zapisz kartę zdrowia"}
-      </motion.button>
-    </form>
+      </form>
+    </div>
   );
 }

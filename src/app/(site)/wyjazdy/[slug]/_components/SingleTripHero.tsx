@@ -13,6 +13,7 @@ interface SingleCampHeroProps {
   location?: string;
   dateRange?: string; // np. "12-15 Października 2024"
   price?: string | number; // np. 3500 lub "3500"
+  onBookClick?: () => void;
 }
 
 const fadeUpVariants: Variants = {
@@ -44,6 +45,7 @@ export default function SingleTripHero({
   location,
   dateRange,
   price,
+  onBookClick,
 }: SingleCampHeroProps) {
   const displayLocation = parseLocation(location);
   const displayImage = heroImage || "/images/static/camp.png"; // Fallback na domyślne zdjęcie
@@ -155,13 +157,7 @@ export default function SingleTripHero({
 
         {/* PRZYCISK (aktywny, w EditableHero był zablokowany pointer-events-none) */}
         <motion.div variants={fadeUpVariants}>
-          <Button
-            showArrow
-            onClick={() => {
-              // Tutaj np. scroll do formularza zapisu
-              console.log("Scroll do sekcji zapisu");
-            }}
-          >
+          <Button showArrow onClick={onBookClick}>
             Zapisz się teraz
           </Button>
         </motion.div>

@@ -7,102 +7,108 @@ import {
   CheckCircle,
   Warning,
   ArrowRight,
+  PencilSimple,
 } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function DashboardHealthCard({
   healthFilled,
+  bookingId,
 }: {
   healthFilled: boolean;
+  bookingId: string;
 }) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.15 }}
-      className={`relative rounded-[24px] backdrop-blur-xl p-5 lg:p-6 overflow-hidden h-full flex flex-col ${
+      className={cn(
+        "relative rounded-[24px] backdrop-blur-xl p-5 lg:p-6 overflow-hidden h-full flex flex-col transition-all duration-500",
         healthFilled
-          ? "bg-white/70 border border-white/40 shadow-[0_12px_40px_-15px_rgba(3,63,99,0.18)]"
-          : "bg-white/70 border border-rose-200/50 shadow-[0_0_0_1px_rgba(244,63,94,0.12),0_18px_45px_-15px_rgba(244,63,94,0.35)]"
-      }`}
+          ? "bg-white/70 border border-white/60 shadow-[0_12px_40px_-15px_rgba(3,63,99,0.12)]"
+          : "bg-white/70 border border-rose-200/60 shadow-[0_12px_40px_-15px_rgba(244,63,94,0.2)]",
+      )}
     >
-      {/* Czerwony, pulsujący glow w tle jeśli brakuje karty */}
-      {!healthFilled && (
-        <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-rose-400/25 blur-3xl animate-pulse" />
+      {/* Tło Ambientowe */}
+      {healthFilled ? (
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-emerald-300/10 blur-3xl pointer-events-none" />
+      ) : (
+        <div className="absolute top-0 right-0 w-44 h-44 rounded-full bg-rose-400/20 blur-3xl pointer-events-none" />
       )}
 
-      <div className="relative flex items-center justify-between mb-4">
+      {/* HEADER KARTY */}
+      <div className="relative flex items-center justify-between mb-5 z-10">
         <div className="flex items-center gap-3">
           <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
+            className={cn(
+              "w-11 h-11 rounded-2xl flex items-center justify-center shadow-[inset_0_2px_12px_-2px_rgba(255,255,255,0.8)]",
               healthFilled
-                ? "bg-brand-primary/10 text-brand-primary"
-                : "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.6)]"
-            }`}
+                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                : "bg-rose-50 text-rose-500 border border-rose-100",
+            )}
           >
-            <Heart size={20} weight="fill" />
+            <Heart size={20} weight={healthFilled ? "duotone" : "fill"} />
           </div>
           <div>
-            <h3 className="font-jakarta font-bold text-[15px] text-brand-secondary">
+            <h3 className="font-jakarta font-bold text-[15.5px] text-brand-secondary leading-tight">
               Karta Zdrowia
             </h3>
-            <p className="text-[11px] text-brand-secondary/50">
-              Diety, alergie, przeciwwskazania
+            <p className="text-[11px] text-brand-secondary/50 font-medium mt-0.5">
+              Diety, alergie, wykluczenia
             </p>
           </div>
         </div>
+
+        {/* STATUS BADGE */}
         {healthFilled ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-brand-primary/15 text-brand-primary">
-            <CheckCircle size={11} weight="fill" /> Wypełniono
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[10px] font-bold tracking-wider uppercase border border-emerald-100/50 shadow-sm">
+            <CheckCircle size={13} weight="fill" /> Wypełniono
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white">
-            <Warning size={11} weight="fill" /> Wymaga akcji
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500 text-white text-[10px] font-bold tracking-wider uppercase shadow-[0_4px_12px_rgba(244,63,94,0.3)]">
+            <Warning size={13} weight="bold" /> Wymaga akcji
           </span>
         )}
       </div>
 
-      <div className="flex-1 flex flex-col justify-end relative z-10 mt-2">
+      {/* GŁÓWNA ZAWARTOŚĆ */}
+      <div className="flex-1 flex flex-col justify-end relative z-10">
         {!healthFilled ? (
           <>
-            <p className="text-[12.5px] text-brand-secondary/80 leading-relaxed mb-4">
-              Zanim ruszymy w drogę, musimy poznać Twoją dietę, ewentualne
-              alergie i przeciwwskazania. Zajmie to maks. 2 minuty.
+            <p className="text-[13px] text-brand-secondary/75 leading-relaxed mb-5">
+              Musimy poznać Twoją dietę oraz stan zdrowia przed wyjazdem.
+              Pozwoli nam to zapewnić Ci 100% bezpieczeństwa i idealnie dobrane
+              menu.
             </p>
-            {/* Tutaj w przyszłości dodasz onClick otwierający formularz Karty Zdrowia */}
-            <button className="mt-auto w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-bold transition shadow-[0_12px_30px_-8px_rgba(244,63,94,0.55)] animate-pulse">
-              Uzupełnij dietę przed wyjazdem!
-              <ArrowRight size={16} weight="bold" />
-            </button>
+            <Link
+              href={`/panel/wyjazdy/${bookingId}/karta-zdrowia`}
+              className="mt-auto group relative w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-[18px] bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-bold transition-all shadow-[0_8px_20px_-6px_rgba(244,63,94,0.5)] active:scale-[0.98] overflow-hidden"
+            >
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              Uzupełnij szczegóły przed wyjazdem!
+              <ArrowRight
+                size={16}
+                weight="bold"
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </Link>
           </>
         ) : (
-          // Jeśli jest wypełniona, tutaj w przyszłości możesz wrzucić prawdziwe dane z bazy
-          // (np. przekazane w nowym propie `healthProfile`), a na razie dajemy ładny placeholder
-          <div className="grid grid-cols-3 gap-2 text-[11px] text-brand-secondary/70">
-            <div className="rounded-xl bg-white/60 border border-white/40 p-3 flex flex-col justify-center">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary/50">
-                Dieta
-              </p>
-              <p className="mt-1 font-semibold text-brand-secondary">
-                Zapisano
-              </p>
-            </div>
-            <div className="rounded-xl bg-white/60 border border-white/40 p-3 flex flex-col justify-center">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary/50">
-                Alergie
-              </p>
-              <p className="mt-1 font-semibold text-brand-secondary">
-                Zapisano
-              </p>
-            </div>
-            <div className="rounded-xl bg-white/60 border border-white/40 p-3 flex flex-col justify-center">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-secondary/50">
-                Urazy
-              </p>
-              <p className="mt-1 font-semibold text-brand-secondary">
-                Zapisano
-              </p>
-            </div>
-          </div>
+          <>
+            <p className="text-[13px] text-brand-secondary/70 leading-relaxed mb-4">
+              Twoje dane zostały bezpiecznie zapisane. Nasz zespół przeanalizuje
+              je, aby dostosować menu i atrakcje pod Twoje potrzeby.
+            </p>
+            <Link
+              href={`/panel/wyjazdy/${bookingId}/karta-zdrowia`}
+              className="mt-auto w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[16px] bg-white border border-gray-200 text-brand-secondary text-[13px] font-bold transition-all hover:bg-gray-50 hover:border-gray-300 shadow-sm active:scale-[0.98]"
+            >
+              <PencilSimple size={16} weight="bold" />
+              Edytuj lub sprawdź swoje dane
+            </Link>
+          </>
         )}
       </div>
     </motion.section>

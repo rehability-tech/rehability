@@ -1,16 +1,18 @@
-import { prisma } from "@/lib/prisma";
+import { dispatchNotification } from "./dispatcher";
+import type {
+  CampEventKind,
+  CreateSystemUpdateInput,
+  LogCampEventInput,
+  NotificationChannel,
+  NotificationType,
+} from "./types";
 
-export type NotificationType =
-  | "INFO"
-  | "SUCCESS"
-  | "WARNING"
-  | "BOOKING"
-  | "PAYMENT"
-  | "HEALTH"
-  | "SPA"
-  | "SYSTEM";
-
-export type SystemUpdateType = "VOD" | "CAMP" | "BLOG" | "SYSTEM";
+export type {
+  CampEventKind,
+  CreateSystemUpdateInput,
+  LogCampEventInput,
+  NotificationType,
+} from "./types";
 
 export interface SendNotificationInput {
   userId: string;
@@ -18,23 +20,17 @@ export interface SendNotificationInput {
   message?: string;
   type?: NotificationType;
   link?: string;
-  // Jeśli false — tylko zapis do DB, bez push (np. powiadomienia czysto in-app)
   push?: boolean;
 }
 
-export interface CreateSystemUpdateInput {
-  type: SystemUpdateType;
-  title: string;
-  description: string;
-  link?: string;
-  // Jeśli true — wyśle Push na telefony wszystkich użytkowniczek z włączonymi powiadomieniami
-  push?: boolean;
-}
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
-// Ulepszona funkcja - przyjmuje tablicę playerIds zamiast pojedynczego stringa
-async function sendOneSignalPush(
+/**
+ * Niskopoziomowy strzał do OneSignal REST API.
+ * Zachowany jako export, bo dispatcher.ts go używa wewnętrznie po wyselekcjonowaniu odbiorców.
+ */
+export async function sendOneSignalPush(
   playerIds: string[],
   title: string,
   message: string | undefined,
@@ -73,96 +69,165 @@ async function sendOneSignalPush(
 }
 
 /**
- * 1. INDYWIDUALNE: Wysyła powiadomienie do konkretnego użytkownika.
+ * Wysyła powiadomienie do konkretnego użytkownika.
+ * Zachowane jako fasada — `push: false` ogranicza kanały do IN_APP.
  */
 export async function sendNotification(input: SendNotificationInput) {
-  const { userId, title, message, type = "INFO", link, push = true } = input;
+  const { userId, title, message = "", type = "INFO", link, push = true } = input;
 
-  const notification = await prisma.notification.create({
-    data: { userId, title, message, type, link },
+  const channels: NotificationChannel[] = ["IN_APP"];
+  if (push) channels.push("PUSH");
+
+  await dispatchNotification({
+    target: "USER",
+    userIds: [userId],
+    title,
+    message,
+    link,
+    type,
+    channels,
   });
-
-  if (!push) return notification;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isNotificationEnabled: true, oneSignalPlayerId: true },
-  });
-
-  if (user?.isNotificationEnabled && user.oneSignalPlayerId) {
-    await sendOneSignalPush([user.oneSignalPlayerId], title, message, link);
-  }
-
-  return notification;
 }
 
 /**
- * 2. ADMINI: Wysyła to samo powiadomienie do wszystkich Adminów.
+ * Broadcast do wszystkich Adminów (IN_APP + opcjonalnie PUSH).
  */
 export async function sendNotificationToAdmins(
   input: Omit<SendNotificationInput, "userId">,
 ) {
-  const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
-    select: { id: true, oneSignalPlayerId: true, isNotificationEnabled: true },
+  const { title, message = "", type = "SYSTEM", link, push = true } = input;
+
+  const channels: NotificationChannel[] = ["IN_APP"];
+  if (push) channels.push("PUSH");
+
+  await dispatchNotification({
+    target: "ADMIN",
+    title,
+    message,
+    link,
+    type,
+    channels,
   });
+}
 
-  // Tworzymy rekordy w bazie dla każdego admina (do dzwoneczka)
-  await Promise.all(
-    admins.map((admin) =>
-      prisma.notification.create({
-        data: {
-          userId: admin.id,
-          title: input.title,
-          message: input.message,
-          type: input.type || "SYSTEM",
-          link: input.link,
-        },
-      }),
-    ),
-  );
+// ============================================================
+// FASADA ZDARZEŃ CAMPA
+// ============================================================
 
-  if (input.push !== false) {
-    const adminPlayerIds = admins
-      .filter((a) => a.isNotificationEnabled && a.oneSignalPlayerId)
-      .map((a) => a.oneSignalPlayerId as string);
+const NOTIFICATION_TYPE: Record<CampEventKind, NotificationType> = {
+  DEPOSIT_PAID: "PAYMENT",
+  FULLY_PAID: "PAYMENT",
+  HEALTH_FILLED: "HEALTH",
+  HEALTH_UPDATED: "HEALTH",
+  SERVICE_BOUGHT: "SPA",
+  SIGNUP: "BOOKING",
+  CHECK_IN: "BOOKING",
+};
 
-    await sendOneSignalPush(
-      adminPlayerIds,
-      input.title,
-      input.message,
-      input.link,
-    );
+// Macierz [A]/[P] per zdarzenie. Klucz dla "alert fatigue":
+// karty zdrowia idą tylko IN_APP + ACTIVITY (admin sprawdza grupowo).
+const CAMP_EVENT_CHANNELS: Record<CampEventKind, NotificationChannel[]> = {
+  DEPOSIT_PAID: ["ACTIVITY", "IN_APP", "PUSH"],
+  FULLY_PAID: ["ACTIVITY", "IN_APP", "PUSH"],
+  SERVICE_BOUGHT: ["ACTIVITY", "IN_APP", "PUSH"],
+  SIGNUP: ["ACTIVITY", "IN_APP", "PUSH"],
+  CHECK_IN: ["ACTIVITY", "IN_APP", "PUSH"],
+  HEALTH_FILLED: ["ACTIVITY", "IN_APP"],
+  HEALTH_UPDATED: ["ACTIVITY", "IN_APP"],
+};
+
+function buildCopy(input: LogCampEventInput): {
+  title: string;
+  message: string;
+  kind: string;
+} {
+  const { kind, userName, amount, tripTitle, detail } = input;
+  const trip = tripTitle ? `wyjazd: ${tripTitle}` : "wyjazd";
+
+  switch (kind) {
+    case "DEPOSIT_PAID":
+      return {
+        title: "🎉 Nowa wpłata: Zadatek",
+        message: `${userName} opłaciła zadatek${amount ? ` (${amount} PLN)` : ""} za ${trip}.`,
+        kind: "PAYMENT",
+      };
+    case "FULLY_PAID":
+      return {
+        title: "💰 Wpłata: Reszta kwoty",
+        message: `${userName} dopłaciła resztę${amount ? ` (${amount} PLN)` : ""} za ${trip}.`,
+        kind: "PAYMENT",
+      };
+    case "HEALTH_FILLED":
+      return {
+        title: "❤️ Wypełniona karta zdrowia",
+        message: `${userName} wypełniła kartę zdrowia (${trip}).`,
+        kind: "HEALTH_FILLED",
+      };
+    case "HEALTH_UPDATED":
+      return {
+        title: "❤️ Aktualizacja karty zdrowia",
+        message: `${userName} zaktualizowała kartę zdrowia tuż przed wyjazdem (${trip}).`,
+        kind: "HEALTH_FILLED",
+      };
+    case "SERVICE_BOUGHT":
+      return {
+        title: "✨ Nowa rezerwacja SPA",
+        message: `${userName} zarezerwowała usługę${detail ? ` ${detail}` : ""} na ${trip}.`,
+        kind: "SERVICE_BOUGHT",
+      };
+    case "SIGNUP":
+      return {
+        title: "👋 Nowa rezerwacja",
+        message: `${userName} zarezerwowała ${trip}.`,
+        kind: "SIGNUP",
+      };
+    case "CHECK_IN":
+      return {
+        title: "✅ Check-in",
+        message: `${userName} zameldowała się (${trip}).`,
+        kind: "CHECK_IN",
+      };
   }
 }
 
 /**
- * 3. GLOBALNE: Tworzy nowość widoczną na pulpicie (SystemUpdate)
- * i Opcjonalnie wysyła Push do wszystkich. Nie spamuje bazy Notification!
+ * Fasada zdarzeń wyjazdu. Jeden helper dla wszystkich akcji uczestniczek,
+ * który leci przez dispatcher i automatycznie dobiera kanały wg macierzy.
+ *
+ * Zapisuje `tripId` do kolumny relacyjnej w `Activity` (a nie do `meta`),
+ * dzięki czemu widok logów na pojedynczym wyjeździe może filtrować po FK.
+ */
+export async function logCampEvent(input: LogCampEventInput) {
+  const copy = buildCopy(input);
+
+  await dispatchNotification({
+    target: "ADMIN",
+    title: copy.title,
+    message: copy.message,
+    link: `/admin/wyjazdy/${input.tripId}`,
+    type: NOTIFICATION_TYPE[input.kind],
+    channels: CAMP_EVENT_CHANNELS[input.kind],
+    kind: copy.kind,
+    who: input.userName,
+    tripId: input.tripId,
+  });
+}
+
+/**
+ * Tworzy „nowość" na tablicy (SystemUpdate), opcjonalnie z broadcast push do uczestniczek.
  */
 export async function createSystemUpdate(input: CreateSystemUpdateInput) {
   const { type, title, description, link, push = false } = input;
 
-  // 1. Zapisujemy w tabeli SystemUpdate (widoczne dla wszystkich pod "Ostatnie nowości")
-  const update = await prisma.systemUpdate.create({
-    data: { type, title, description, link },
+  const channels: NotificationChannel[] = ["SYSTEM_UPDATE"];
+  if (push) channels.push("PUSH");
+
+  await dispatchNotification({
+    target: "GLOBAL",
+    title,
+    message: description,
+    link,
+    type,
+    channels,
   });
-
-  // 2. Jeśli admin chce, powiadamiamy użytkowniczki na telefony
-  if (push) {
-    const subscribedUsers = await prisma.user.findMany({
-      where: {
-        isNotificationEnabled: true,
-        oneSignalPlayerId: { not: null },
-      },
-      select: { oneSignalPlayerId: true },
-    });
-
-    const playerIds = subscribedUsers.map((u) => u.oneSignalPlayerId as string);
-
-    // Wysyłamy zbiorczego pusha
-    await sendOneSignalPush(playerIds, title, description, link);
-  }
-
-  return update;
 }

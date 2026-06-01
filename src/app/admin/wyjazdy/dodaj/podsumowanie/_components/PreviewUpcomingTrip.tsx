@@ -82,7 +82,7 @@ export default function PreviewUpcomingCamps({
 
   const titleWords = trip?.title
     ? trip.title.split(" ")
-    : ["Między nami", "Kobietami"];
+    : ["Twój", "Wyjazd"];
   const titlePart1 = titleWords
     .slice(0, Math.ceil(titleWords.length / 2))
     .join(" ");

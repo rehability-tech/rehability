@@ -160,7 +160,7 @@ export default function HubTripsWidget() {
             zarezerwowanego wyjazdu
           </h3>
           <p className="text-gray-500 text-[13.5px] leading-relaxed max-w-sm">
-            Po opłaceniu zadatku Twój panel uczestniczki pojawi się tutaj —
+            Po opłaceniu zadatku Twój panel uczestnika pojawi się tutaj —
             zobaczysz odliczanie do wyjazdu, harmonogram i zarezerwujesz zabiegi
             SPA.
           </p>
@@ -367,7 +367,7 @@ export default function HubTripsWidget() {
                       <StripePaymentStep
                         clientSecret={clientSecret}
                         depositLabel={`${depositAmount} zł`}
-                        returnUrl={`${window.location.origin}/wyjazdy/sukces`}
+                        returnUrl={`${window.location.origin}/panel/wyjazdy/${booking.id}?status=processing`}
                       />
                     </div>
                   ) : null}

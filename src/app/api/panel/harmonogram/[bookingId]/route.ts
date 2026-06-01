@@ -39,10 +39,10 @@ export async function GET(
     prisma.serviceOrder.findMany({
       where: { bookingId, status: { not: "CANCELLED" } },
       include: {
-        slot: { select: { startTime: true, endTime: true } },
+        spaBlock: { select: { startTime: true, endTime: true } },
         service: { select: { name: true, duration: true } },
       },
-      orderBy: { slot: { startTime: "asc" } },
+      orderBy: { spaBlock: { startTime: "asc" } },
     }),
   ]);
 
@@ -63,8 +63,8 @@ export async function GET(
     kind: "order" as const,
     title: o.service.name,
     description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zł`,
-    startTime: o.slot.startTime.toISOString(),
-    endTime: o.slot.endTime.toISOString(),
+    startTime: o.spaBlock.startTime.toISOString(),
+    endTime: o.spaBlock.endTime.toISOString(),
     status: o.status,
     isPaid: o.status === "PAID",
   }));

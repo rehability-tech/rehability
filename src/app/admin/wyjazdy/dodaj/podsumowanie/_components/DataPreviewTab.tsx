@@ -149,7 +149,7 @@ export default function DataPreviewTab({ trip }: DataPreviewTabProps) {
           </div>
           <div className="flex flex-col">
             <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-              Opcja "Zabierz przyjaciółkę"
+              Opcja "Zabierz osobę towarzyszącą"
             </span>
             <p
               className={`font-montserrat font-bold text-[16px] mt-1 ${
@@ -160,7 +160,7 @@ export default function DataPreviewTab({ trip }: DataPreviewTabProps) {
             </p>
             <p className="font-montserrat text-xs text-gray-400 mt-0.5">
               {trip?.allowBringFriend
-                ? "Uczestniczki mogą rezerwować 2 miejsca z gwarantowanym wspólnym pokojem."
+                ? "Uczestnicy mogą rezerwować 2 miejsca z gwarantowanym wspólnym pokojem."
                 : "Rezerwacja tylko dla jednej osoby."}
             </p>
           </div>

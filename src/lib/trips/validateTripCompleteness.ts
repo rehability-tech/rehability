@@ -32,6 +32,7 @@ export function validateTripCompleteness(trip: TripLike): TripCompletenessResult
   let blocksCount = 0;
   let hasMapBlock = false;
   let hasBookingOptionsBlock = false;
+  const incompletePricingItems: string[] = [];
 
   if (trip.blocks) {
     try {
@@ -45,10 +46,46 @@ export function validateTripCompleteness(trip: TripLike): TripCompletenessResult
         hasBookingOptionsBlock = parsed.some(
           (block: { type?: string }) => block?.type === "bookingOptions",
         );
+
+        // Walidacja pozycji w blokach "Lista usług" — każda musi mieć
+        // nazwę, czas, cenę i opis. Zdjęcie jest opcjonalne.
+        for (const block of parsed) {
+          if (
+            block?.type !== "pricingList" ||
+            !Array.isArray(block?.content?.items)
+          ) {
+            continue;
+          }
+          for (const item of block.content.items) {
+            const name = String(item?.name ?? "").trim();
+            const duration = String(item?.duration ?? "").trim();
+            const price = String(item?.price ?? "").trim();
+            const description = String(item?.description ?? "").trim();
+
+            const missingFields: string[] = [];
+            if (!name) missingFields.push("nazwa");
+            if (!duration) missingFields.push("czas");
+            if (!price) missingFields.push("cena");
+            if (!description) missingFields.push("opis");
+
+            if (missingFields.length > 0) {
+              const label = name || "(nienazwana usługa)";
+              incompletePricingItems.push(
+                `"${label}" (brak: ${missingFields.join(", ")})`,
+              );
+            }
+          }
+        }
       }
     } catch {
       // Niepoprawny JSON — traktujemy bloki jak puste
     }
+  }
+
+  if (incompletePricingItems.length > 0) {
+    missing.push(
+      `uzupełnionych usług w bloku "Lista usług": ${incompletePricingItems.join("; ")}`,
+    );
   }
 
   if (blocksCount < 3) missing.push("minimum 3 bloków w Edytorze Treści");

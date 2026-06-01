@@ -3,9 +3,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell } from "@phosphor-icons/react/dist/ssr";
+import {
+  Bell,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react/dist/ssr";
 import { formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -17,7 +22,10 @@ interface Notification {
   createdAt: string;
 }
 
+type FilterTab = "all" | "unread";
+
 const POLL_INTERVAL_MS = 60_000;
+const PAGE_SIZE = 5;
 
 export default function NotificationsDropdown() {
   const router = useRouter();
@@ -26,27 +34,42 @@ export default function NotificationsDropdown() {
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<FilterTab>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications");
+      const qs = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+        filter,
+      });
+      const res = await fetch(`/api/notifications?${qs.toString()}`);
       if (!res.ok) return;
       const data = (await res.json()) as {
-        notifications: Notification[];
+        items: Notification[];
         unreadCount: number;
+        totalPages: number;
       };
-      setItems(data.notifications);
+      setItems(data.items);
       setUnreadCount(data.unreadCount);
+      setTotalPages(Math.max(1, data.totalPages));
     } catch {
       // milcz — odświeży się przy następnym pollingu
     }
-  }, []);
+  }, [page, filter]);
 
   useEffect(() => {
     fetchNotifications();
     const t = setInterval(fetchNotifications, POLL_INTERVAL_MS);
     return () => clearInterval(t);
   }, [fetchNotifications]);
+
+  // Reset paginacji przy zmianie filtra
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -82,6 +105,7 @@ export default function NotificationsDropdown() {
     setUnreadCount(0);
     await fetch("/api/notifications/read-all", { method: "POST" });
     setLoading(false);
+    fetchNotifications();
   }
 
   return (
@@ -119,8 +143,9 @@ export default function NotificationsDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-[calc(100%+8px)] w-[300px] sm:w-[340px] z-[160] bg-white/95 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_20px_40px_-10px_rgba(3,63,99,0.2)] overflow-hidden flex flex-col"
+            className="absolute right-0 top-[calc(100%+8px)] w-[320px] sm:w-[360px] z-[160] bg-white/95 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_20px_40px_-10px_rgba(3,63,99,0.2)] overflow-hidden flex flex-col"
           >
+            {/* Header z tytułem + badge */}
             <div className="p-4 border-b border-brand-secondary/10 flex justify-between items-center bg-white/50">
               <p className="font-jakarta font-bold text-[14px] text-brand-secondary">
                 Powiadomienia
@@ -132,7 +157,30 @@ export default function NotificationsDropdown() {
               )}
             </div>
 
-            <div className="max-h-[320px] overflow-y-auto">
+            {/* Segmented tab: Wszystkie / Nieprzeczytane */}
+            <div className="px-4 pt-3 pb-2 flex gap-1.5 bg-white/30">
+              {(["all", "unread"] as FilterTab[]).map((tab) => {
+                const active = filter === tab;
+                const label = tab === "all" ? "Wszystkie" : "Nieprzeczytane";
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setFilter(tab)}
+                    className={cn(
+                      "flex-1 px-3 py-1.5 rounded-full text-[11.5px] font-bold transition-all",
+                      active
+                        ? "bg-brand-primary text-white shadow-[0_4px_12px_-4px_rgba(40,125,136,0.4)]"
+                        : "bg-white/80 text-brand-secondary/60 hover:bg-white border border-white/60",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Lista — stała wysokość na 5 wpisów, bez scrolla */}
+            <div className="min-h-[280px]">
               {items.length > 0 ? (
                 <ul className="flex flex-col">
                   {items.map((notif) => (
@@ -167,12 +215,42 @@ export default function NotificationsDropdown() {
                   ))}
                 </ul>
               ) : (
-                <div className="p-6 text-center text-brand-secondary/50 font-montserrat text-[13px]">
-                  Brak nowych powiadomień
+                <div className="h-[280px] flex items-center justify-center text-brand-secondary/50 font-montserrat text-[13px]">
+                  {filter === "unread"
+                    ? "Brak nieprzeczytanych powiadomień"
+                    : "Brak powiadomień"}
                 </div>
               )}
             </div>
 
+            {/* Paginacja */}
+            {totalPages > 1 && (
+              <div className="px-4 py-2.5 border-t border-brand-secondary/10 flex items-center justify-between bg-white/50">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-brand-secondary/10 hover:bg-brand-primary hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-brand-secondary transition-all text-brand-secondary"
+                >
+                  <CaretLeft size={12} weight="bold" />
+                </button>
+                <span className="text-[11px] font-bold text-brand-secondary/60">
+                  Strona{" "}
+                  <span className="text-brand-primary">{page}</span> z{" "}
+                  {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={page === totalPages}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-brand-secondary/10 hover:bg-brand-primary hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-brand-secondary transition-all text-brand-secondary"
+                >
+                  <CaretRight size={12} weight="bold" />
+                </button>
+              </div>
+            )}
+
+            {/* Stopka: oznacz wszystkie */}
             <div className="p-2 bg-brand-secondary/[0.02] border-t border-brand-secondary/10">
               <button
                 onClick={handleMarkAllRead}

@@ -1,9 +1,9 @@
+// app/panel/profil/karta-zdrowia/page.tsx (lub gdziekolwiek to trzymasz)
 import React from "react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import HealthForm from "./_components/HealthForm";
-import SubscriptionStatusButtons from "@/components/notifications/SubscriptionStatusButtons";
 
 export default async function KartaZdrowiaPage() {
   const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export default async function KartaZdrowiaPage() {
   const initial = profile
     ? {
         dietType: profile.dietType ?? "",
-        foodIntolerances: profile.foodIntolerances,
+        foodIntolerances: profile.foodIntolerances || [],
         foodNotes: profile.foodNotes ?? "",
         chronicConditions: profile.chronicConditions ?? "",
         medications: profile.medications ?? "",
@@ -29,16 +29,7 @@ export default async function KartaZdrowiaPage() {
     : null;
 
   return (
-    <div className="pt-6">
-      <div className="mb-6">
-        <h1 className="font-jakarta font-bold text-2xl text-[#0B3B4C]">
-          Karta zdrowia
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Uzupełnij przed wyjazdem — organizatorki będą o Ciebie dbać
-        </p>
-      </div>
-      <SubscriptionStatusButtons />
+    <div className=" w-full max-w-2xl mx-auto">
       <HealthForm initial={initial} />
     </div>
   );

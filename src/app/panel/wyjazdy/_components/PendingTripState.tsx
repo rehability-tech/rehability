@@ -248,7 +248,7 @@ export default function PendingTripState({ booking }: { booking: any }) {
                   <StripePaymentStep
                     clientSecret={clientSecret}
                     depositLabel={`${depositAmount} zł`}
-                    returnUrl={`${window.location.origin}/wyjazdy/sukces`}
+                    returnUrl={`${window.location.origin}/panel/wyjazdy/${booking.id}?status=processing`}
                   />
                 </div>
               ) : null}

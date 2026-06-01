@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { createSystemUpdate } from "@/lib/notifications/send";
 import { z } from "zod";
 
 const bodySchema = z
@@ -62,10 +63,27 @@ export async function PATCH(req: Request) {
       if (publishedAt === null) data.publishedAt = null;
     }
 
+    const previous = await prisma.post.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
     const post = await prisma.post.update({ where: { id }, data });
 
     // Mirror status on a linked schedule entry, if any.
     await syncScheduleEntryStatus(id, status);
+
+    // SYSTEM_UPDATE [D] — tylko przy faktycznym przejściu na PUBLISHED
+    if (status === "PUBLISHED" && previous?.status !== "PUBLISHED") {
+      createSystemUpdate({
+        type: "BLOG",
+        title: `Nowy wpis na blogu: ${post.title}`,
+        description: post.excerpt?.slice(0, 240) || "Sprawdź najnowszy wpis.",
+        link: `/blog/${post.slug}`,
+      }).catch((err) =>
+        console.error("[blog/status] createSystemUpdate failed:", err),
+      );
+    }
 
     return NextResponse.json(post);
   } catch (error: unknown) {

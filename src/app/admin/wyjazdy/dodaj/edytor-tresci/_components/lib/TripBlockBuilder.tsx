@@ -37,10 +37,10 @@ export default function TripBlocksBuilder({
         defaultContent = {
           standardTitle: "Pakiet Standard (1 osoba)",
           standardText:
-            "<p>Kupujesz jedno miejsce. Jeśli w obiekcie są pokoje współdzielone, przydzielimy Cię do innej wspaniałej uczestniczki wyjazdu.</p>",
-          duoTitle: "Pakiet Zabierz Przyjaciółkę (2 osoby)",
+            "<p>Kupujesz jedno miejsce. Jeśli w obiekcie są pokoje współdzielone, przydzielimy Cię do innego uczestnika wyjazdu.</p>",
+          duoTitle: "Pakiet Wyjazd we Dwoje (2 osoby)",
           duoText:
-            "<p>Rezerwujesz od razu 2 miejsca. Gwarantujemy Wam wspólny pokój. W formularzu podasz maila przyjaciółki, a my wyślemy jej zaproszenie.</p>",
+            "<p>Rezerwujesz od razu 2 miejsca. Gwarantujemy Wam wspólny pokój. W formularzu podasz maila osoby towarzyszącej, a my wyślemy jej zaproszenie.</p>",
         };
         break;
       case "bulletList":

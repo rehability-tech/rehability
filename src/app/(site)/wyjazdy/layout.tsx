@@ -1,18 +1,12 @@
 import React from "react";
-import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Wyjazdy | Rehability",
-    template: "%s | Rehability",
-  },
-  description:
-    "Ekskluzywne wyjazdy holistyczne Rehability. Całkowity reset dla ciała i umysłu.",
-};
+// Metadata dla /wyjazdy i /wyjazdy/[slug] definiujemy odpowiednio w page.tsx
+// oraz generateMetadata — tu trzymamy tylko layout, by nie nadpisywać
+// `title.template` z root layoutu i nie powielać sufiksu marki.
 
 export default async function AboutUsLayout({
   children,

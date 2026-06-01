@@ -6,6 +6,15 @@ import { toast } from "sonner"; // <-- DODANE DO DEBUGOWANIA
 import { getOneSignal } from "@/lib/notifications/onesignal";
 
 const APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+const IS_DEV = process.env.NODE_ENV === "development";
+
+const debugToast = (message: string) => {
+  if (IS_DEV) {
+    console.warn(message);
+    return;
+  }
+  toast.error(message);
+};
 
 interface Props {
   userId: string;
@@ -19,11 +28,11 @@ export default function OneSignalProvider({ userId }: Props) {
   useEffect(() => {
     // ---- START DEBUGOWANIA NA TELEFON ----
     if (!APP_ID) {
-      toast.error("DEBUG: Zmienna APP_ID jest pusta na Vercelu!");
+      debugToast("DEBUG: Zmienna APP_ID jest pusta na Vercelu!");
       return;
     }
     if (!userId) {
-      toast.error("DEBUG: Brak userId z sesji!");
+      debugToast("DEBUG: Brak userId z sesji!");
       return;
     }
     // ---- KONIEC DEBUGOWANIA ----
@@ -31,7 +40,7 @@ export default function OneSignalProvider({ userId }: Props) {
     async function initAndSync() {
       const OneSignal = await getOneSignal();
       if (!OneSignal) {
-        toast.error("DEBUG: Skrypt się nie załadował z CDN.");
+        debugToast("DEBUG: Skrypt się nie załadował z CDN.");
         return;
       }
 
@@ -61,7 +70,7 @@ export default function OneSignalProvider({ userId }: Props) {
         });
       } catch (err: any) {
         // Pokaże fizyczny błąd inicjalizacji na ekranie telefonu
-        toast.error("DEBUG BŁĄD: " + err.message);
+        debugToast("DEBUG BŁĄD: " + err.message);
       }
     }
 

@@ -10,12 +10,21 @@ import { signIn } from "next-auth/react";
 
 type AuthMode = "login" | "register";
 
+const IS_DEV = process.env.NODE_ENV === "development";
+
+const MOCK_ACCOUNTS = [
+  { email: "biuro@kocikdev.com", label: "Admin (biuro@kocikdev.com)" },
+  { email: "piotr.eher@gmail.com", label: "Klient (piotr.eher@gmail.com)" },
+];
+
 export default function AuthCard() {
   const [mode, setMode] = useState<AuthMode>("register"); // Domyślnie rejestracja (biała karta po prawej)
   const [isAccepted, setIsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [mockEmail, setMockEmail] = useState(MOCK_ACCOUNTS[0].email);
+  const [isMockLoading, setIsMockLoading] = useState(false);
 
   // Detekcja viewportu — tylko md+ animuje "sliding panel". Na mobile karta jest statyczna w flow.
   useEffect(() => {
@@ -60,10 +69,25 @@ export default function AuthCard() {
     }
   };
 
+  const handleMockLogin = async () => {
+    setError(null);
+    try {
+      setIsMockLoading(true);
+      await signIn("dev-mock", {
+        email: mockEmail,
+        callbackUrl: "/panel",
+      });
+    } catch (err) {
+      console.error("Mock login error:", err);
+      setError("Nie udało się zalogować jako mock user.");
+      setIsMockLoading(false);
+    }
+  };
+
   const isRegister = mode === "register";
 
   return (
-    <div className="w-full flex items-center justify-center p-4 md:p-0">
+    <div className="w-full flex flex-col items-center justify-center gap-6 p-4 md:p-0">
       {/* GŁÓWNY KONTENER (MORSKIE TŁO)
           Mobile: działa jak padding dla białej karty, z zachowanym backgroundem.
           Desktop: side-by-side z przesuwającą się białą kartą. */}
@@ -274,6 +298,46 @@ export default function AuthCard() {
           </div>
         </motion.div>
       </div>
+
+      {/* ========================================================= */}
+      {/* DEV-ONLY: Mock Login Panel (omija OAuth lokalnie)         */}
+      {/* ========================================================= */}
+      {IS_DEV && (
+        <div className="w-full max-w-[900px] mx-auto bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-2xl p-4 md:p-6 shadow-lg z-10">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+            <div className="flex flex-col">
+              <span className="font-montserrat font-bold text-[14px] text-[#0B3B4C]">
+                🛠️ DEV: Mock Login
+              </span>
+              <span className="font-montserrat text-[12px] text-gray-600">
+                Widoczne tylko w trybie development.
+              </span>
+            </div>
+
+            <select
+              value={mockEmail}
+              onChange={(e) => setMockEmail(e.target.value)}
+              disabled={isMockLoading}
+              className="flex-1 font-montserrat text-[13px] px-3 py-2 rounded-lg border border-yellow-400 bg-white text-[#0B3B4C] focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            >
+              {MOCK_ACCOUNTS.map((acc) => (
+                <option key={acc.email} value={acc.email}>
+                  {acc.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={handleMockLogin}
+              disabled={isMockLoading}
+              className="font-montserrat font-semibold text-[13px] px-4 py-2 rounded-lg bg-[#0B3B4C] text-white hover:bg-[#76ADB6] transition-colors disabled:opacity-60"
+            >
+              {isMockLoading ? "Logowanie..." : "Zaloguj jako mock"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

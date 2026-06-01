@@ -2,7 +2,6 @@ import React from "react";
 import type { Metadata } from "next";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
 import NotificationsCard from "./_components/NotificationsCard";
-import PwaInstallCard from "./_components/PwaInstallCard";
 
 export const metadata: Metadata = {
   title: "Ustawienia | Panel Admin",
@@ -35,7 +34,6 @@ export default function AdminUstawieniaPage() {
         {/* Karty — 1 kolumna na mobile, 2 kolumny na desktop */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <NotificationsCard />
-          <PwaInstallCard />
         </section>
       </div>
     </div>

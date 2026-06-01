@@ -4,12 +4,25 @@ import "./globals.css";
 import { DebugNav } from "./_components/DebugNav";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import PWARegister from "@/components/PWARegister";
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_DEFAULT_TITLE,
+  SITE_TITLE_TEMPLATE,
+  SITE_DEFAULT_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_LOCALE,
+  SITE_LANG,
+  SITE_OG_IMAGE,
+  BUSINESS_NAP,
+  SOCIAL_LINKS,
+  absoluteUrl,
+} from "@/lib/seo/site";
 
-// 1. Optymalizacja czcionek z Google Fonts (zmienne CSS zgodne z Twoim @theme)
 const fontHeading = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-heading",
-  display: "swap", // Zapobiega Layout Shift (CLS)
+  display: "swap",
   weight: ["600", "500", "700", "800"],
 });
 
@@ -20,38 +33,59 @@ const fontBody = Montserrat({
   weight: ["400", "500", "600"],
 });
 
-// 2. Metadata API - Fundament SEO [cite: 14, 15, 62]
 export const metadata: Metadata = {
-  metadataBase: new URL("https://yourdomain.com"), // Zmień na swój adres [cite: 63, 120]
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Coastal Wellness | Profesjonalna Opieka i Terapia",
-    template: "%s | Coastal Wellness", // Automatycznie dodaje brand do podstron [cite: 25, 67, 122]
+    default: SITE_DEFAULT_TITLE,
+    template: SITE_TITLE_TEMPLATE,
   },
-  description:
-    "Odkryj spokój i profesjonalną opiekę w Coastal Wellness. Specjalistyczne terapie w otoczeniu natury.",
-  keywords: ["terapia", "wellness", "coastal wellness", "zdrowie psychiczne"],
+  description: SITE_DEFAULT_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  applicationName: SITE_NAME,
+  authors: [{ name: BUSINESS_NAP.legalName, url: SITE_URL }],
+  creator: BUSINESS_NAP.legalName,
+  publisher: BUSINESS_NAP.legalName,
   alternates: {
-    canonical: "/", // Zapobiega duplikacji treści [cite: 113, 127]
+    canonical: "/",
   },
   openGraph: {
     type: "website",
-    locale: "pl_PL",
-    url: "https://yourdomain.com",
-    siteName: "Coastal Wellness",
-    images: [
-      {
-        url: "/og-image.jpg", // Wymaga pliku w public/ [cite: 96, 1031]
-        width: 1200,
-        height: 630,
-        alt: "Coastal Wellness - Główny baner",
-      },
-    ],
+    locale: SITE_LOCALE,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_DEFAULT_TITLE,
+    description: SITE_DEFAULT_DESCRIPTION,
+    images: [SITE_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_DEFAULT_TITLE,
+    description: SITE_DEFAULT_DESCRIPTION,
+    images: [SITE_OG_IMAGE.url],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  // Tagi geolokalizacyjne - krytyczne wsparcie dla Local SEO w fizjoterapii[cite: 1].
+  other: {
+    "geo.region": "PL-16",
+    "geo.placename": BUSINESS_NAP.city,
+    "geo.position": "50.3200;17.5800", // Dokładne koordynaty zaktualizuj w zależności od adresu
+    ICBM: "50.3200, 17.5800",
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Rehability",
+    title: SITE_NAME,
   },
 };
 
@@ -67,26 +101,64 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 3. Structured Data (JSON-LD) - Pomaga Google zrozumieć Twój biznes [cite: 128, 134, 140]
-  const jsonLd = {
+  const localBusinessLd = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "@id": "https://yourdomain.com/#organization",
-    name: "Coastal Wellness",
-    url: "https://yourdomain.com",
-    logo: "https://yourdomain.com/logo.png",
-    description: "Profesjonalna opieka i nowoczesne terapie.",
+    "@type": ["LocalBusiness", "HealthAndBeautyBusiness", "MedicalBusiness"],
+    "@id": absoluteUrl("/#organization"),
+    name: SITE_NAME,
+    legalName: BUSINESS_NAP.legalName,
+    url: SITE_URL,
+    logo: absoluteUrl("/icon.svg"),
+    image: absoluteUrl(SITE_OG_IMAGE.url),
+    description: SITE_DEFAULT_DESCRIPTION,
+    telephone: BUSINESS_NAP.phone,
+    email: BUSINESS_NAP.email,
+    taxID: BUSINESS_NAP.taxId,
+    vatID: `PL${BUSINESS_NAP.taxId}`,
+    priceRange: "$$",
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Twoje Miasto",
-      addressCountry: "PL",
+      streetAddress: BUSINESS_NAP.street,
+      addressLocality: BUSINESS_NAP.city,
+      postalCode: BUSINESS_NAP.postalCode,
+      addressCountry: BUSINESS_NAP.country,
     },
+    areaServed: [
+      { "@type": "City", name: "Prudnik" },
+      { "@type": "AdministrativeArea", name: "województwo opolskie" },
+      { "@type": "Country", name: "Polska" },
+    ],
+    sameAs: [
+      SOCIAL_LINKS.facebook,
+      SOCIAL_LINKS.instagram,
+      SOCIAL_LINKS.booksy,
+    ],
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "09:00",
+        closes: "19:00",
+      },
+    ],
+  };
+
+  const websiteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": absoluteUrl("/#website"),
+    url: SITE_URL,
+    name: SITE_NAME,
+    inLanguage: SITE_LANG,
+    publisher: { "@id": absoluteUrl("/#organization") },
   };
 
   return (
-    <html lang="pl" className={`${fontHeading.variable} ${fontBody.variable}`}>
+    <html
+      lang={SITE_LANG}
+      className={`${fontHeading.variable} ${fontBody.variable}`}
+    >
       <head>
-        {/* Preconnect do CDN ze zdjęciami wyjazdów – usuwa ~150ms TLS handshake przy pierwszym <img>. */}
         <link
           rel="preconnect"
           href="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com"
@@ -96,10 +168,13 @@ export default function RootLayout({
           rel="dns-prefetch"
           href="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com"
         />
-        {/* Wstrzykiwanie danych strukturalnych [cite: 135, 136, 182] */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
       </head>
       <body className="antialiased min-h-screen  ">

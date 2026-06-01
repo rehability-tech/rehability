@@ -133,7 +133,7 @@ export async function createCheckoutSession(
           kind: "CAMP_DEPOSIT",
         },
       },
-      success_url: `${appUrl}/wyjazdy/sukces?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${appUrl}/panel/wyjazdy/${booking.id}?status=processing&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/wyjazdy/${trip.id}?canceled=1`,
       locale: "pl",
     });

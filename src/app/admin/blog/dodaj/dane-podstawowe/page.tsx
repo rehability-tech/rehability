@@ -3,14 +3,23 @@
 import { useState, useEffect, Suspense, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
-  TextAa, X, CaretRight, CircleNotch, Plus, Sparkle, Tag,
+  TextAa,
+  X,
+  CaretRight,
+  CircleNotch,
+  Plus,
+  Sparkle,
+  Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
-import { FormInput, FormTextarea } from "@/app/admin/wyjazdy/dodaj/_components/FormFields";
-import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
+import {
+  FormInput,
+  FormTextarea,
+} from "@/app/admin/ustawienia/wyjazdy/dodaj/_components/FormFields";
+import AiGeneratorModal from "@/app/admin/ustawienia/wyjazdy/dodaj/_components/AiGeneratorModal";
 import NeonAiPanel, {
   type NeonStep,
   type StepStatus,
@@ -25,9 +34,15 @@ function slugify(text: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
-    .replace(/ł/g, "l").replace(/ą/g, "a").replace(/ę/g, "e")
-    .replace(/ó/g, "o").replace(/ś/g, "s").replace(/ź/g, "z")
-    .replace(/ż/g, "z").replace(/ć/g, "c").replace(/ń/g, "n")
+    .replace(/ł/g, "l")
+    .replace(/ą/g, "a")
+    .replace(/ę/g, "e")
+    .replace(/ó/g, "o")
+    .replace(/ś/g, "s")
+    .replace(/ź/g, "z")
+    .replace(/ż/g, "z")
+    .replace(/ć/g, "c")
+    .replace(/ń/g, "n")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
     .replace(/[\s]+/g, "-")
@@ -35,7 +50,13 @@ function slugify(text: string): string {
 }
 
 const DEFAULT_CATEGORIES = [
-  "Fizjoterapia", "Mindfulness", "Żywienie", "Ruch", "Camp Stories", "Terapia", "Ogólne",
+  "Fizjoterapia",
+  "Mindfulness",
+  "Żywienie",
+  "Ruch",
+  "Camp Stories",
+  "Terapia",
+  "Ogólne",
 ];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -43,69 +64,89 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ─── autogenerate steps (only basic-data scope) ─────────────────────────────
 
 const STEPS_DEF: NeonStep[] = [
-  { id: "fetch",  label: "Pobieranie tematu",       detail: "Ładuję wpis z harmonogramu..." },
-  { id: "ai",     label: "Generowanie tytułu",      detail: "AI projektuje tytuł artykułu..." },
-  { id: "excerpt",label: "Pisanie opisu",           detail: "AI tworzy chwytliwy opis..." },
-  { id: "tags",   label: "Dobór tagów",             detail: "AI dobiera słowa kluczowe..." },
-  { id: "save",   label: "Zapis i przekierowanie",  detail: "Zapisuję i otwieram edytor treści..." },
+  {
+    id: "fetch",
+    label: "Pobieranie tematu",
+    detail: "Ładuję wpis z harmonogramu...",
+  },
+  {
+    id: "ai",
+    label: "Generowanie tytułu",
+    detail: "AI projektuje tytuł artykułu...",
+  },
+  {
+    id: "excerpt",
+    label: "Pisanie opisu",
+    detail: "AI tworzy chwytliwy opis...",
+  },
+  { id: "tags", label: "Dobór tagów", detail: "AI dobiera słowa kluczowe..." },
+  {
+    id: "save",
+    label: "Zapis i przekierowanie",
+    detail: "Zapisuję i otwieram edytor treści...",
+  },
 ];
 
 type LiveStep = NeonStep & { status: StepStatus };
-const makeSteps = (): LiveStep[] => STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
+const makeSteps = (): LiveStep[] =>
+  STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
 
 type LoadingField = "title" | "excerpt" | "tags" | "category" | null;
 
 // ─── main form ───────────────────────────────────────────────────────────────
 
 function BasicDataFormContent() {
-  const router       = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const editId       = searchParams.get("id");
+  const editId = searchParams.get("id");
 
-  const [title, setTitle]       = useState("");
-  const [excerpt, setExcerpt]   = useState("");
+  const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [category, setCategory] = useState("Ogólne");
-  const [tags, setTags]         = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
 
-  const [categories, setCategories]                       = useState<string[]>(DEFAULT_CATEGORIES);
-  const [newCategoryInput, setNewCategoryInput]           = useState("");
-  const [aiCategorySuggestions, setAiCategorySuggestions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [aiCategorySuggestions, setAiCategorySuggestions] = useState<string[]>(
+    [],
+  );
 
-  const [isAiModalOpen, setIsAiModalOpen]   = useState(false);
-  const [aiPrompt, setAiPrompt]             = useState("");
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  const [isSaving, setIsSaving]     = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
   // ── autogenerate state ──
-  const [autoSteps, setAutoSteps]         = useState<LiveStep[]>(makeSteps());
+  const [autoSteps, setAutoSteps] = useState<LiveStep[]>(makeSteps());
   const [isAutoRunning, setIsAutoRunning] = useState(false);
-  const [loadingField, setLoadingField]   = useState<LoadingField>(null);
-  const [autoLiveMsg, setAutoLiveMsg]     = useState<string | undefined>();
+  const [loadingField, setLoadingField] = useState<LoadingField>(null);
+  const [autoLiveMsg, setAutoLiveMsg] = useState<string | undefined>();
   const autoStarted = useRef(false);
 
-  const buildRateStatus =
-    (resumeMsg: string) =>
-    (status: RateStatus) => {
-      if (status.kind === "waiting") {
-        const prefix =
-          status.reason === "ratelimit"
-            ? "⏸ Limit Gemini — wznowię za"
-            : `⚠ Błąd Gemini — ponawiam (${status.attempt}/${status.maxAttempts}) za`;
-        setAutoLiveMsg(`${prefix} ${status.countdown}s`);
-      } else {
-        setAutoLiveMsg(resumeMsg);
-      }
-    };
+  const buildRateStatus = (resumeMsg: string) => (status: RateStatus) => {
+    if (status.kind === "waiting") {
+      const prefix =
+        status.reason === "ratelimit"
+          ? "⏸ Limit Gemini — wznowię za"
+          : `⚠ Błąd Gemini — ponawiam (${status.attempt}/${status.maxAttempts}) za`;
+      setAutoLiveMsg(`${prefix} ${status.countdown}s`);
+    } else {
+      setAutoLiveMsg(resumeMsg);
+    }
+  };
 
-  const updateStep = useCallback((id: string, status: StepStatus, detail?: string) => {
-    setAutoSteps((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
-      ),
-    );
-  }, []);
+  const updateStep = useCallback(
+    (id: string, status: StepStatus, detail?: string) => {
+      setAutoSteps((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
+        ),
+      );
+    },
+    [],
+  );
 
   // ─── autogenerate (basic data only) ──────────────────────────────────────
 
@@ -115,13 +156,16 @@ function BasicDataFormContent() {
         // 1 – fetch schedule entry
         updateStep("fetch", "active");
         const entryRes = await fetch(`/api/admin/blog/schedule/${scheduleId}`);
-        if (!entryRes.ok) throw new Error("Nie udało się pobrać tematu z harmonogramu.");
+        if (!entryRes.ok)
+          throw new Error("Nie udało się pobrać tematu z harmonogramu.");
         const entry = await entryRes.json();
         updateStep("fetch", "done");
 
         // ensure category list contains the schedule one
         if (entry.category && !DEFAULT_CATEGORIES.includes(entry.category)) {
-          setCategories((prev) => prev.includes(entry.category) ? prev : [...prev, entry.category]);
+          setCategories((prev) =>
+            prev.includes(entry.category) ? prev : [...prev, entry.category],
+          );
         }
 
         // 2 – call AI for basic data once
@@ -139,11 +183,19 @@ function BasicDataFormContent() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: basicPrompt, action: "generateBlogBasicData" }),
+            body: JSON.stringify({
+              prompt: basicPrompt,
+              action: "generateBlogBasicData",
+            }),
           },
-          { onStatus: buildRateStatus("AI generuje dane podstawowe artykułu...") },
+          {
+            onStatus: buildRateStatus(
+              "AI generuje dane podstawowe artykułu...",
+            ),
+          },
         );
-        if (!basicRes.ok) throw new Error("Błąd generowania danych podstawowych.");
+        if (!basicRes.ok)
+          throw new Error("Błąd generowania danych podstawowych.");
         const basicData = await basicRes.json();
 
         // reveal title with a short neon flash
@@ -169,9 +221,12 @@ function BasicDataFormContent() {
         const finalTags: string[] =
           Array.isArray(basicData.tags) && basicData.tags.length
             ? basicData.tags
-            : (entry.keywords || []);
+            : entry.keywords || [];
         setTags(finalTags);
-        if (Array.isArray(basicData.categorySuggestions) && basicData.categorySuggestions.length) {
+        if (
+          Array.isArray(basicData.categorySuggestions) &&
+          basicData.categorySuggestions.length
+        ) {
           setAiCategorySuggestions(basicData.categorySuggestions);
         }
         setCategory(entry.category || "Ogólne");
@@ -186,11 +241,11 @@ function BasicDataFormContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title:     finalTitle,
+            title: finalTitle,
             slug,
-            excerpt:   basicData.excerpt || "",
-            category:  entry.category,
-            tags:      finalTags,
+            excerpt: basicData.excerpt || "",
+            category: entry.category,
+            tags: finalTags,
             lastStage: "edytor-tresci",
             scheduleId,
           }),
@@ -207,7 +262,8 @@ function BasicDataFormContent() {
           `/admin/blog/dodaj/edytor-tresci?id=${postId}&autogenerate=true&scheduleId=${scheduleId}`,
         );
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
+        const msg =
+          err instanceof Error ? err.message : "Nieznany błąd generowania.";
         setLoadingField(null);
         setAutoSteps((prev) =>
           prev.map((s) =>
@@ -224,12 +280,14 @@ function BasicDataFormContent() {
   useEffect(() => {
     if (autoStarted.current) return;
     const autoGenParam = searchParams.get("autogenerate");
-    const scheduleId   = searchParams.get("scheduleId");
+    const scheduleId = searchParams.get("scheduleId");
     if (autoGenParam !== "true" || !scheduleId) return;
 
     autoStarted.current = true;
     // strip query so a refresh doesn't restart the flow
-    router.replace(`/admin/blog/dodaj/dane-podstawowe?scheduleId=${scheduleId}`);
+    router.replace(
+      `/admin/blog/dodaj/dane-podstawowe?scheduleId=${scheduleId}`,
+    );
     setAutoSteps(makeSteps());
     setIsAutoRunning(true);
     runAutoGenerate(scheduleId);
@@ -242,7 +300,7 @@ function BasicDataFormContent() {
     const fetchPost = async () => {
       setIsFetching(true);
       try {
-        const res  = await fetch(`/api/admin/blog/${editId}`);
+        const res = await fetch(`/api/admin/blog/${editId}`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         setTitle(data.title || "");
@@ -266,7 +324,8 @@ function BasicDataFormContent() {
   const handleAddCategory = () => {
     const trimmed = newCategoryInput.trim();
     if (!trimmed) return;
-    if (!categories.includes(trimmed)) setCategories((prev) => [...prev, trimmed]);
+    if (!categories.includes(trimmed))
+      setCategories((prev) => [...prev, trimmed]);
     setCategory(trimmed);
     setNewCategoryInput("");
   };
@@ -280,14 +339,21 @@ function BasicDataFormContent() {
       const res = await geminiFetch("/api/admin/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, model: modelType, action: "generateBlogBasicData" }),
+        body: JSON.stringify({
+          prompt,
+          model: modelType,
+          action: "generateBlogBasicData",
+        }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      if (data.title)   setTitle(data.title);
+      if (data.title) setTitle(data.title);
       if (data.excerpt) setExcerpt(data.excerpt);
-      if (Array.isArray(data.tags) && data.tags.length)  setTags(data.tags);
-      if (Array.isArray(data.categorySuggestions) && data.categorySuggestions.length) {
+      if (Array.isArray(data.tags) && data.tags.length) setTags(data.tags);
+      if (
+        Array.isArray(data.categorySuggestions) &&
+        data.categorySuggestions.length
+      ) {
         setAiCategorySuggestions(data.categorySuggestions);
       }
       toast.success("AI wypełniło dane artykułu.");
@@ -301,21 +367,39 @@ function BasicDataFormContent() {
   // ─── save & next ─────────────────────────────────────────────────────────
 
   const handleSaveAndNext = async () => {
-    if (!title.trim()) { toast.error("Tytuł jest wymagany."); return; }
+    if (!title.trim()) {
+      toast.error("Tytuł jest wymagany.");
+      return;
+    }
     const slug = slugify(title);
-    if (!slug)  { toast.error("Nie udało się wygenerować sluga z tytułu."); return; }
+    if (!slug) {
+      toast.error("Nie udało się wygenerować sluga z tytułu.");
+      return;
+    }
     setIsSaving(true);
     try {
       const res = await fetch("/api/admin/blog/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editId, title, slug, excerpt, category, tags, lastStage: "edytor-tresci" }),
+        body: JSON.stringify({
+          id: editId,
+          title,
+          slug,
+          excerpt,
+          category,
+          tags,
+          lastStage: "edytor-tresci",
+        }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Błąd zapisu");
-      router.push(`/admin/blog/dodaj/edytor-tresci?id=${result.postId || editId}`);
+      router.push(
+        `/admin/blog/dodaj/edytor-tresci?id=${result.postId || editId}`,
+      );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Nie udało się zapisać artykułu.");
+      toast.error(
+        err instanceof Error ? err.message : "Nie udało się zapisać artykułu.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -326,14 +410,21 @@ function BasicDataFormContent() {
   if (isFetching) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <CircleNotch size={40} weight="bold" className="text-brand-primary animate-spin mb-4" />
-        <p className="text-gray-500 font-montserrat font-medium">Ładowanie artykułu...</p>
+        <CircleNotch
+          size={40}
+          weight="bold"
+          className="text-brand-primary animate-spin mb-4"
+        />
+        <p className="text-gray-500 font-montserrat font-medium">
+          Ładowanie artykułu...
+        </p>
       </div>
     );
   }
 
-  const tagsLoading     = loadingField === "tags";
-  const categoryLoading = loadingField === "category" || loadingField === "tags";
+  const tagsLoading = loadingField === "tags";
+  const categoryLoading =
+    loadingField === "category" || loadingField === "tags";
 
   return (
     <>
@@ -366,10 +457,11 @@ function BasicDataFormContent() {
             disabled={isAiGenerating || isAutoRunning}
             className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-sm font-semibold rounded-[12px] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isAiGenerating
-              ? <CircleNotch size={16} weight="bold" className="animate-spin" />
-              : <Sparkle size={16} weight="fill" />
-            }
+            {isAiGenerating ? (
+              <CircleNotch size={16} weight="bold" className="animate-spin" />
+            ) : (
+              <Sparkle size={16} weight="fill" />
+            )}
             {isAiGenerating ? "Generuję..." : "Generuj z AI"}
           </button>
         </div>
@@ -414,10 +506,15 @@ function BasicDataFormContent() {
                   disabled={categoryLoading}
                   className={cn(
                     "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
-                    categoryLoading && "opacity-80 text-gray-500 cursor-default",
+                    categoryLoading &&
+                      "opacity-80 text-gray-500 cursor-default",
                   )}
                 >
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
                 <AnimatePresence>
                   {categoryLoading && (
@@ -432,7 +529,11 @@ function BasicDataFormContent() {
                       <motion.div
                         initial={{ left: "-100%" }}
                         animate={{ left: "100%" }}
-                        transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.5,
+                          ease: "linear",
+                        }}
                         className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
                       />
                     </motion.div>
@@ -444,7 +545,12 @@ function BasicDataFormContent() {
                 <input
                   value={newCategoryInput}
                   onChange={(e) => setNewCategoryInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCategory();
+                    }
+                  }}
                   placeholder="Nowa kategoria..."
                   className="flex-1 bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[10px] px-3 py-2 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
                 />
@@ -459,7 +565,9 @@ function BasicDataFormContent() {
 
               {aiCategorySuggestions.length > 0 && (
                 <div className="mt-1">
-                  <p className="text-[11px] text-gray-400 font-montserrat font-semibold uppercase tracking-wide mb-1.5">Sugestie AI</p>
+                  <p className="text-[11px] text-gray-400 font-montserrat font-semibold uppercase tracking-wide mb-1.5">
+                    Sugestie AI
+                  </p>
                   <div className="flex flex-wrap gap-1.5">
                     {aiCategorySuggestions.map((cat) => (
                       <button
@@ -485,13 +593,18 @@ function BasicDataFormContent() {
           {(tags.length > 0 || tagsLoading) && (
             <section>
               <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
-                Tagi <span className="normal-case font-normal ml-1">(generowane przez AI)</span>
+                Tagi{" "}
+                <span className="normal-case font-normal ml-1">
+                  (generowane przez AI)
+                </span>
               </h3>
               <div className="relative z-0 inline-block w-full">
-                <div className={cn(
-                  "flex flex-wrap gap-2 min-h-[40px] rounded-[12px] transition-all",
-                  tagsLoading && "p-2 bg-gray-50/50",
-                )}>
+                <div
+                  className={cn(
+                    "flex flex-wrap gap-2 min-h-[40px] rounded-[12px] transition-all",
+                    tagsLoading && "p-2 bg-gray-50/50",
+                  )}
+                >
                   {tags.length === 0 && tagsLoading && (
                     <span className="text-[11px] text-gray-400 font-montserrat italic px-2 py-1">
                       AI dobiera tagi...
@@ -522,7 +635,11 @@ function BasicDataFormContent() {
                       <motion.div
                         initial={{ left: "-100%" }}
                         animate={{ left: "100%" }}
-                        transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.5,
+                          ease: "linear",
+                        }}
                         className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
                       />
                     </motion.div>
@@ -571,7 +688,11 @@ export default function BlogBasicDataPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[400px]">
-          <CircleNotch size={40} weight="bold" className="text-brand-primary animate-spin" />
+          <CircleNotch
+            size={40}
+            weight="bold"
+            className="text-brand-primary animate-spin"
+          />
         </div>
       }
     >

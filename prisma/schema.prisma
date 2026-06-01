@@ -18,7 +18,35 @@ model Review {
   rating    Int
   createdAt DateTime @default(now())
 }
+// Dodaj to do swojego pliku schema.prisma
 
+enum DietType {
+  OMNIVORE
+  VEGETARIAN
+  VEGAN
+  OTHER
+}
+
+model HealthProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  dietType          DietType @default(OMNIVORE)
+  foodIntolerances  String[] // Tablica stringów (PostgreSQL wspiera natywnie, na MySQL/SQLite też działa)
+  foodNotes         String?  @db.Text
+  
+  chronicConditions String?  @db.Text
+  medications       String?  @db.Text
+  injuries          String?  @db.Text
+  allergies         String?  @db.Text
+  
+  emergencyName     String?
+  emergencyPhone    String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
 model Trip {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
@@ -39,8 +67,9 @@ model Trip {
   heroImage    String?
   description  String?  @db.Text
   services     TripService[]
+  spaBlocks    SpaBlock[]
   blocks       Json?    @default("[]")
-
+isSchedulePublished Boolean @default(false)
   // ── SEO (mirror modelu Post) ─────────────────────
   metaTitle       String?
   metaDescription String?  @db.Text
@@ -59,6 +88,26 @@ model Trip {
   bookings     Booking[]
   events       TripEvent[]
   pageViews    TripView[]
+  activities   Activity[]
+  messages     Message[]
+}
+
+// Wiadomość w grupowym czacie wyjazdowym (uczestniczki + organizator).
+model Message {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Flaga ułatwiająca wyróżnianie dymków organizatora na froncie.
+  isAdmin   Boolean  @default(false)
+
+  @@index([tripId, createdAt])
 }
 // DO DODANIA NA DOLE PLIKU SCHEMA.PRISMA:
 
@@ -183,8 +232,12 @@ model ExtraService {
   duration    Int
   price       Decimal
   description String?  @db.Text
+  image       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Kopie tej usługi przypisane do konkretnych wyjazdów (umożliwia propagację edycji)
+  tripServices TripService[]
 }
 
 model TripService {
@@ -193,12 +246,19 @@ model TripService {
   duration    Int      // minuty
   price       Decimal
   description String?  @db.Text
+  image       String?
 
   tripId      String
   trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
-  slots       ServiceSlot[]
+  // Powiązanie z globalnym katalogiem (ExtraService). Null = usługa tylko dla tego campu.
+  sourceServiceId String?
+  sourceService   ExtraService? @relation(fields: [sourceServiceId], references: [id], onDelete: SetNull)
+
   orders      ServiceOrder[]
+  spaBlocks   SpaBlockService[]
+
+  @@index([sourceServiceId])
 }
 
 // Ogólny punkt harmonogramu wyjazdu widoczny dla wszystkich uczestniczek
@@ -227,75 +287,87 @@ enum TripEventType {
   ANNOUNCEMENT
 }
 
-// Okienko czasowe na usługę, definiowane przez admina
-model ServiceSlot {
-  id        String      @id @default(cuid())
-  serviceId String
-  service   TripService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+// Otwarty "Pusty Blok SPA" definiowany przez admina.
+// Nie jest przypisany do konkretnej usługi — uczestniczka wybiera usługę
+// dopiero w trakcie rezerwacji. Capacity = ile równoległych rezerwacji
+// (różnych usług) mieści się w tym przedziale czasowym.
+model SpaBlock {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
-  startTime DateTime    // pełna data + godzina
-  endTime   DateTime    // startTime + service.duration
+  startTime DateTime
+  endTime   DateTime
+  capacity  Int      @default(1)
+  isActive  Boolean  @default(true)
 
-  isActive  Boolean     @default(true)
+  // true = wolny blok: każda usługa z katalogu, sumarycznie `capacity` rezerwacji.
+  // false = whitelist z per-service capacity (patrz `serviceCapacities`).
+  isOpen            Boolean            @default(true)
+  serviceCapacities SpaBlockService[]
 
-  // @unique gwarantuje na poziomie DB brak double-bookingów
-  order     ServiceOrder?
+  orders    ServiceOrder[]
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 }
 
-// Rezerwacja konkretnego slotu przez uczestniczkę
+// Pivot SpaBlock <-> TripService z capacity per usługa.
+// Istnieje tylko dla bloków whitelistowych (SpaBlock.isOpen = false).
+model SpaBlockService {
+  spaBlockId String
+  spaBlock   SpaBlock    @relation(fields: [spaBlockId], references: [id], onDelete: Cascade)
+
+  serviceId  String
+  service    TripService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  capacity   Int
+
+  @@id([spaBlockId, serviceId])
+  @@index([serviceId])
+}
+
+// Rezerwacja konkretnej usługi w wybranym bloku SPA
 model ServiceOrder {
   id        String   @id @default(cuid())
 
   bookingId String
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  slotId    String      @unique
-  slot      ServiceSlot @relation(fields: [slotId], references: [id])
+  spaBlockId String
+  spaBlock   SpaBlock @relation(fields: [spaBlockId], references: [id], onDelete: Cascade)
 
-  // Denormalizacja — szybki dostęp bez JOIN
   serviceId String
   service   TripService @relation(fields: [serviceId], references: [id])
+
+  // Faktyczny przedział czasowy zarezerwowany w bloku.
+  // Wolny blok: sub-slot wybrany przez klientkę. Whitelist: pokrywa cały blok.
+  // TEMP nullable — backfill ze SpaBlock, potem podniesiemy na required.
+  startTime DateTime?
+  endTime   DateTime?
 
   price     Decimal  // snapshot ceny z momentu rezerwacji
 
   // PENDING | PAID | CANCELLED
-  status          String   @default("PENDING")
-  paymentIntentId String?
-  paidAt          DateTime?
+  status            String    @default("PENDING")
+  stripeSessionId   String?   @unique
+  paymentIntentId   String?
+  paidAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([spaBlockId, status])
 }
 
-// Karta zdrowia uczestniczki — 1:1 z User (trwałe, reużywane między wyjazdami)
-model HealthProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  dietType         String?   // OMNIVORE | VEGETARIAN | VEGAN | OTHER
-  foodIntolerances String[]
-  foodNotes        String?   @db.Text
-
-  chronicConditions String?  @db.Text
-  medications       String?  @db.Text
-  injuries          String?  @db.Text
-  allergies         String?  @db.Text
-
-  emergencyName  String?
-  emergencyPhone String?
-
-  updatedAt DateTime @updatedAt
-}
 model Activity {
   id        String   @id @default(cuid())
-  pillar    String   // np. "CAMP", "VOD", "BLOG", "SYSTEM"
-  kind      String   // np. "PAYMENT", "SIGNUP", "HEALTH_FILLED"
-  who       String   // np. "Kasia R." albo "System"
+  tripId    String?  // <--- DODANE POLE
+  trip      Trip?    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  pillar    String   // np. "CAMP"
+  kind      String   // np. "PAYMENT"
+  who       String   // np. "Anna Kowalska"
   text      String   // np. "Opłaciła zadatek"
-  meta      String?  // np. "+600 zł" (opcjonalne)
+  meta      String?  // Dodatkowe dane, np. json z kwotą
   createdAt DateTime @default(now())
 }
 // ==========================================
@@ -353,6 +425,7 @@ model User {
   bookings      Booking[]
   healthProfile HealthProfile?
   notifications Notification[]
+  messages      Message[]
 }
 
 model Notification {

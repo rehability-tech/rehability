@@ -95,7 +95,7 @@ interface FeaturedTripProps {
 export function FeaturedTrip({ initialTrip }: FeaturedTripProps) {
   // Jeśli z jakiegoś powodu baza nie zwróci żadnego wyjazdu, po prostu ukrywamy tę sekcję
   if (!initialTrip) return null;
-  console.log(initialTrip.location);
+  
 
   return (
     <section className="container mx-auto px-4 max-[1024px]:px-6 pt-24 pb-16 overflow-hidden">

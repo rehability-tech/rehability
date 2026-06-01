@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { validateTripCompleteness } from "@/lib/trips/validateTripCompleteness";
+import { createSystemUpdate } from "@/lib/notifications/send";
 import { z } from "zod";
 
 // Definiujemy schemat Zod dla aktualizacji statusu
@@ -38,6 +39,7 @@ export async function PATCH(req: Request) {
     // =================================================================
     // 3. TWARDA WALIDACJA PRZED PUBLIKACJĄ (Blokada "pustaków")
     // =================================================================
+    let previousStatus: string | null = null;
     if (status === "PUBLISHED") {
       const trip = await prisma.trip.findUnique({ where: { id } });
 
@@ -47,6 +49,8 @@ export async function PATCH(req: Request) {
           { status: 404 },
         );
       }
+
+      previousStatus = trip.status;
 
       const { isComplete, missing } = validateTripCompleteness(trip);
 
@@ -66,6 +70,21 @@ export async function PATCH(req: Request) {
       where: { id },
       data: { status },
     });
+
+    // 5. SYSTEM_UPDATE [D] + PUSH [P] do uczestniczek — tylko przy pierwszej publikacji
+    if (status === "PUBLISHED" && previousStatus !== "PUBLISHED") {
+      createSystemUpdate({
+        type: "CAMP",
+        title: `Nowy wyjazd: ${updatedCamp.title}`,
+        description:
+          updatedCamp.description?.slice(0, 240) ||
+          "Sprawdź nowy wyjazd w ofercie.",
+        link: `/wyjazdy/${updatedCamp.id}`,
+        push: true,
+      }).catch((err) =>
+        console.error("[wyjazdy/status] createSystemUpdate failed:", err),
+      );
+    }
 
     return NextResponse.json({ success: true, trip: updatedCamp });
   } catch (error: any) {

@@ -20,11 +20,17 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, duration, price, description } = body;
+    const { name, duration, price, description, image } = body;
 
     if (!name || !duration || !price) {
       return NextResponse.json(
         { error: "Brak wymaganych pól" },
+        { status: 400 },
+      );
+    }
+    if (!description || !String(description).trim()) {
+      return NextResponse.json(
+        { error: "Opis usługi jest wymagany" },
         { status: 400 },
       );
     }
@@ -35,6 +41,7 @@ export async function POST(req: Request) {
         duration: parseInt(duration, 10), // <--- ZMIANA: Zmieniamy tekst z formularza na liczbę
         price: parseFloat(price),
         description,
+        image: typeof image === "string" && image.trim() ? image : null,
       },
     });
 
@@ -52,7 +59,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, duration, price, description } = body;
+    const { id, name, duration, price, description, image } = body;
 
     if (!id || !name || !duration || !price) {
       return NextResponse.json(
@@ -60,16 +67,32 @@ export async function PATCH(req: Request) {
         { status: 400 },
       );
     }
+    if (!description || !String(description).trim()) {
+      return NextResponse.json(
+        { error: "Opis usługi jest wymagany" },
+        { status: 400 },
+      );
+    }
 
-    const updatedService = await prisma.extraService.update({
-      where: { id },
-      data: {
-        name,
-        duration: parseInt(duration, 10),
-        price: parseFloat(price),
-        description,
-      },
-    });
+    const data = {
+      name,
+      duration: parseInt(duration, 10),
+      price: parseFloat(price),
+      description,
+      image:
+        image === null
+          ? null
+          : typeof image === "string" && image.trim()
+            ? image
+            : undefined,
+    };
+
+    // Propagacja: edycja w katalogu globalnym aktualizuje też wszystkie
+    // kopie usługi przypisane do campów (TripService powiązane przez sourceServiceId).
+    const [updatedService] = await prisma.$transaction([
+      prisma.extraService.update({ where: { id }, data }),
+      prisma.tripService.updateMany({ where: { sourceServiceId: id }, data }),
+    ]);
 
     return NextResponse.json(updatedService);
   } catch (error) {

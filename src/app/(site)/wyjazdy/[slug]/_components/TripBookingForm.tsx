@@ -21,11 +21,6 @@ import { cn } from "@/lib/utils";
 import StripePaymentStep from "./StripePaymentStep";
 import Link from "next/link";
 
-const COLORS = {
-  text: "#0B3B4C",
-  accent: "#287D88",
-} as const;
-
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SPRING = { type: "spring", stiffness: 320, damping: 32 } as const;
 
@@ -79,10 +74,8 @@ function splitName(full: string | null): {
 
 function clampStep(n: number | undefined, isLogged: boolean): Step {
   if (!n) return 1;
-  // Niezalogowany nie może być dalej niż na kroku 2.
   const max: Step = isLogged ? 5 : 2;
-  const clamped = Math.min(Math.max(1, Math.floor(n)), max);
-  return clamped as Step;
+  return Math.min(Math.max(1, Math.floor(n)), max) as Step;
 }
 
 export default function TripBookingForm({
@@ -113,6 +106,7 @@ export default function TripBookingForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
 
   const isDuo = variant === "duo";
 
@@ -125,7 +119,7 @@ export default function TripBookingForm({
     if (!health) e.health = "Wymagane oświadczenie zdrowotne.";
     if (isDuo) {
       if (!friend.firstName.trim())
-        e.friendFirstName = "Podaj imię przyjaciółki.";
+        e.friendFirstName = "Podaj imię osoby towarzyszącej.";
       if (!friend.lastName.trim()) e.friendLastName = "Podaj nazwisko.";
       if (!isValidEmail(friend.email)) e.friendEmail = "Nieprawidłowy email.";
       if (
@@ -151,37 +145,19 @@ export default function TripBookingForm({
   }
 
   function handleNext() {
-    if (step === 1) {
-      // Po wariancie zawsze logowanie. Jeśli zalogowany — można od razu przeskoczyć do danych.
-      goTo(isLogged ? 3 : 2);
-      return;
-    }
-    if (step === 2) {
-      if (!isLogged) return;
-      goTo(3);
-      return;
-    }
-    if (step === 3) {
-      if (!step3Valid) return;
-      goTo(4);
-      return;
-    }
+    if (step === 1) return goTo(isLogged ? 3 : 2);
+    if (step === 2 && isLogged) return goTo(3);
+    if (step === 3 && step3Valid) return goTo(4);
   }
 
   function handleBack() {
-    if (step === 3 && isLogged) {
-      // Zalogowany pominął krok logowania — wracamy do wariantu.
-      goTo(1);
-      return;
-    }
+    if (step === 3 && isLogged) return goTo(1);
     goTo(Math.max(1, step - 1) as Step);
   }
 
   async function handleCreatePayment() {
-    if (!currentUser) {
-      goTo(2);
-      return;
-    }
+    if (!currentUser) return goTo(2);
+
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -210,10 +186,10 @@ export default function TripBookingForm({
         setSubmitting(false);
         return;
       }
-      const { clientSecret: secret } = (await res.json()) as {
-        clientSecret: string;
-      };
+      const { clientSecret: secret, bookingId: newBookingId } =
+        await res.json();
       setClientSecret(secret);
+      setBookingId(newBookingId);
       setSubmitting(false);
       goTo(5);
     } catch (err) {
@@ -226,47 +202,28 @@ export default function TripBookingForm({
   }
 
   const slideVariants = {
-    enter: (dir: 1 | -1) => ({
-      opacity: 0,
-      x: dir * 40,
-      filter: "blur(6px)",
-    }),
-    center: {
-      opacity: 1,
-      x: 0,
-      filter: "blur(0px)",
-    },
-    exit: (dir: 1 | -1) => ({
-      opacity: 0,
-      x: dir * -40,
-      filter: "blur(6px)",
-    }),
+    enter: (dir: 1 | -1) => ({ opacity: 0, x: dir * 40, filter: "blur(6px)" }),
+    center: { opacity: 1, x: 0, filter: "blur(0px)" },
+    exit: (dir: 1 | -1) => ({ opacity: 0, x: dir * -40, filter: "blur(6px)" }),
   };
 
   return (
-    <section
-      id="formularz-rezerwacji"
-      className="scroll-mt-24"
-      style={{ color: COLORS.text }}
-    >
+    <section id="formularz-rezerwacji" className="scroll-mt-32">
       <motion.div
         layout
         transition={SPRING}
-        className="rounded-3xl bg-white border border-gray-100 shadow-[0_30px_80px_-40px_rgba(11,59,76,0.25)] overflow-hidden"
+        className="relative rounded-[32px] bg-white/60 backdrop-blur-2xl border border-white/60 shadow-[0_15px_60px_-15px_rgba(3,63,99,0.15)] overflow-hidden"
       >
-        <header className="px-6 sm:px-10 pt-8 pb-6 border-b border-gray-100">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-400 font-montserrat">
-            <span
-              className="inline-block w-6 h-[2px]"
-              style={{ background: COLORS.accent }}
-            />
-            Zarezerwuj miejsce
+        {/* Subtelny Glow w Tle Formularza */}
+        <div className="absolute -top-20 -right-20 w-56 h-56 bg-brand-yellow/10 rounded-full blur-[60px] pointer-events-none" />
+
+        <header className="px-6 sm:px-8 pt-8 pb-6 border-b border-white/40 relative z-10">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-primary mb-2">
+            <span className="inline-block w-4 h-[2px] bg-brand-primary rounded-full" />
+            Zarezerwuj wyjazd
           </div>
-          <h2
-            className="mt-3 text-2xl sm:text-3xl font-jakarta font-bold"
-            style={{ color: COLORS.text }}
-          >
-            Twój wyjazd, krok po kroku
+          <h2 className="text-2xl sm:text-[28px] font-jakarta font-bold text-brand-secondary leading-tight">
+            Krok po kroku
           </h2>
           <Stepper step={step} />
         </header>
@@ -274,7 +231,7 @@ export default function TripBookingForm({
         <motion.div
           layout
           transition={SPRING}
-          className="px-6 sm:px-10 py-8 min-h-[420px]"
+          className="px-6 sm:px-8 py-8 min-h-[420px] relative z-10"
         >
           <AnimatePresence mode="wait" initial={false} custom={direction}>
             <motion.div
@@ -333,9 +290,10 @@ export default function TripBookingForm({
                 />
               )}
 
-              {step === 5 && clientSecret && (
+              {step === 5 && clientSecret && bookingId && (
                 <Step5Payment
                   clientSecret={clientSecret}
+                  bookingId={bookingId}
                   deposit={deposit}
                   price={price}
                 />
@@ -348,14 +306,14 @@ export default function TripBookingForm({
           <motion.footer
             layout
             transition={SPRING}
-            className="px-6 sm:px-10 py-5 bg-gray-50/60 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between"
+            className="px-6 sm:px-8 py-5 bg-white/40 border-t border-white/60 flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between relative z-10"
           >
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-800 transition px-4 py-2 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-brand-secondary/60 hover:text-brand-primary transition-colors px-4 py-2 disabled:opacity-50"
               >
                 <ArrowLeft size={16} weight="bold" /> Wstecz
               </button>
@@ -379,10 +337,10 @@ export default function TripBookingForm({
                 onClick={handleCreatePayment}
                 disabled={submitting}
                 loading={submitting}
-                loadingLabel="Przygotowujemy płatność…"
+                loadingLabel="Przetwarzanie…"
               >
                 <CreditCard size={16} weight="bold" />
-                Przejdź do płatności · {formatPLN(deposit)}
+                Opłać zadatek · {formatPLN(deposit)}
               </PrimaryButton>
             )}
           </motion.footer>
@@ -399,18 +357,17 @@ function Stepper({ step }: { step: Step }) {
     { n: 1, label: "Wariant" },
     { n: 2, label: "Konto" },
     { n: 3, label: "Dane" },
-    { n: 4, label: "Podsumowanie" },
+    { n: 4, label: "Podsum." },
     { n: 5, label: "Płatność" },
   ];
   const progress = ((step - 1) / (items.length - 1)) * 100;
 
   return (
-    <div className="mt-6">
+    <div className="mt-7">
       <div className="relative">
-        <div className="h-[2px] w-full bg-gray-100 rounded-full" />
+        <div className="h-1.5 w-full bg-white/50 rounded-full border border-white/60 shadow-inner" />
         <motion.div
-          className="absolute top-0 left-0 h-[2px] rounded-full"
-          style={{ background: COLORS.accent }}
+          className="absolute top-0 left-0 h-1.5 rounded-full bg-gradient-to-r from-brand-primary to-brand-yellow shadow-[0_0_10px_rgba(40,125,136,0.5)]"
           initial={false}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.5, ease: EASE }}
@@ -423,26 +380,29 @@ function Stepper({ step }: { step: Step }) {
           return (
             <li
               key={it.n}
-              className="flex flex-col items-center gap-1 flex-1 min-w-0"
+              className="flex flex-col items-center gap-1.5 flex-1 min-w-0"
             >
               <motion.span
                 initial={false}
                 animate={{
                   scale: active ? 1.1 : 1,
-                  background: done || active ? COLORS.accent : "#f3f4f6",
-                  color: done || active ? "#ffffff" : "#9ca3af",
+                  backgroundColor:
+                    done || active ? "#287D88" : "rgba(255, 255, 255, 0.6)",
+                  borderColor:
+                    done || active ? "#287D88" : "rgba(255, 255, 255, 0.8)",
+                  color: done || active ? "#ffffff" : "#0B3B4C",
+                  opacity: done || active ? 1 : 0.4,
                 }}
                 transition={SPRING}
-                className="flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold shadow-sm"
+                className="flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold shadow-sm border"
               >
                 {done ? <CheckCircle size={14} weight="fill" /> : it.n}
               </motion.span>
               <span
                 className={cn(
-                  "text-[10px] sm:text-xs font-semibold text-center truncate w-full",
-                  active ? "" : "text-gray-400",
+                  "text-[9px] sm:text-[10px] font-bold text-center truncate w-full tracking-wider uppercase",
+                  active ? "text-brand-secondary" : "text-brand-secondary/30",
                 )}
-                style={active ? { color: COLORS.text } : undefined}
               >
                 {it.label}
               </span>
@@ -456,23 +416,16 @@ function Stepper({ step }: { step: Step }) {
 
 /* ───────────────────────── Step 1: Variant ───────────────────────── */
 
-function Step1Variant({
-  variant,
-  setVariant,
-  price,
-  allowBringFriend,
-}: {
-  variant: Variant;
-  setVariant: (v: Variant) => void;
-  price: number;
-  allowBringFriend: boolean;
-}) {
+function Step1Variant({ variant, setVariant, price, allowBringFriend }: any) {
   return (
     <Stagger>
       <Item>
-        <h3 className="font-jakarta font-bold text-lg">Wybierz wariant</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Możesz pojechać sama lub zabrać przyjaciółkę i dzielić pokój.
+        <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+          Kto jedzie?
+        </h3>
+        <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+          Możesz zarezerwować miejsce tylko dla siebie lub zabrać ze sobą
+          osobę towarzyszącą.
         </p>
       </Item>
       <Item>
@@ -480,8 +433,8 @@ function Step1Variant({
           selected={variant === "standard"}
           onClick={() => setVariant("standard")}
           icon={<UserIcon size={22} weight="duotone" />}
-          title="Standard"
-          subtitle="Tylko ja"
+          title="Tylko ja"
+          subtitle="Jadę solo. Rezerwuję 1 miejsce."
           pricePerPerson={price}
         />
       </Item>
@@ -491,8 +444,8 @@ function Step1Variant({
             selected={variant === "duo"}
             onClick={() => setVariant("duo")}
             icon={<UsersThree size={22} weight="duotone" />}
-            title="Zabierz przyjaciółkę"
-            subtitle="Wspólny pokój. Każda płaci za siebie."
+            title="Zabierz osobę towarzyszącą"
+            subtitle="Dzielicie pokój, my zajmiemy się resztą."
             pricePerPerson={price}
             badge="Duo"
           />
@@ -504,22 +457,16 @@ function Step1Variant({
 
 /* ───────────────────────── Step 2: Login ───────────────────────── */
 
-function Step2Login({
-  currentUser,
-  onLogin,
-  variant,
-}: {
-  currentUser: CurrentUser | null;
-  onLogin: () => void;
-  variant: Variant;
-}) {
+function Step2Login({ currentUser, onLogin, variant }: any) {
   if (currentUser) {
     return (
       <Stagger>
         <Item>
-          <h3 className="font-jakarta font-bold text-lg">Konto</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Jesteś zalogowana — przejdź dalej, aby uzupełnić dane.
+          <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+            Twoje konto
+          </h3>
+          <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+            Jesteś pomyślnie zalogowana. Możesz przejść do podsumowania danych.
           </p>
         </Item>
         <Item>
@@ -532,58 +479,51 @@ function Step2Login({
   return (
     <Stagger>
       <Item>
-        <h3 className="font-jakarta font-bold text-lg">
-          Zaloguj się, żeby kontynuować
+        <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+          Zaloguj się
         </h3>
-        <p className="text-sm text-gray-500 mt-1 max-w-prose">
-          Twoje konto powiążemy z rezerwacją — dzięki temu zobaczysz
-          harmonogram, QR-bilet i opłacisz pozostałą część w panelu
-          uczestniczki.
+        <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+          Konto jest wymagane, by móc opłacić resztę wyjazdu, wyświetlić swój
+          e-bilet i uzyskać dostęp do panelu uczestnika.
         </p>
       </Item>
-
       <Item>
         <button
           type="button"
           onClick={onLogin}
-          className="group w-full rounded-2xl border-2 border-gray-200 hover:border-[#287D88] bg-white px-5 py-4 flex items-center justify-between gap-4 transition shadow-sm hover:shadow-md"
+          className="group w-full rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm px-5 py-4 flex items-center justify-between gap-4 transition-all shadow-sm hover:shadow-[0_8px_20px_-8px_rgba(40,125,136,0.2)] hover:border-brand-primary/30"
         >
           <div className="flex items-center gap-4">
-            <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-gray-100">
-              <GoogleLogo size={22} weight="bold" />
+            <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-white shadow-sm">
+              <GoogleLogo size={22} weight="bold" className="text-gray-700" />
             </span>
             <div className="text-left">
-              <div
-                className="font-jakarta font-bold text-base"
-                style={{ color: COLORS.text }}
-              >
+              <div className="font-jakarta font-bold text-[15px] text-brand-secondary">
                 Kontynuuj z Google
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Bezpieczne logowanie — bez haseł.
+              <p className="text-[12px] font-medium text-brand-secondary/50 mt-0.5">
+                Bezpieczne i błyskawiczne logowanie.
               </p>
             </div>
           </div>
           <ArrowRight
             size={20}
             weight="bold"
-            className="text-gray-300 group-hover:text-[#287D88] transition"
+            className="text-brand-secondary/30 group-hover:text-brand-primary transition-colors"
           />
         </button>
       </Item>
-
       <Item>
-        <div className="flex items-start gap-3 text-[12px] text-gray-500 rounded-xl bg-gray-50 px-4 py-3">
+        <div className="flex items-start gap-3 text-[12px] font-medium text-brand-secondary/60 rounded-[16px] bg-brand-primary/5 border border-brand-primary/10 px-4 py-3">
           <ShieldCheck
-            size={16}
+            size={18}
             weight="duotone"
-            style={{ color: COLORS.accent }}
-            className="shrink-0 mt-0.5"
+            className="text-brand-primary shrink-0 mt-0.5"
           />
           <p>
-            Po zalogowaniu wrócisz dokładnie tu, z wybranym wariantem (
-            <strong>{variant === "duo" ? "Duo" : "Standard"}</strong>). Twoich
-            danych nie używamy do reklam.
+            Po autoryzacji wrócisz dokładnie do tego miejsca z wariantem{" "}
+            <strong>{variant === "duo" ? "Duo" : "Standard"}</strong>.
+            Obiecujemy, żadnego spamu.
           </p>
         </div>
       </Item>
@@ -593,40 +533,35 @@ function Step2Login({
 
 function LoggedInCard({ user }: { user: CurrentUser }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-5 flex items-center justify-between gap-4">
+    <div className="rounded-[20px] border border-white/60 bg-white/50 backdrop-blur-sm shadow-sm p-4 flex items-center justify-between gap-4">
       <div className="flex items-center gap-4 min-w-0">
         {user.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.image}
             alt=""
             className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
           />
         ) : (
-          <span
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-            style={{ background: COLORS.accent }}
-          >
+          <span className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-brand-primary to-brand-yellow shadow-sm">
             {(user.name ?? user.email).slice(0, 1).toUpperCase()}
           </span>
         )}
         <div className="min-w-0">
-          <div
-            className="font-jakarta font-bold text-base truncate"
-            style={{ color: COLORS.text }}
-          >
+          <div className="font-jakarta font-bold text-[15px] text-brand-secondary truncate">
             {user.name ?? "Witaj!"}
           </div>
-          <div className="text-sm text-gray-500 truncate">{user.email}</div>
+          <div className="text-[12px] font-medium text-brand-secondary/50 truncate">
+            {user.email}
+          </div>
         </div>
       </div>
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: window.location.href })}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 px-3 py-2 rounded-lg hover:bg-white transition shrink-0"
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-secondary/40 hover:text-rose-500 px-3 py-2 rounded-xl hover:bg-white transition shrink-0"
       >
         <SignOut size={14} weight="bold" />
-        Zmień konto
+        Wyloguj
       </button>
     </div>
   );
@@ -646,43 +581,16 @@ function Step3Details({
   health,
   setHealth,
   errors,
-}: {
-  currentUser: CurrentUser;
-  customer: Customer;
-  setCustomer: (c: Customer) => void;
-  friend: Friend;
-  setFriend: (f: Friend) => void;
-  isDuo: boolean;
-  rodo: boolean;
-  setRodo: (v: boolean) => void;
-  health: boolean;
-  setHealth: (v: boolean) => void;
-  errors: Partial<Record<string, string>>;
-}) {
+}: any) {
   return (
     <Stagger>
       <Item>
-        <h3 className="font-jakarta font-bold text-lg">Twoje dane</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Email pobieramy z konta Google. Uzupełnij telefon i, jeśli trzeba,
-          dane przyjaciółki.
+        <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+          Dane uczestników
+        </h3>
+        <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+          Uzupełnij brakujące dane. Dbamy o Twoją prywatność.
         </p>
-      </Item>
-
-      <Item>
-        <div className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-          <ShieldCheck
-            size={16}
-            weight="duotone"
-            style={{ color: COLORS.accent }}
-          />
-          <span
-            className="text-sm font-semibold truncate"
-            style={{ color: COLORS.text }}
-          >
-            {currentUser.email}
-          </span>
-        </div>
       </Item>
 
       <Item>
@@ -701,7 +609,7 @@ function Step3Details({
           />
           <div className="sm:col-span-2">
             <Field
-              label="Telefon"
+              label="Numer telefonu"
               type="tel"
               value={customer.phone}
               onChange={(v) => setCustomer({ ...customer, phone: v })}
@@ -713,20 +621,23 @@ function Step3Details({
 
       {isDuo && (
         <Item>
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-5">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="rounded-[20px] border border-brand-primary/20 bg-brand-primary/5 p-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-[40px] pointer-events-none" />
+            <div className="flex items-center gap-2 mb-2 relative z-10">
               <UsersThree
-                size={18}
+                size={20}
                 weight="duotone"
-                style={{ color: COLORS.accent }}
+                className="text-brand-primary"
               />
-              <h4 className="font-jakarta font-bold">Twoja przyjaciółka</h4>
+              <h4 className="font-jakarta font-bold text-[15px] text-brand-secondary">
+                Dane osoby towarzyszącej
+              </h4>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
-              Wyślemy jej zaproszenie do dołączenia. Ma 24h na opłacenie swojego
-              zadatku.
+            <p className="text-[12px] font-medium text-brand-secondary/60 mb-5 relative z-10 leading-relaxed">
+              Prześlemy jej dedykowany link do opłacenia swojego zadatku. Ma na
+              to równe 24 godziny.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
               <Field
                 label="Imię"
                 value={friend.firstName}
@@ -741,7 +652,7 @@ function Step3Details({
               />
               <div className="sm:col-span-2">
                 <Field
-                  label="Email przyjaciółki"
+                  label="Adres e-mail"
                   type="email"
                   value={friend.email}
                   onChange={(v) => setFriend({ ...friend, email: v })}
@@ -754,20 +665,20 @@ function Step3Details({
       )}
 
       <Item>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 mt-2">
           <Consent
             checked={rodo}
             onChange={setRodo}
             error={errors.rodo}
             label={
               <>
-                Zgadzam się na przetwarzanie moich danych osobowych zgodnie z{" "}
+                Akceptuję{" "}
                 <Link
                   target="_blank"
-                  className="font-bold"
+                  className="font-bold hover:text-brand-primary transition"
                   href={"/polityka-prywatnosci"}
                 >
-                  polityką prywatności (RODO)
+                  Regulamin i RODO
                 </Link>
                 .
               </>
@@ -780,8 +691,7 @@ function Step3Details({
             label={
               <>
                 Oświadczam, że nie mam{" "}
-                <strong>przeciwwskazań zdrowotnych</strong> do udziału w
-                wyjeździe.
+                <strong>przeciwwskazań zdrowotnych</strong> do udziału.
               </>
             }
           />
@@ -802,53 +712,43 @@ function Step4Summary({
   price,
   deposit,
   submitError,
-}: {
-  tripTitle: string;
-  isDuo: boolean;
-  currentUser: CurrentUser;
-  customer: Customer;
-  friend: Friend;
-  price: number;
-  deposit: number;
-  submitError: string | null;
-}) {
+}: any) {
   return (
     <Stagger>
       <Item>
-        <h3 className="font-jakarta font-bold text-lg">Podsumowanie</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Sprawdź dane przed płatnością.
+        <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+          Podsumowanie rezerwacji
+        </h3>
+        <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+          Upewnij się, że wszystkie dane się zgadzają przed przejściem do
+          płatności.
         </p>
       </Item>
 
       <Item>
-        <div className="rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Heart
-              size={16}
-              weight="duotone"
-              style={{ color: COLORS.accent }}
-            />
-            <h4
-              className="font-jakarta font-bold text-base"
-              style={{ color: COLORS.text }}
-            >
+        <div className="rounded-[20px] bg-white border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100">
+            <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center">
+              <Heart size={16} weight="fill" className="text-brand-primary" />
+            </div>
+            <h4 className="font-jakarta font-bold text-[15px] text-brand-secondary leading-tight">
               {tripTitle}
             </h4>
           </div>
-          <dl className="flex flex-col gap-1.5">
-            <SummaryRow label="Wariant">
-              {isDuo ? "Zabierz przyjaciółkę (Duo)" : "Standard"}
+          <dl className="flex flex-col gap-3">
+            <SummaryRow label="Wybrany wariant">
+              {isDuo ? "Wyjazd we dwoje (Duo)" : "Wyjazd Standardowy"}
             </SummaryRow>
-            <SummaryRow label="Uczestniczka">
+            <SummaryRow label="Uczestnik">
               {customer.firstName} {customer.lastName}
             </SummaryRow>
-            <SummaryRow label="Kontakt">
-              {currentUser.email} · {customer.phone}
-            </SummaryRow>
+            <SummaryRow label="Kontakt">{currentUser.email}</SummaryRow>
             {isDuo && (
-              <SummaryRow label="Przyjaciółka">
-                {friend.firstName} {friend.lastName} ({friend.email})
+              <SummaryRow label="Osoba towarzysząca">
+                {friend.firstName} {friend.lastName}{" "}
+                <span className="text-gray-400 font-normal">
+                  ({friend.email})
+                </span>
               </SummaryRow>
             )}
           </dl>
@@ -856,49 +756,33 @@ function Step4Summary({
       </Item>
 
       <Item>
-        <div
-          className="rounded-2xl p-5"
-          style={{ background: `${COLORS.accent}10` }}
-        >
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-gray-600">Cena za osobę</span>
-            <span
-              className="font-jakarta font-bold"
-              style={{ color: COLORS.text }}
-            >
+        <div className="rounded-[20px] bg-brand-secondary/5 border border-brand-secondary/10 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[13px] font-semibold text-brand-secondary/60">
+              Cena wyjazdu (za os.)
+            </span>
+            <span className="font-jakarta font-bold text-[15px] text-brand-secondary strike line-through opacity-50">
               {formatPLN(price)}
             </span>
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-sm text-gray-600">
-              Zadatek (do zapłaty teraz)
+          <div className="flex items-center justify-between pt-3 border-t border-brand-secondary/10 mt-1">
+            <span className="text-[13px] font-bold text-brand-secondary">
+              Zadatek (płacisz teraz)
             </span>
-            <span
-              className="text-2xl font-jakarta font-bold"
-              style={{ color: COLORS.accent }}
-            >
+            <span className="text-[24px] font-jakarta font-extrabold text-brand-primary drop-shadow-sm">
               {formatPLN(deposit)}
             </span>
           </div>
-          <p className="text-[12px] text-gray-500 mt-2">
-            Pozostałą część opłacisz później w swoim panelu — najpóźniej przed
-            wyjazdem.
+          <p className="text-[11px] font-medium text-brand-secondary/50 mt-3 leading-relaxed">
+            Pozostałą kwotę uregulujesz w wygodnym dla siebie momencie za pomocą
+            swojego panelu uczestnika, najpóźniej przed wyjazdem.
           </p>
         </div>
       </Item>
 
-      {isDuo && (
-        <Item>
-          <div className="text-[13px] text-gray-500 leading-relaxed bg-amber-50/60 border border-amber-100 rounded-xl px-4 py-3">
-            Twoja przyjaciółka otrzyma osobny link do opłacenia swojego zadatku.
-            Jeśli nie zapłaci w ciągu 24 godzin, jej miejsce zostanie zwolnione.
-          </div>
-        </Item>
-      )}
-
       {submitError && (
         <Item>
-          <div className="flex items-start gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+          <div className="flex items-start gap-2 text-[13px] font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-[14px] px-4 py-3 shadow-sm">
             <WarningCircle
               size={18}
               weight="fill"
@@ -914,34 +798,30 @@ function Step4Summary({
 
 /* ───────────────────────── Step 5: Payment ───────────────────────── */
 
-function Step5Payment({
-  clientSecret,
-  deposit,
-  price,
-}: {
-  clientSecret: string;
-  deposit: number;
-  price: number;
-}) {
+function Step5Payment({ clientSecret, bookingId, deposit, price }: any) {
+  const returnUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/panel/wyjazdy/${bookingId}?status=processing`
+      : "";
   return (
     <Stagger>
       <Item>
-        <h3 className="font-jakarta font-bold text-lg">Płatność</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Zadatek: <strong>{formatPLN(deposit)}</strong> · pozostałe{" "}
-          {formatPLN(price - deposit)} opłacisz później w panelu.
+        <h3 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+          Płatność bezpieczna
+        </h3>
+        <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
+          Sfinalizuj płatność zadatku ({formatPLN(deposit)}). Twoja rezerwacja
+          zostanie natychmiast potwierdzona.
         </p>
       </Item>
       <Item>
-        <StripePaymentStep
-          clientSecret={clientSecret}
-          depositLabel={formatPLN(deposit)}
-          returnUrl={
-            typeof window !== "undefined"
-              ? `${window.location.origin}/wyjazdy/sukces`
-              : "/wyjazdy/sukces"
-          }
-        />
+        <div className="rounded-[24px] bg-white border border-gray-100 p-2 shadow-sm">
+          <StripePaymentStep
+            clientSecret={clientSecret}
+            depositLabel={formatPLN(deposit)}
+            returnUrl={returnUrl}
+          />
+        </div>
       </Item>
     </Stagger>
   );
@@ -990,15 +870,7 @@ function VariantCard({
   subtitle,
   pricePerPerson,
   badge,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  pricePerPerson: number;
-  badge?: string;
-}) {
+}: any) {
   return (
     <motion.button
       type="button"
@@ -1007,57 +879,51 @@ function VariantCard({
       whileTap={{ scale: 0.98 }}
       transition={SPRING}
       className={cn(
-        "relative w-full text-left rounded-2xl border-2 p-5 transition-colors",
-        "flex items-center justify-between gap-4",
-        selected ? "shadow-md" : "border-gray-200 hover:border-gray-300",
-      )}
-      style={
+        "relative w-full text-left rounded-[20px] p-5 transition-all duration-300 flex items-center justify-between gap-4 border-2",
         selected
-          ? { borderColor: COLORS.accent, background: `${COLORS.accent}08` }
-          : undefined
-      }
+          ? "bg-white/80 border-brand-primary shadow-[0_8px_20px_-8px_rgba(40,125,136,0.3)]"
+          : "bg-white/40 border-white/60 hover:bg-white/70 hover:border-brand-primary/30",
+      )}
     >
       <div className="flex items-center gap-4">
         <motion.span
           initial={false}
           animate={{
-            background: selected ? COLORS.accent : "#f3f4f6",
-            color: selected ? "#fff" : COLORS.text,
+            background: selected
+              ? "linear-gradient(135deg, #287D88, #3DB5C4)"
+              : "#ffffff",
+            color: selected ? "#fff" : "#287D88",
             scale: selected ? 1.05 : 1,
+            boxShadow: selected
+              ? "0 4px 12px rgba(40,125,136,0.3)"
+              : "0 2px 8px rgba(0,0,0,0.05)",
           }}
           transition={SPRING}
-          className="flex items-center justify-center w-12 h-12 rounded-xl"
+          className="flex items-center justify-center w-12 h-12 rounded-[14px]"
         >
           {icon}
         </motion.span>
         <div>
           <div className="flex items-center gap-2">
-            <span
-              className="font-jakarta font-bold text-base"
-              style={{ color: COLORS.text }}
-            >
+            <span className="font-jakarta font-bold text-[15px] text-brand-secondary">
               {title}
             </span>
             {badge && (
-              <span
-                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white"
-                style={{ background: COLORS.accent }}
-              >
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-yellow/20 text-brand-secondary border border-brand-yellow/30">
                 {badge}
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          <p className="text-[12px] font-medium text-brand-secondary/50 mt-0.5">
+            {subtitle}
+          </p>
         </div>
       </div>
       <div className="text-right">
-        <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">
-          /os.
+        <div className="text-[10px] uppercase tracking-widest text-brand-secondary/40 font-bold mb-0.5">
+          /osoba
         </div>
-        <div
-          className="font-jakarta font-bold text-lg"
-          style={{ color: COLORS.text }}
-        >
+        <div className="font-jakarta font-bold text-[16px] text-brand-secondary">
           {formatPLN(pricePerPerson)}
         </div>
       </div>
@@ -1068,8 +934,7 @@ function VariantCard({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={SPRING}
-            className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md"
-            style={{ background: COLORS.accent }}
+            className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full flex items-center justify-center text-white bg-brand-primary shadow-sm ring-4 ring-white"
           >
             <CheckCircle size={14} weight="fill" />
           </motion.span>
@@ -1079,22 +944,10 @@ function VariantCard({
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  error,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: "text" | "email" | "tel";
-  error?: string;
-}) {
+function Field({ label, value, onChange, type = "text", error }: any) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-semibold text-gray-500 font-montserrat">
+      <span className="text-[12px] font-bold text-brand-secondary/70 tracking-wide pl-1">
         {label}
       </span>
       <input
@@ -1102,13 +955,11 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "px-4 py-3 rounded-xl border bg-white text-sm font-medium outline-none transition",
-          "focus:ring-2",
+          "px-4 py-3.5 rounded-[14px] border bg-white/70 backdrop-blur-sm text-[13px] font-semibold text-brand-secondary outline-none transition-all shadow-sm",
           error
-            ? "border-rose-300 focus:ring-rose-100"
-            : "border-gray-200 focus:ring-[#287D88]/20 focus:border-[#287D88]",
+            ? "border-rose-300 focus:ring-4 focus:ring-rose-100 bg-rose-50/50"
+            : "border-white focus:border-brand-primary/50 focus:ring-4 focus:ring-brand-primary/10 hover:border-gray-200",
         )}
-        style={{ color: COLORS.text }}
       />
       <AnimatePresence>
         {error && (
@@ -1116,8 +967,7 @@ function Field({
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
-            className="text-[11px] text-rose-500 font-montserrat"
+            className="text-[11px] font-semibold text-rose-500 pl-1 mt-0.5"
           >
             {error}
           </motion.span>
@@ -1127,27 +977,17 @@ function Field({
   );
 }
 
-function Consent({
-  checked,
-  onChange,
-  label,
-  error,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: React.ReactNode;
-  error?: string;
-}) {
+function Consent({ checked, onChange, label, error }: any) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer group">
+    <label className="flex items-start gap-3.5 cursor-pointer group p-3 rounded-[14px] hover:bg-white/40 transition-colors border border-transparent hover:border-white/60">
       <motion.span
         animate={{
-          background: checked ? COLORS.accent : "#ffffff",
-          borderColor: checked ? COLORS.accent : "#d1d5db",
+          background: checked ? "#287D88" : "#ffffff",
+          borderColor: checked ? "#287D88" : "#e5e7eb",
           scale: checked ? 1.05 : 1,
         }}
         transition={SPRING}
-        className="mt-0.5 flex items-center justify-center w-5 h-5 rounded-md border-2 shrink-0"
+        className="mt-0.5 flex items-center justify-center w-[22px] h-[22px] rounded-[6px] border-2 shrink-0 shadow-sm"
       >
         <AnimatePresence>
           {checked && (
@@ -1155,42 +995,31 @@ function Consent({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              transition={{ duration: 0.15 }}
             >
-              <CheckCircle size={14} weight="fill" className="text-white" />
+              <CheckCircle size={14} weight="bold" className="text-white" />
             </motion.span>
           )}
         </AnimatePresence>
       </motion.span>
-      <span className="text-[13px] leading-relaxed text-gray-600 font-montserrat">
-        {label}
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] font-medium leading-relaxed text-brand-secondary/70">
+          {label}
+        </span>
         {error && (
-          <span className="block text-[11px] text-rose-500 mt-1">{error}</span>
+          <span className="text-[11px] font-bold text-rose-500">{error}</span>
         )}
-      </span>
-      <input
-        type="checkbox"
-        className="sr-only"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+      </div>
     </label>
   );
 }
 
-function SummaryRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function SummaryRow({ label, children }: any) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="font-semibold" style={{ color: COLORS.text }}>
-        {children}
-      </dd>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[13px]">
+      <dt className="text-brand-secondary/50 font-medium mb-1 sm:mb-0">
+        {label}
+      </dt>
+      <dd className="font-bold text-brand-secondary text-right">{children}</dd>
     </div>
   );
 }
@@ -1201,31 +1030,30 @@ function PrimaryButton({
   disabled,
   loading,
   loadingLabel,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  loadingLabel?: string;
-}) {
+}: any) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
       disabled={disabled}
       whileHover={disabled ? undefined : { y: -1 }}
-      whileTap={disabled ? undefined : { scale: 0.97 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       transition={SPRING}
+      style={{ backgroundSize: "200% auto" }}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-sm font-semibold transition",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-[16px] text-white text-[14px] font-bold transition-all duration-500",
+        "bg-gradient-to-r from-brand-primary from-0% via-brand-primary via-85% to-brand-yellow to-100% hover:bg-right shadow-[0_8px_20px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(40,125,136,0.6)]",
+        "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-left disabled:hover:shadow-none",
       )}
-      style={{ background: COLORS.accent }}
     >
       {loading ? (
         <>
-          <CircleNotch size={16} weight="bold" className="animate-spin" />
-          {loadingLabel ?? "Ładowanie…"}
+          <CircleNotch
+            size={18}
+            weight="bold"
+            className="animate-spin text-brand-yellow"
+          />
+          {loadingLabel ?? "Przetwarzanie…"}
         </>
       ) : (
         children

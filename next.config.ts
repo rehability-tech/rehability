@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["*.trycloudflare.com"],
+  allowedDevOrigins: ["192.168.100.12"],
   devIndicators: false,
 
   compress: true,

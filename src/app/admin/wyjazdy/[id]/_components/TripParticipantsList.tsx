@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   MagnifyingGlass,
   Question,
@@ -12,162 +11,158 @@ import {
   Sparkle,
   User,
   Clock,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
+import { cn } from "@/lib/utils";
 
 // ==========================================
-// 1. TYPY I DANE TESTOWE
+// 1. TYPY I MAPOWANIE Z BAZY
 // ==========================================
 
 interface Participant {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
   amountPaid: number;
-  paymentStatus: "PAID" | "DEPOSIT" | "PENDING_INVITATION" | "PENDING";
-  healthCardFilled: boolean;
-  hasExtraServices: boolean;
+  status: string; // PENDING | DEPOSIT_PAID | FULLY_PAID | PENDING_INVITATION
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null; // <--- DODALIŚMY POLE ZDJĘCIA
+    healthProfile?: any | null;
+  } | null;
+  serviceOrders?: any[];
 }
 
-const MOCK_PARTICIPANTS: Participant[] = [
-  {
-    id: "1",
-    name: "Anna Kowalska",
-    email: "anna.k@example.com",
-    amountPaid: 1800,
-    paymentStatus: "PAID",
-    healthCardFilled: true,
-    hasExtraServices: true,
-  },
-  {
-    id: "2",
-    name: "Marta Wiśniewska",
-    email: "marta.w@example.com",
-    amountPaid: 600,
-    paymentStatus: "DEPOSIT",
-    healthCardFilled: false,
-    hasExtraServices: false,
-  },
-  {
-    id: "3",
-    name: "Karolina Maj",
-    email: "k.maj@example.com",
-    amountPaid: 0,
-    paymentStatus: "PENDING_INVITATION",
-    healthCardFilled: false,
-    hasExtraServices: false,
-  },
-  {
-    id: "4",
-    name: "Piotr Zając",
-    email: "piotr.z@example.com",
-    amountPaid: 1800,
-    paymentStatus: "PAID",
-    healthCardFilled: true,
-    hasExtraServices: false,
-  },
-  {
-    id: "5",
-    name: "Joanna Lis",
-    email: "asia.lis@example.com",
-    amountPaid: 600,
-    paymentStatus: "DEPOSIT",
-    healthCardFilled: true,
-    hasExtraServices: true,
-  },
-];
+interface TripParticipantsListProps {
+  initialParticipants: Participant[];
+  tripId: string;
+}
+
+const ITEMS_PER_PAGE = 8;
 
 // ==========================================
 // 2. KOMPONENTY IKON STATUSU
 // ==========================================
 
 function ParticipantStatusIcons({ p }: { p: Participant }) {
-  const getPaymentIcon = () => {
-    switch (p.paymentStatus) {
-      case "PAID":
-        return (
-          <CurrencyCircleDollar
-            size={18}
-            weight="fill"
-            className="text-emerald-500"
-          />
-        );
-      case "DEPOSIT":
-        return (
-          <CurrencyCircleDollar
-            size={18}
-            weight="fill"
-            className="text-amber-500"
-          />
-        );
+  const getPaymentStyle = () => {
+    switch (p.status) {
+      case "FULLY_PAID":
+        return {
+          wrapper:
+            "bg-emerald-50 border-emerald-200/60 shadow-[0_2px_10px_-4px_rgba(16,185,129,0.3)]",
+          icon: (
+            <CurrencyCircleDollar
+              size={18}
+              weight="fill"
+              className="text-emerald-500"
+            />
+          ),
+        };
+      case "DEPOSIT_PAID":
+        return {
+          wrapper:
+            "bg-amber-50 border-amber-200/60 shadow-[0_2px_10px_-4px_rgba(245,158,11,0.3)]",
+          icon: (
+            <CurrencyCircleDollar
+              size={18}
+              weight="fill"
+              className="text-amber-500"
+            />
+          ),
+        };
       case "PENDING_INVITATION":
-        return (
-          <Clock
-            size={18}
-            weight="duotone"
-            className="text-blue-500 animate-pulse"
-          />
-        );
+        return {
+          wrapper:
+            "bg-blue-50 border-blue-200/60 shadow-[0_2px_10px_-4px_rgba(59,130,246,0.3)]",
+          icon: (
+            <Clock
+              size={18}
+              weight="duotone"
+              className="text-blue-500 animate-pulse"
+            />
+          ),
+        };
       default:
-        return (
-          <CurrencyCircleDollar
-            size={18}
-            weight="regular"
-            className="text-gray-300"
-          />
-        );
+        return {
+          wrapper: "bg-gray-50/50 border-gray-200/50",
+          icon: (
+            <CurrencyCircleDollar
+              size={18}
+              weight="regular"
+              className="text-gray-400"
+            />
+          ),
+        };
     }
   };
 
   const getPaymentTitle = () => {
-    switch (p.paymentStatus) {
-      case "PAID":
+    switch (p.status) {
+      case "FULLY_PAID":
         return "Całość opłacona";
-      case "DEPOSIT":
+      case "DEPOSIT_PAID":
         return "Opłacono tylko zadatek (do dopłaty)";
       case "PENDING_INVITATION":
         return "Oczekuje na wpłatę (Zaproszenie 24h)";
       default:
-        return "Brak wpłaty";
+        return "Brak wpłaty / Oczekiwanie";
     }
   };
 
+  const healthCardFilled = !!p.user?.healthProfile;
+  const hasExtraServices = p.serviceOrders && p.serviceOrders.length > 0;
+  const payment = getPaymentStyle();
+
   return (
-    <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-      {/* 1. STATUS PŁATNOŚCI */}
+    <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
       <div
         title={getPaymentTitle()}
-        className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-50 border border-gray-100 shrink-0"
+        className={cn(
+          "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border shrink-0 transition-colors",
+          payment.wrapper,
+        )}
       >
-        {getPaymentIcon()}
+        {payment.icon}
       </div>
 
-      {/* 2. STATUS KARTY ZDROWIA */}
       <div
         title={
-          p.healthCardFilled ? "Karta zdrowia wypełniona" : "Brak karty zdrowia"
+          healthCardFilled ? "Karta zdrowia wypełniona" : "Brak karty zdrowia"
         }
-        className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-50 border border-gray-100 shrink-0"
+        className={cn(
+          "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border shrink-0 transition-colors",
+          healthCardFilled
+            ? "bg-rose-50 border-rose-200/60 shadow-[0_2px_10px_-4px_rgba(244,63,94,0.3)]"
+            : "bg-gray-50/50 border-gray-200/50",
+        )}
       >
         <HeartStraight
           size={18}
-          weight={p.healthCardFilled ? "fill" : "regular"}
-          className={p.healthCardFilled ? "text-rose-500" : "text-gray-300"}
+          weight={healthCardFilled ? "fill" : "regular"}
+          className={healthCardFilled ? "text-rose-500" : "text-gray-400"}
         />
       </div>
 
-      {/* 3. STATUS USŁUG DODATKOWYCH */}
       <div
         title={
-          p.hasExtraServices
+          hasExtraServices
             ? "Wykupiono usługi dodatkowe"
             : "Brak usług dodatkowych"
         }
-        className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-50 border border-gray-100 shrink-0"
+        className={cn(
+          "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border shrink-0 transition-colors",
+          hasExtraServices
+            ? "bg-purple-50 border-purple-200/60 shadow-[0_2px_10px_-4px_rgba(168,85,247,0.3)]"
+            : "bg-gray-50/50 border-gray-200/50",
+        )}
       >
         <Sparkle
           size={18}
-          weight={p.hasExtraServices ? "fill" : "regular"}
-          className={p.hasExtraServices ? "text-purple-500" : "text-gray-300"}
+          weight={hasExtraServices ? "fill" : "regular"}
+          className={hasExtraServices ? "text-purple-500" : "text-gray-400"}
         />
       </div>
     </div>
@@ -178,103 +173,117 @@ function ParticipantStatusIcons({ p }: { p: Participant }) {
 // 3. GŁÓWNY KOMPONENT
 // ==========================================
 
-export function TripParticipantsList() {
+export function TripParticipantsList({
+  initialParticipants,
+  tripId,
+}: TripParticipantsListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const params = useParams();
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Pobieramy ID wyjazdu z URL (żeby zbudować poprawny link do profilu)
-  // Fallback na "1" jeśli jesteśmy na stronie bez parametru ID
-  const tripId = params?.id || params?.slug || "1";
+  const filteredParticipants = initialParticipants.filter((p) => {
+    const term = searchQuery.toLowerCase();
+    const finalName = (p.name || p.user?.name || "").toLowerCase();
+    const finalEmail = (p.email || p.user?.email || "").toLowerCase();
+    return finalName.includes(term) || finalEmail.includes(term);
+  });
 
-  const filteredParticipants = MOCK_PARTICIPANTS.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages =
+    Math.ceil(filteredParticipants.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentParticipants = filteredParticipants.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
   );
 
   return (
-    <div className="flex flex-col h-[500px] sm:h-[450px] bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm rounded-[24px] overflow-visible w-full max-w-full">
-      {/* TOPBAR SEKCJI */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-gray-100/60 bg-white/50 relative z-20 rounded-t-[24px]">
+    <div className="flex flex-col bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_-10px_rgba(3,63,99,0.1)] rounded-[28px] w-full max-w-full relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-[80px] pointer-events-none" />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 border-b border-white/50 relative z-20">
         <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
           <div className="flex items-center gap-3">
-            <h3 className="font-jakarta text-[17px] sm:text-[18px] font-bold text-[#0B3B4C] leading-none">
-              Uczestnicy
+            <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-brand-primary to-[#1f646d] shadow-md flex items-center justify-center">
+              <User size={20} weight="fill" className="text-white" />
+            </div>
+            <h3 className="font-jakarta text-xl font-bold text-brand-secondary leading-none">
+              Lista rezerwacji
             </h3>
-            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[12px] font-bold tabular-nums">
-              {MOCK_PARTICIPANTS.length}
+            <span className="px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[12px] font-bold tabular-nums">
+              {initialParticipants.length}
             </span>
           </div>
 
-          {/* LEGENDA (Pytajnik z dropdownem na hover) */}
-          <div className="relative group ml-1">
-            <button className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-400 hover:bg-[#0B3B4C] hover:text-white transition-colors cursor-help">
+          {/* LEGENDA */}
+          <div className="relative group ml-2">
+            <button className="flex items-center justify-center w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:bg-brand-yellow hover:border-brand-yellow hover:text-white shadow-sm transition-all cursor-help">
               <Question size={14} weight="bold" />
             </button>
-
-            <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-2 w-[calc(100vw-32px)] sm:w-72 max-w-[280px] p-4 bg-white border border-gray-100 shadow-[0_10px_40px_rgba(0,0,0,0.15)] rounded-[16px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none z-50 flex flex-col gap-3">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+            <div className="absolute right-0 sm:left-1/2 sm:-translate-x-1/2 top-[calc(100%+8px)] w-[calc(100vw-40px)] sm:w-[320px] p-5 bg-white/90 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_-15px_rgba(3,63,99,0.2)] rounded-[20px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none z-50 flex flex-col gap-4">
+              {/* Opis legendy bez zmian */}
+              <p className="text-[11px] font-bold text-brand-primary uppercase tracking-widest mb-1">
                 Legenda wskaźników
               </p>
-
               <div className="flex items-start gap-3">
                 <CurrencyCircleDollar
-                  size={18}
+                  size={20}
                   weight="fill"
                   className="text-emerald-500 shrink-0 mt-0.5"
                 />
-                <p className="text-[12px] text-gray-600 leading-tight">
-                  <strong className="text-gray-900 block">
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
+                  <strong className="text-brand-secondary block font-bold">
                     Opłacone (Całość)
-                  </strong>
-                  Uczestniczka uregulowała całą należność.
+                  </strong>{" "}
+                  Uczestnik uregulował całą należność.
                 </p>
               </div>
-
               <div className="flex items-start gap-3">
                 <CurrencyCircleDollar
-                  size={18}
+                  size={20}
                   weight="fill"
                   className="text-amber-500 shrink-0 mt-0.5"
                 />
-                <p className="text-[12px] text-gray-600 leading-tight">
-                  <strong className="text-gray-900 block">
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
+                  <strong className="text-brand-secondary block font-bold">
                     Zadatek (do dopłaty)
-                  </strong>
+                  </strong>{" "}
                   Resztę należy uregulować przed/na wyjeździe.
                 </p>
               </div>
-
               <div className="flex items-start gap-3">
                 <Clock
-                  size={18}
+                  size={20}
                   weight="duotone"
                   className="text-blue-500 shrink-0 mt-0.5"
                 />
-                <p className="text-[12px] text-gray-600 leading-tight">
-                  <strong className="text-gray-900 block">
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
+                  <strong className="text-brand-secondary block font-bold">
                     Zaproszenie 24h
-                  </strong>
+                  </strong>{" "}
                   Oczekuje na opłacenie zadatku.
                 </p>
               </div>
-
-              <div className="flex items-start gap-3 mt-1 pt-3 border-t border-gray-100">
+              <div className="w-full h-px bg-gray-100 my-1" />
+              <div className="flex items-start gap-3">
                 <HeartStraight
-                  size={18}
+                  size={20}
                   weight="fill"
                   className="text-rose-500 shrink-0 mt-0.5"
                 />
-                <p className="text-[12px] text-gray-600 leading-tight">
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
                   Wypełniono formularz <strong>Karty Zdrowia</strong>.
                 </p>
               </div>
-
               <div className="flex items-start gap-3">
                 <Sparkle
-                  size={18}
+                  size={20}
                   weight="fill"
                   className="text-purple-500 shrink-0 mt-0.5"
                 />
-                <p className="text-[12px] text-gray-600 leading-tight">
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
                   Dokupiono <strong>Usługi dodatkowe</strong> (np. masaże).
                 </p>
               </div>
@@ -283,84 +292,152 @@ export function TripParticipantsList() {
         </div>
 
         {/* WYSZUKIWARKA */}
-        <div className="relative w-full sm:w-64 mt-2 sm:mt-0">
+        <div className="relative w-full sm:w-72 mt-1 sm:mt-0 group">
           <MagnifyingGlass
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            weight="bold"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-secondary/40 group-focus-within:text-brand-primary transition-colors"
           />
           <input
             type="text"
-            placeholder="Szukaj uczestnika..."
+            placeholder="Szukaj po nazwisku lub e-mailu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white/60 border border-gray-200/60 rounded-xl text-[13px] text-[#0B3B4C] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition-shadow"
+            className="w-full pl-10 pr-4 py-2.5 bg-white/60 border border-white/50 rounded-[14px] text-[13px] font-medium text-brand-secondary placeholder:text-brand-secondary/40 focus:outline-none focus:ring-4 focus:ring-brand-primary/15 focus:border-brand-primary/30 focus:bg-white transition-all shadow-sm"
           />
         </div>
       </div>
 
-      {/* LISTA UCZESTNIKÓW (Scrollowalna zawartość) */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-2 sm:p-3 relative z-10">
-        {filteredParticipants.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <User size={32} weight="duotone" className="mb-2 opacity-50" />
-            <p className="text-[13px] font-medium text-center">
-              Nie znaleziono uczestników.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1 w-full max-w-full">
-            {filteredParticipants.map((participant, index) => (
-              /* ZMIANA: Cały wiersz to teraz nawigujący Link */
-              <Link
-                key={participant.id}
-                href={`/admin/wyjazdy/${tripId}/uczestnik/${participant.id}`}
-                className="block outline-none"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center justify-between p-2.5 sm:p-3 rounded-[16px] hover:bg-white/80 transition-colors group cursor-pointer border border-transparent hover:border-gray-100 shadow-sm hover:shadow-md w-full max-w-full"
-                >
-                  {/* Info o uczestniku */}
-                  <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 pr-2">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] sm:rounded-[12px] bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 flex items-center justify-center text-brand-secondary font-bold text-[12px] sm:text-[13px] shrink-0">
-                      {participant.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .substring(0, 2)}
-                    </div>
+      <div className="p-3 sm:p-4 relative z-10 min-h-[300px]">
+        <AnimatePresence mode="wait">
+          {filteredParticipants.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex flex-col items-center justify-center h-[250px] text-brand-secondary/40"
+            >
+              <div className="w-16 h-16 bg-white/80 rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-4">
+                <User
+                  size={32}
+                  weight="duotone"
+                  className="text-brand-primary/40"
+                />
+              </div>
+              <p className="text-[14px] font-semibold text-center text-brand-secondary/60">
+                Brak wyników wyszukiwania.
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`page-${currentPage}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col gap-2 w-full max-w-full"
+            >
+              {currentParticipants.map((participant) => {
+                const displayName =
+                  participant.name ||
+                  participant.user?.name ||
+                  "Nieznany uczestnik";
+                const displayEmail =
+                  participant.email ||
+                  participant.user?.email ||
+                  "Brak e-maila";
+                const avatarUrl = participant.user?.image; // <--- Pobieramy zdjęcie!
 
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="font-semibold text-[#0B3B4C] text-[13px] sm:text-[14px] truncate block w-full group-hover:text-brand-primary transition-colors">
-                        {participant.name}
-                      </span>
-                      <span className="text-gray-400 text-[11px] sm:text-[12px] truncate block w-full">
-                        {participant.email}
-                      </span>
-                    </div>
-                  </div>
+                return (
+                  <Link
+                    key={participant.id}
+                    href={`/admin/wyjazdy/${tripId}/uczestnicy/${participant.id}`}
+                    className="group block outline-none"
+                  >
+                    <div className="relative overflow-hidden flex items-center justify-between p-3 sm:p-3.5 rounded-[20px] bg-white/50 border border-white hover:bg-white/90 hover:border-brand-primary/30 transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_-8px_rgba(40,125,136,0.2)] w-full max-w-full">
+                      <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-brand-yellow/0 rounded-full blur-xl pointer-events-none group-hover:bg-brand-yellow/20 transition-colors duration-500" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 bg-brand-primary rounded-r-full transition-all duration-300 group-hover:h-3/4 opacity-0 group-hover:opacity-100" />
 
-                  {/* Wskaźniki */}
-                  <div className="flex items-center gap-2 sm:gap-6 shrink-0 pr-1">
-                    <ParticipantStatusIcons p={participant} />
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pl-1 pr-2 z-10">
+                        {/* ZDJĘCIE LUB INICJAŁY */}
+                        <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-[14px] overflow-hidden bg-gradient-to-br from-brand-primary from-[40%] to-brand-yellow flex items-center justify-center text-white font-bold text-[13px] sm:text-[14px] shrink-0 shadow-[0_2px_10px_-2px_rgba(40,125,136,0.5)] group-hover:scale-105 transition-transform duration-300">
+                          {avatarUrl ? (
+                            /* Używamy standardowego img dla bezproblemowej obsługi zewnętrznych URLi z Google/Fb */
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>
+                              {displayName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="hidden sm:flex flex-col items-end min-w-[60px]">
-                      <span className="text-[14px] font-bold text-[#0B3B4C] tabular-nums leading-none">
-                        {participant.amountPaid} zł
-                      </span>
-                      <span className="text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-wider">
-                        Wpłacono
-                      </span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-bold text-brand-secondary text-[13.5px] sm:text-[14.5px] truncate block w-full group-hover:text-brand-primary transition-colors">
+                            {displayName}
+                          </span>
+                          <span className="text-brand-secondary/50 font-medium text-[11.5px] sm:text-[12px] truncate block w-full mt-0.5">
+                            {displayEmail}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 sm:gap-6 shrink-0 z-10">
+                        <ParticipantStatusIcons p={participant} />
+
+                        <div className="hidden sm:flex flex-col items-end min-w-[70px]">
+                          <span className="text-[14.5px] font-bold text-brand-secondary tabular-nums leading-none">
+                            {(
+                              (participant.amountPaid || 0) / 100
+                            ).toLocaleString("pl-PL")}{" "}
+                            zł
+                          </span>
+                          <span className="text-[9px] text-brand-primary font-bold mt-1.5 uppercase tracking-widest">
+                            Wpłacono
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              </Link>
-            ))}
-          </div>
-        )}
+                  </Link>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-4 sm:p-5 border-t border-white/50 bg-white/30 mt-auto z-20">
+          <span className="text-[12px] font-bold text-brand-secondary/50 tracking-wider uppercase">
+            Strona {currentPage} z {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center justify-center w-9 h-9 rounded-[12px] bg-white border border-gray-200 text-brand-secondary shadow-sm hover:bg-brand-primary hover:border-brand-primary hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all"
+            >
+              <CaretLeft size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center justify-center w-9 h-9 rounded-[12px] bg-white border border-gray-200 text-brand-secondary shadow-sm hover:bg-brand-primary hover:border-brand-primary hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all"
+            >
+              <CaretRight size={16} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

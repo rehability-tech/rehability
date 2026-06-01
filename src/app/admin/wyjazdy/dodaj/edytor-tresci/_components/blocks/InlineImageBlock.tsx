@@ -92,7 +92,7 @@ export default function InlineImageBlock({
         type="text"
         value={imageAlt}
         onChange={(e) => onChange({ url: imageUrl, alt: e.target.value })}
-        placeholder="Krótki opis zdjęcia (np. Masaż twarzy dla kobiet)..."
+        placeholder="Krótki opis zdjęcia (np. Masaż twarzy na werandzie)..."
         className="w-full p-3.5 bg-gray-50/80 border border-gray-100 rounded-xl font-montserrat text-sm outline-none focus:border-brand-primary/30 focus:bg-white transition-all placeholder:text-gray-400 text-gray-700"
       />
       {uploadError && (

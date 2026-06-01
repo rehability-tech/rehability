@@ -1,9 +1,26 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@/generated/prisma";
 
 const ADMIN_EMAILS = ["biuro@kocikdev.com", "piotrsiemaszkofizjo@gmail.com"];
+
+const MOCK_USERS: Record<string, { email: string; name: string; role: Role }> = {
+  "biuro@kocikdev.com": {
+    email: "biuro@kocikdev.com",
+    name: "Michał (Mock Admin)",
+    role: "ADMIN",
+  },
+  "piotr.eher@gmail.com": {
+    email: "piotr.eher@gmail.com",
+    name: "Piotr (Mock User)",
+    role: "USER",
+  },
+};
+
+const isDev = process.env.NODE_ENV === "development";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -13,6 +30,45 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       allowDangerousEmailAccountLinking: true,
     }),
+    ...(isDev
+      ? [
+          CredentialsProvider({
+            id: "dev-mock",
+            name: "Dev Mock Login",
+            credentials: {
+              email: { label: "Email", type: "text" },
+            },
+            async authorize(credentials) {
+              if (!isDev) return null;
+
+              const email = credentials?.email?.trim().toLowerCase();
+              if (!email) return null;
+
+              const mock = MOCK_USERS[email];
+              if (!mock) return null;
+
+              const user = await prisma.user.upsert({
+                where: { email: mock.email },
+                update: { role: mock.role },
+                create: {
+                  email: mock.email,
+                  name: mock.name,
+                  role: mock.role,
+                  emailVerified: new Date(),
+                },
+              });
+
+              return {
+                id: user.id,
+                email: user.email!,
+                name: user.name,
+                image: user.image,
+                role: user.role,
+              };
+            },
+          }),
+        ]
+      : []),
   ],
   session: {
     strategy: "jwt",

@@ -27,8 +27,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  console.log("Test rtun");
-
   const authHeader = req.headers.get("authorization");
   const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
 

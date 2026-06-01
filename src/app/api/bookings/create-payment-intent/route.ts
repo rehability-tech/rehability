@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth/auth";
+import { logCampEvent } from "@/lib/notifications/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -209,6 +210,13 @@ export async function POST(req: Request) {
       { status: 502 },
     );
   }
+
+  logCampEvent({
+    kind: "SIGNUP",
+    tripId: trip.id,
+    tripTitle: trip.title,
+    userName: fullName,
+  }).catch((err) => console.error("[create-payment-intent] SIGNUP log failed:", err));
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,

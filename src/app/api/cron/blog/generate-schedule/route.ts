@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server";
 import { requireCron } from "@/lib/auth/requireCron";
-import { generateMonthlySchedule } from "@/lib/blog/generateMonthlySchedule";
+import { generateTrendSchedule } from "@/lib/blog/generateTrendSchedule";
 
 // POST /api/cron/blog/generate-schedule
 //
-// Generates a content schedule for the requested month. Defaults to the
-// *next* month so a monthly cron run keeps the calendar one month ahead.
+// Generuje miesięczny harmonogram wpisów (BlogScheduleEntry) na podstawie
+// REALNYCH, rosnących trendów wyszukiwań w Polsce (geo: PL), z twardym
+// fallbackiem na frazy evergreen, gdy API trendów jest niedostępne / zablokowane.
+// Cała logika (provider trendów, rate-limiting, dedupe, zapis) żyje w warstwie
+// `@/lib/blog/*` — ten route to cienki handler (auth + parsowanie + odpowiedź).
 //
-// Body or query:
-//   { "year": 2026, "month": 5 }     // month is 0-indexed (May = 4)
+// Body lub query:
+//   { "year": 2026, "month": 5 }     // month 0-indexed (maj = 4)
 //   "?year=2026&month=4"
-//   "?offset=2"                       // generate for current + N months
+//   "?offset=2"                       // bieżący + N miesięcy
 //
-// Behavior: idempotent — if a schedule already exists for that month, the
-// underlying helper returns { created: 0 } without overwriting.
+// Domyślnie generuje dla NASTĘPNEGO miesiąca (kalendarz zawsze miesiąc do przodu).
+// Idempotentny: jeśli plan na dany miesiąc istnieje, zwraca { created: 0 }.
 
 export async function POST(req: Request) {
   const auth = requireCron(req);
@@ -34,9 +37,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await generateMonthlySchedule(year, month);
+    const result = await generateTrendSchedule(year, month);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
+    // Awaria tutaj oznacza problem infrastrukturalny (np. DB) — błędy samego
+    // API trendów są łapane wewnątrz generatora i kończą się fallbackiem.
     console.error("[cron] schedule generation failed:", err);
     return NextResponse.json(
       {
@@ -48,6 +53,7 @@ export async function POST(req: Request) {
   }
 }
 
+// Część usług cron preferuje GET — to samo zachowanie.
 export async function GET(req: Request) {
   return POST(req);
 }

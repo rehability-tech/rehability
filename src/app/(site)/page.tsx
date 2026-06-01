@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
 import { HeroSection } from "./_components/HeroSection";
@@ -5,6 +6,21 @@ import { SocialProofSection } from "./_components/SocialProofSection";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth"; // <--- DODANY IMPORT
 import { authOptions } from "@/lib/auth/auth";
+
+// Strona główna. title.template z root layoutu doklei " | Rehability Prudnik",
+// więc trzymamy tu tylko mocne słowa kluczowe. Canonical przechodzi do "/".
+export const metadata: Metadata = {
+  title: "Fizjoterapia, Masaż Kobido i Wyjazdy Holistyczne",
+  description:
+    "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wyjazdy holistyczne i edukacja.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Fizjoterapia, Masaż Kobido i Wyjazdy Holistyczne",
+    description:
+      "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wyjazdy holistyczne i edukacja.",
+    url: "/",
+  },
+};
 
 const AboutSection = dynamic(() =>
   import("./_components/AboutSection").then((m) => ({
@@ -47,12 +63,6 @@ const ContactSection = dynamic(() =>
 const Footer = dynamic(() =>
   import("@/components/layout/Footer").then((m) => ({ default: m.Footer })),
 );
-
-export const metadata = {
-  title: "Start | Rehability",
-  description:
-    "Nowoczesna fizjoterapia, terapia manualna i osteopatia w Prudniku. Plan leczenia, który realnie działa.",
-};
 
 export const revalidate = 600;
 

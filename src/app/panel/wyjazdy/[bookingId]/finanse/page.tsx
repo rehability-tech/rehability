@@ -18,7 +18,7 @@ export default async function FinansePage({ params }: Props) {
         where: { status: { not: "CANCELLED" } },
         include: {
           service: { select: { name: true } },
-          slot: { select: { startTime: true } },
+          spaBlock: { select: { startTime: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -38,7 +38,7 @@ export default async function FinansePage({ params }: Props) {
   const orders = booking.serviceOrders.map((o) => ({
     id: o.id,
     serviceName: o.service.name,
-    slotTime: o.slot.startTime.toISOString(),
+    slotTime: o.spaBlock.startTime.toISOString(),
     price: Number(o.price),
     status: o.status,
     isPaid: o.status === "PAID",

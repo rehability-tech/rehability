@@ -5,9 +5,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Regulamin | Rehability",
+  title: "Regulamin",
   description:
-    "Regulamin świadczenia usług drogą elektroniczną przez platformę Rehability — kursy VOD, wyjazdy, gabinet.",
+    "Regulamin świadczenia usług drogą elektroniczną — kursy VOD, wyjazdy holistyczne, gabinet fizjoterapeutyczny.",
+  alternates: { canonical: "/regulamin" },
 };
 
 export default async function RegulaminPage() {

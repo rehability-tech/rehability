@@ -109,7 +109,7 @@ export default function BlockAdder({ onAddBlock }: BlockAdderProps) {
     {
       type: "bookingOptions",
       label: "Opcje rezerwacji",
-      desc: "Kafelki pakietów: Standard / Przyjaciółka",
+      desc: "Kafelki pakietów: Standard / Duo (we dwoje)",
       icon: <Users size={20} />,
     },
   ];

@@ -6,9 +6,16 @@ import { Footer } from "@/components/layout/Footer";
 import { authOptions } from "@/lib/auth/auth";
 
 export const metadata: Metadata = {
-  title: "O nas | Rehability",
+  title: "Piotr Siemaszko i Zespół Ekspertów",
   description:
-    "Poznaj filozofię Rehability. Tworzymy ekosystem życia bez bólu, dając Ci wiedzę i narzędzia do odzyskania kontroli nad własnym ciałem.",
+    "Poznaj zespół Rehability Prudnik. Łączymy medyczny profesjonalizm z holistycznym podejściem do zdrowia, treningu siłowego i głębokiej regeneracji.",
+  alternates: { canonical: "/o-nas" },
+  openGraph: {
+    title: "Piotr Siemaszko i Zespół Ekspertów",
+    description:
+      "Poznaj zespół Rehability Prudnik. Łączymy medyczny profesjonalizm z holistycznym podejściem do zdrowia, treningu siłowego i głębokiej regeneracji.",
+    url: "/o-nas",
+  },
 };
 
 export default async function AboutUsLayout({

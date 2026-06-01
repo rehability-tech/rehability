@@ -1,18 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  Suspense,
+} from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CaretLeft, CaretRight, CircleNotch, Coffee } from "@phosphor-icons/react/dist/ssr";
+import {
+  CaretLeft,
+  CaretRight,
+  CircleNotch,
+  Coffee,
+} from "@phosphor-icons/react/dist/ssr";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-import EditorToolbar from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/EditorToolbar";
-import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
+import EditorToolbar from "@/app/admin/ustawienia/wyjazdy/dodaj/edytor-tresci/_components/lib/EditorToolbar";
+import AiGeneratorModal from "@/app/admin/ustawienia/wyjazdy/dodaj/_components/AiGeneratorModal";
 import BlogBlockBuilder from "./_components/lib/BlogBlockBuilder";
 import { useBlogContent } from "./_components/hooks/useBlogContent";
-import { useBlogAiGenerator, type BlogBlock } from "./_components/hooks/useBlogAiGenerator";
+import {
+  useBlogAiGenerator,
+  type BlogBlock,
+} from "./_components/hooks/useBlogAiGenerator";
 import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
 import NeonAiPanel, {
   type NeonStep,
@@ -20,21 +34,38 @@ import NeonAiPanel, {
 } from "../_components/NeonAiPanel";
 
 const AUTO_STEPS_DEF: NeonStep[] = [
-  { id: "context",   label: "Wczytywanie kontekstu",   detail: "Pobieram dane artykułu i temat z harmonogramu..." },
-  { id: "blueprint", label: "Planowanie struktury",    detail: "AI projektuje układ sekcji i bloków..." },
-  { id: "blocks",    label: "Pisanie treści blok po bloku", detail: "AI wypełnia każdy blok osobno..." },
-  { id: "save",      label: "Zapis i przejście do SEO", detail: "Zapisuję artykuł i przechodzę do SEO..." },
+  {
+    id: "context",
+    label: "Wczytywanie kontekstu",
+    detail: "Pobieram dane artykułu i temat z harmonogramu...",
+  },
+  {
+    id: "blueprint",
+    label: "Planowanie struktury",
+    detail: "AI projektuje układ sekcji i bloków...",
+  },
+  {
+    id: "blocks",
+    label: "Pisanie treści blok po bloku",
+    detail: "AI wypełnia każdy blok osobno...",
+  },
+  {
+    id: "save",
+    label: "Zapis i przejście do SEO",
+    detail: "Zapisuję artykuł i przechodzę do SEO...",
+  },
 ];
 
 type LiveStep = NeonStep & { status: StepStatus };
-const makeSteps = (): LiveStep[] => AUTO_STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
+const makeSteps = (): LiveStep[] =>
+  AUTO_STEPS_DEF.map((s) => ({ ...s, status: "pending" }));
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function BlogContentEditorContent() {
-  const router       = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const postId       = searchParams.get("id");
+  const postId = searchParams.get("id");
 
   const {
     isFetchingData,
@@ -59,18 +90,21 @@ function BlogContentEditorContent() {
   const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
 
   // ── autogenerate state ──
-  const [autoSteps, setAutoSteps]       = useState<LiveStep[]>(makeSteps());
+  const [autoSteps, setAutoSteps] = useState<LiveStep[]>(makeSteps());
   const [isAutoRunning, setIsAutoRunning] = useState(false);
-  const [autoLiveMsg, setAutoLiveMsg]     = useState<string | undefined>();
+  const [autoLiveMsg, setAutoLiveMsg] = useState<string | undefined>();
   const autoStarted = useRef(false);
 
-  const updateStep = useCallback((id: string, status: StepStatus, detail?: string) => {
-    setAutoSteps((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
-      ),
-    );
-  }, []);
+  const updateStep = useCallback(
+    (id: string, status: StepStatus, detail?: string) => {
+      setAutoSteps((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status, ...(detail ? { detail } : {}) } : s,
+        ),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     const handleScroll = () => setShowFloatingToolbar(window.scrollY > 450);
@@ -90,9 +124,9 @@ function BlogContentEditorContent() {
           fetch(`/api/admin/blog/${pId}`),
           fetch(`/api/admin/blog/schedule/${scheduleId}`),
         ]);
-        if (!postRes.ok)     throw new Error("Nie udało się pobrać artykułu.");
+        if (!postRes.ok) throw new Error("Nie udało się pobrać artykułu.");
         if (!scheduleRes.ok) throw new Error("Nie udało się pobrać tematu.");
-        const post  = await postRes.json();
+        const post = await postRes.json();
         const entry = await scheduleRes.json();
 
         const overallContext = [
@@ -125,9 +159,14 @@ function BlogContentEditorContent() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: overallContext, action: "generateBlogBlueprint" }),
+            body: JSON.stringify({
+              prompt: overallContext,
+              action: "generateBlogBlueprint",
+            }),
           },
-          { onStatus: blueprintStatus("AI projektuje układ sekcji i bloków...") },
+          {
+            onStatus: blueprintStatus("AI projektuje układ sekcji i bloków..."),
+          },
         );
         if (!bpRes.ok) throw new Error("Błąd planowania struktury artykułu.");
         const { blueprint } = await bpRes.json();
@@ -150,7 +189,12 @@ function BlogContentEditorContent() {
           const newBlockId = crypto.randomUUID();
           currentBlocks = [
             ...currentBlocks,
-            { id: newBlockId, type: step.type, content: {}, isGenerating: true },
+            {
+              id: newBlockId,
+              type: step.type,
+              content: {},
+              isGenerating: true,
+            },
           ];
           updateField("blocks", currentBlocks);
 
@@ -191,12 +235,17 @@ function BlogContentEditorContent() {
             )
               blockContent = blockContent[step.type];
             if (blockContent.type) delete blockContent.type;
-            if (["bulletList", "featuresGrid", "faq"].includes(step.type) && !blockContent.items)
+            if (
+              ["bulletList", "featuresGrid", "faq"].includes(step.type) &&
+              !blockContent.items
+            )
               blockContent.items = [];
             if (["heading", "paragraph", "highlight"].includes(step.type)) {
-              if (typeof blockContent === "string") blockContent = { text: blockContent };
+              if (typeof blockContent === "string")
+                blockContent = { text: blockContent };
               else if (!blockContent.text)
-                blockContent.text = "Treść się nie wygenerowała. Usuń i spróbuj ponownie.";
+                blockContent.text =
+                  "Treść się nie wygenerowała. Usuń i spróbuj ponownie.";
             }
 
             currentBlocks = currentBlocks.map((b) =>
@@ -211,7 +260,9 @@ function BlogContentEditorContent() {
                 ? {
                     ...b,
                     isGenerating: false,
-                    content: { text: "Błąd ładowania bloku. Usuń i spróbuj ponownie." },
+                    content: {
+                      text: "Błąd ładowania bloku. Usuń i spróbuj ponownie.",
+                    },
                   }
                 : b,
             );
@@ -239,7 +290,8 @@ function BlogContentEditorContent() {
           `/admin/blog/dodaj/seo?id=${pId}&autogenerate=true&scheduleId=${scheduleId}`,
         );
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
+        const msg =
+          err instanceof Error ? err.message : "Nieznany błąd generowania.";
         setAutoLiveMsg(msg);
         setAutoSteps((prev) =>
           prev.map((s) =>
@@ -256,7 +308,7 @@ function BlogContentEditorContent() {
     if (autoStarted.current) return;
     if (isFetchingData || !postId) return;
     const autoGenParam = searchParams.get("autogenerate");
-    const scheduleId   = searchParams.get("scheduleId");
+    const scheduleId = searchParams.get("scheduleId");
     if (autoGenParam !== "true" || !scheduleId) return;
 
     autoStarted.current = true;
@@ -270,8 +322,14 @@ function BlogContentEditorContent() {
   if (isFetchingData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <CircleNotch size={40} weight="bold" className="text-brand-primary animate-spin mb-4" />
-        <p className="text-gray-500 font-montserrat font-medium">Ładowanie treści artykułu...</p>
+        <CircleNotch
+          size={40}
+          weight="bold"
+          className="text-brand-primary animate-spin mb-4"
+        />
+        <p className="text-gray-500 font-montserrat font-medium">
+          Ładowanie treści artykułu...
+        </p>
       </div>
     );
   }
@@ -314,9 +372,13 @@ function BlogContentEditorContent() {
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-full shadow-[0_10px_40px_rgba(40,125,136,0.2)] border border-gray-100 px-6 py-3 flex items-center gap-4 min-w-[320px]"
           >
             {aiProgress.phase === "error" ? (
-              <div className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full font-bold">!</div>
+              <div className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full font-bold">
+                !
+              </div>
             ) : aiProgress.phase === "done" ? (
-              <div className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-full font-bold">✓</div>
+              <div className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-full font-bold">
+                ✓
+              </div>
             ) : aiProgress.phase === "ratelimit" ? (
               <motion.div
                 animate={{ y: [0, -3, 0] }}
@@ -327,12 +389,18 @@ function BlogContentEditorContent() {
               </motion.div>
             ) : (
               <div className="relative w-8 h-8 flex items-center justify-center">
-                <CircleNotch size={24} className="text-brand-primary animate-spin" weight="bold" />
+                <CircleNotch
+                  size={24}
+                  className="text-brand-primary animate-spin"
+                  weight="bold"
+                />
               </div>
             )}
 
             <div className="flex flex-col flex-1">
-              <span className={`text-sm font-bold font-jakarta ${aiProgress.phase === "ratelimit" ? "text-orange-600" : "text-[#0B3B4C]"}`}>
+              <span
+                className={`text-sm font-bold font-jakarta ${aiProgress.phase === "ratelimit" ? "text-orange-600" : "text-[#0B3B4C]"}`}
+              >
                 {aiProgress.message}
               </span>
               {aiProgress.phase === "generating" && (
@@ -341,7 +409,9 @@ function BlogContentEditorContent() {
                     <motion.div
                       className="h-full bg-brand-primary"
                       initial={{ width: "0%" }}
-                      animate={{ width: `${(aiProgress.currentBlock / aiProgress.totalBlocks) * 100}%` }}
+                      animate={{
+                        width: `${(aiProgress.currentBlock / aiProgress.totalBlocks) * 100}%`,
+                      }}
                       transition={{ duration: 0.3 }}
                     />
                   </div>
@@ -366,7 +436,10 @@ function BlogContentEditorContent() {
             Edytor treści artykułu
           </h2>
           <p className="text-[14px] text-gray-500 font-montserrat mt-1">
-            Krok 2/3 · {postTitle && <span className="font-semibold text-[#0B3B4C]">{postTitle}</span>}
+            Krok 2/3 ·{" "}
+            {postTitle && (
+              <span className="font-semibold text-[#0B3B4C]">{postTitle}</span>
+            )}
             {!postTitle && "Buduj artykuł z gotowych modułów."}
           </p>
         </div>
@@ -384,7 +457,10 @@ function BlogContentEditorContent() {
         <div className="relative bg-white rounded-[32px] p-2 md:p-4 min-h-[500px]">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: showFloatingToolbar ? 1 : 0, x: showFloatingToolbar ? 0 : 20 }}
+            animate={{
+              opacity: showFloatingToolbar ? 1 : 0,
+              x: showFloatingToolbar ? 0 : 20,
+            }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className={cn(
               "absolute top-6 bottom-6 right-6 z-50 pointer-events-none w-10 hidden lg:block",
@@ -408,7 +484,11 @@ function BlogContentEditorContent() {
                 transition={{ repeat: Infinity, duration: 2 }}
                 className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-4 shadow-[0_0_24px_rgba(40,125,136,0.35)]"
               >
-                <CircleNotch size={26} weight="bold" className="text-brand-primary animate-spin" />
+                <CircleNotch
+                  size={26}
+                  weight="bold"
+                  className="text-brand-primary animate-spin"
+                />
               </motion.div>
               <p className="text-[14px] font-montserrat font-semibold text-[#0B3B4C]">
                 Agent AI przygotowuje strukturę artykułu...
@@ -427,8 +507,13 @@ function BlogContentEditorContent() {
       </div>
 
       <div className="flex items-center justify-between pt-6 mt-8 border-t border-gray-200">
-        <Link href={`/admin/blog/dodaj/dane-podstawowe${postId ? `?id=${postId}` : ""}`}>
-          <Button variant="secondary" rightIcon={<CaretLeft size={18} weight="bold" />}>
+        <Link
+          href={`/admin/blog/dodaj/dane-podstawowe${postId ? `?id=${postId}` : ""}`}
+        >
+          <Button
+            variant="secondary"
+            rightIcon={<CaretLeft size={18} weight="bold" />}
+          >
             Wstecz
           </Button>
         </Link>

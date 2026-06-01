@@ -5,14 +5,18 @@ import { TripsHero } from "./_components/TripsHero";
 import { FeaturedTrip } from "./_components/FeaturedTrip";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = {
-  title: "Wyjazdy",
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Wyjazdy Holistyczne, SPA i Weekendy Wellness",
   description:
-    "Ekskluzywne wyjazdy holistyczne Rehability. Całkowity reset dla ciała i umysłu w otoczeniu natury.",
+    "Zadbaj o ciało i umysł pod okiem fizjoterapeutów. Zobacz nasze prywatne wyjazdy holistyczne dla kobiet, weekendy wellness i turnusy regeneracyjne.",
+  alternates: { canonical: "/wyjazdy" },
   openGraph: {
-    title: "Wyjazdy | Rehability",
+    title: "Wyjazdy Holistyczne, SPA i Weekendy Wellness",
     description:
-      "Ekskluzywne wyjazdy holistyczne Rehability. Całkowity reset dla ciała i umysłu w otoczeniu natury.",
+      "Zadbaj o ciało i umysł pod okiem fizjoterapeutów. Zobacz nasze prywatne wyjazdy holistyczne dla kobiet, weekendy wellness i turnusy regeneracyjne.",
+    url: "/wyjazdy",
     images: [{ url: "/images/campy/campy_hero.jpg" }],
   },
 };

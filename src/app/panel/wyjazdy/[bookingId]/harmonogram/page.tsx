@@ -1,5 +1,5 @@
 import React from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
@@ -13,12 +13,21 @@ export default async function HarmonogramPage({ params }: Props) {
   const { bookingId } = await params;
   const session = await getServerSession(authOptions);
 
+  if (!session?.user?.id) {
+    redirect("/logowanie");
+  }
+
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     select: { tripId: true, userId: true, email: true },
   });
 
   if (!booking) notFound();
+
+  const owns =
+    booking.userId === session.user.id ||
+    booking.email === session.user.email;
+  if (!owns) notFound();
 
   const [campEvents, serviceOrders] = await Promise.all([
     prisma.tripEvent.findMany({
@@ -28,10 +37,10 @@ export default async function HarmonogramPage({ params }: Props) {
     prisma.serviceOrder.findMany({
       where: { bookingId, status: { not: "CANCELLED" } },
       include: {
-        slot: { select: { startTime: true, endTime: true } },
+        spaBlock: { select: { startTime: true, endTime: true } },
         service: { select: { name: true, duration: true } },
       },
-      orderBy: { slot: { startTime: "asc" } },
+      orderBy: { spaBlock: { startTime: "asc" } },
     }),
   ]);
 
@@ -51,8 +60,8 @@ export default async function HarmonogramPage({ params }: Props) {
     kind: "order" as const,
     title: o.service.name,
     description: `${o.service.duration} min · ${Number(o.price).toFixed(0)} zł`,
-    startTime: o.slot.startTime.toISOString(),
-    endTime: o.slot.endTime.toISOString(),
+    startTime: o.spaBlock.startTime.toISOString(),
+    endTime: o.spaBlock.endTime.toISOString(),
     type: "ORDER",
     icon: null,
     status: o.status,

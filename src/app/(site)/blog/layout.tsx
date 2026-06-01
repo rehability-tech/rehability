@@ -1,18 +1,10 @@
 import React from "react";
-import type { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Blog | Rehability",
-    template: "%s | Rehability",
-  },
-  description:
-    "Sprawdzona wiedza z zakresu fizjoterapii, mindfulness i zdrowego stylu LLycia — pisana przez specjalistAlw Rehability.",
-};
+// Metadata dla /blog i /blog/[blogSlug] definiujemy w page.tsx + generateMetadata.
 
 export default async function BlogLayout({
   children,

@@ -5,6 +5,30 @@ import { validateTripCompleteness } from "@/lib/trips/validateTripCompleteness";
 
 import { z } from "zod";
 
+type PricingItem = {
+  id?: string;
+  // ID powiązanej usługi z globalnego katalogu (ustawiane przez PricingListBlock)
+  originalId?: string;
+  name?: string;
+  duration?: string | number;
+  price?: string | number;
+  description?: string | null;
+  image?: string | null;
+};
+
+function extractPricingItems(blocks: unknown): PricingItem[] {
+  if (!Array.isArray(blocks)) return [];
+  const items: PricingItem[] = [];
+  for (const block of blocks) {
+    if (block?.type === "pricingList" && Array.isArray(block?.content?.items)) {
+      for (const item of block.content.items) {
+        if (item && typeof item === "object") items.push(item as PricingItem);
+      }
+    }
+  }
+  return items;
+}
+
 // ==========================================
 // SCHEMATY WALIDACJI (ZOD)
 // ==========================================
@@ -36,11 +60,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // 1. ZABEZPIECZENIE: Autoryzacja Admina
     const { isAuthorized, response } = await requireAdmin();
     if (!isAuthorized) return response as NextResponse;
 
-    // 2. WALIDACJA: Parametry ścieżki (id)
     const resolvedParams = await params;
     const validatedParams = paramsSchema.safeParse(resolvedParams);
 
@@ -52,9 +74,31 @@ export async function GET(
     }
     const { id } = validatedParams.data;
 
-    // 3. Logika biznesowa
+    // POBIERANIE Z PEŁNYM DRZEWEM RELACJI
     const trip = await prisma.trip.findUnique({
       where: { id: id },
+      include: {
+        bookings: {
+          where: {
+            status: { not: "CANCELLED" }, // Omijamy anulowane
+          },
+          include: {
+            user: {
+              include: {
+                healthProfile: true, // Potrzebne do sprawdzenia ikony serca (Karty zdrowia)
+              },
+            },
+            serviceOrders: {
+              // Potrzebne do ikony gwiazdki w liście oraz do harmonogramu (rezerwacje SPA)
+              include: { service: { select: { name: true } } },
+            },
+          },
+        },
+        // Harmonogram wyjazdu (widget "Harmonogram" na pulpicie)
+        events: {
+          orderBy: { startTime: "asc" },
+        },
+      },
     });
 
     if (!trip) {
@@ -63,6 +107,7 @@ export async function GET(
         { status: 404 },
       );
     }
+
 
     return NextResponse.json(trip);
   } catch (error) {
@@ -113,6 +158,30 @@ export async function PATCH(
     // (description celowo pominięty — patrz komentarz przy patchBodySchema)
     const { subtitle, tags, heroImage, blocks } = validatedBody.data;
 
+    // 3b. WALIDACJA bloków "Lista usług" — wymagamy kompletności (name + duration + price).
+    // Bez tego nie zapisujemy treści, bo TripService potrzebuje tych pól (NOT NULL).
+    const pricingItems = extractPricingItems(blocks);
+    // Soft-save: nie blokujemy zapisu przy niekompletnych pozycjach
+    // (blokujemy dopiero przy publikacji — patrz validateTripCompleteness).
+    // Wyjątek: jeśli name/duration/price są puste, NIE upsertujemy danej pozycji
+    // do TripService (sekcja 6b), bo Prisma wymaga tych pól.
+    for (const item of pricingItems) {
+      const duration = String(item?.duration ?? "").trim();
+      const price = String(item?.price ?? "").trim();
+      if (duration && Number.isNaN(parseInt(duration, 10))) {
+        return NextResponse.json(
+          { error: "Nieprawidłowy czas trwania w bloku \"Lista usług\"." },
+          { status: 400 },
+        );
+      }
+      if (price && Number.isNaN(parseFloat(price.replace(",", ".")))) {
+        return NextResponse.json(
+          { error: "Nieprawidłowa cena w bloku \"Lista usług\"." },
+          { status: 400 },
+        );
+      }
+    }
+
     // 4. Pobieramy aktualny stan wyjazdu — potrzebny do auto-cofnięcia statusu
     const existingCamp = await prisma.trip.findUnique({ where: { id } });
     if (!existingCamp) {
@@ -153,6 +222,78 @@ export async function PATCH(
         ...(forcedDraft ? { status: "DRAFT" } : {}),
       },
     });
+
+    // 6b. Synchronizacja TripService z pozycjami bloku "Lista usług".
+    // Pozwala uczestnikom widzieć usługi w panelu (/panel/wyjazdy/[id]/sklep).
+    // Strategia: upsert po item.id; usuwamy TripService, które zniknęły z bloku,
+    // ale tylko jeśli nie mają już złożonych zamówień (ServiceOrder).
+    if (blocks !== undefined) {
+      const blockItemIds = new Set(
+        pricingItems
+          .map((it) => (typeof it.id === "string" ? it.id : null))
+          .filter((v): v is string => !!v),
+      );
+
+      const existingServices = await prisma.tripService.findMany({
+        where: { tripId: id },
+        include: { orders: { select: { id: true }, take: 1 } },
+      });
+
+      const toDeleteIds = existingServices
+        .filter((s) => !blockItemIds.has(s.id) && s.orders.length === 0)
+        .map((s) => s.id);
+
+      if (toDeleteIds.length > 0) {
+        await prisma.tripService.deleteMany({
+          where: { id: { in: toDeleteIds } },
+        });
+      }
+
+      for (const item of pricingItems) {
+        if (typeof item.id !== "string") continue;
+        const name = String(item.name ?? "").trim();
+        const durationStr = String(item.duration ?? "").trim();
+        const priceStr = String(item.price ?? "").trim();
+        // Pomijamy upsert pozycji bez wymaganych pól (Prisma ma NOT NULL).
+        // Walidacja "Wszystko musi być wypełnione" odbywa się przy publikacji.
+        if (!name || !durationStr || !priceStr) continue;
+        const duration = parseInt(durationStr, 10);
+        const price = parseFloat(priceStr.replace(",", "."));
+        if (Number.isNaN(duration) || Number.isNaN(price)) continue;
+        const descriptionVal = String(item.description ?? "").trim();
+        const imageVal =
+          typeof item.image === "string" && item.image.trim().length > 0
+            ? item.image
+            : null;
+        // Powiązanie z globalnym katalogiem, jeśli pozycja pochodzi z bazy usług
+        // (PricingListBlock przekazuje originalId). Umożliwia propagację edycji.
+        const sourceServiceId =
+          typeof item.originalId === "string" && item.originalId.trim()
+            ? item.originalId
+            : null;
+        await prisma.tripService.upsert({
+          where: { id: item.id },
+          create: {
+            id: item.id,
+            name,
+            duration,
+            price,
+            description: descriptionVal,
+            image: imageVal,
+            tripId: id,
+            sourceServiceId,
+          },
+          update: {
+            name,
+            duration,
+            price,
+            description: descriptionVal,
+            image: imageVal,
+            sourceServiceId,
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       ...updatedCamp,

@@ -13,7 +13,6 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
-// WAŻNE: Odkomentuj poniższy import StripePaymentStep
 import StripePaymentStep from "@/app/(site)/wyjazdy/[slug]/_components/StripePaymentStep";
 
 function PaymentChip({
@@ -54,24 +53,22 @@ function PaymentChip({
   );
 }
 
-// NAPRAWA: Zmieniamy propsy, odrzucamy mockState i pobieramy prawdziwe booking oraz trip
 export default function DashboardPayments({ booking, trip }: any) {
   // 1. USTALENIE STATUSU PŁATNOŚCI
   const depositPaid = !!booking.depositPaidAt;
   const remainderPaid = !!booking.remainderPaidAt;
-  const paymentProgress = remainderPaid ? 100 : depositPaid ? 25 : 0;
+  const paymentProgress = remainderPaid ? 100 : depositPaid ? 50 : 0;
 
-  // 2. WYLICZENIE KWOT NA BAZIE PRAWDZIWYCH DANYCH
-  // Jeśli booking ma przypisaną kwotę (np. admin coś zmienił), używamy jej. Jeśli nie, bierzemy cenę domyślną wyjazdu.
-  const totalPrice = booking.amountTotal > 0 ? booking.amountTotal : trip.price;
-  const depositAmount = trip.deposit;
-  const remainderAmount = totalPrice - depositAmount;
+  // 2. WYLICZENIE KWOT NA BAZIE PRAWDZIWYCH DANYCH (Złotówki!)
+  // UWAGA: Usunięto dzielenie przez 100. Endpoint klienta wysyła to już w PLN (np. 2500)
+  const totalPricePLN =
+    booking.amountTotal > 0 ? Number(booking.amountTotal) : Number(trip.price);
 
-  const paymentValue = remainderPaid
-    ? totalPrice
-    : depositPaid
-      ? depositAmount
-      : 0;
+  const depositAmountPLN = Number(trip.deposit);
+  const remainderAmountPLN = totalPricePLN - depositAmountPLN;
+
+  // Kwota już opłacona (bezpośrednio z bazy, znormalizowana do PLN)
+  const paymentValuePLN = Number(booking.amountPaid) || 0;
 
   // --- STANY DLA OVERLAYA PŁATNOŚCI ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +85,7 @@ export default function DashboardPayments({ booking, trip }: any) {
   const handlePaymentClick = async () => {
     setIsLoading(true);
     setPaymentError(null);
+
     try {
       const res = await fetch("/api/panel/wyjazdy/resume-payment", {
         method: "POST",
@@ -105,7 +103,8 @@ export default function DashboardPayments({ booking, trip }: any) {
 
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
-        setAmountToPay(data.amount / 100); // Ustawiamy kwotę prosto z API
+        // Nasz backend wysyła tu czyste złotówki (np. 1750), używamy ich bezpośrednio
+        setAmountToPay(data.amount);
         setIsModalOpen(true);
       } else if (data.url) {
         window.location.href = data.url;
@@ -136,8 +135,8 @@ export default function DashboardPayments({ booking, trip }: any) {
                 Płatności
               </h3>
               <p className="text-[11px] text-brand-secondary/50">
-                {paymentValue.toLocaleString("pl-PL")} zł /{" "}
-                {totalPrice.toLocaleString("pl-PL")} zł
+                {paymentValuePLN.toLocaleString("pl-PL")} zł /{" "}
+                {totalPricePLN.toLocaleString("pl-PL")} zł
               </p>
             </div>
           </div>
@@ -156,36 +155,24 @@ export default function DashboardPayments({ booking, trip }: any) {
           )}
         </div>
 
-        {/* Pasek postępu */}
         <div className="h-2 bg-brand-secondary/10 rounded-full overflow-hidden">
           <motion.div
-            initial={{ width: 0, backgroundPosition: "0% 50%" }}
-            animate={{
-              width: `${paymentProgress}%`,
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-            }}
-            transition={{
-              width: { duration: 0.8, ease: "easeOut" },
-              backgroundPosition: {
-                duration: 4,
-                repeat: Infinity,
-                ease: "linear",
-              },
-            }}
-            style={{ backgroundSize: "200% 200%" }}
-            className="h-full rounded-full bg-gradient-to-r from-brand-primary from-0% via-brand-primary via-85% to-brand-yellow to-100%"
+            initial={{ width: 0 }}
+            animate={{ width: `${paymentProgress}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-yellow"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3 mt-4 flex-1">
           <PaymentChip
             label="Zadatek"
-            amount={depositAmount}
+            amount={depositAmountPLN}
             paid={depositPaid}
           />
           <PaymentChip
             label="Reszta"
-            amount={remainderAmount}
+            amount={remainderAmountPLN}
             paid={remainderPaid}
           />
         </div>
@@ -203,8 +190,8 @@ export default function DashboardPayments({ booking, trip }: any) {
               ) : (
                 <>
                   {depositPaid
-                    ? `Opłać resztę (${remainderAmount.toLocaleString("pl-PL")} zł)`
-                    : `Opłać zadatek (${depositAmount.toLocaleString("pl-PL")} zł)`}
+                    ? `Opłać resztę (${remainderAmountPLN.toLocaleString("pl-PL")} zł)`
+                    : `Opłać zadatek (${depositAmountPLN.toLocaleString("pl-PL")} zł)`}
                   <ArrowRight
                     size={16}
                     weight="bold"
@@ -217,7 +204,7 @@ export default function DashboardPayments({ booking, trip }: any) {
         )}
       </motion.section>
 
-      {/* --- OVERLAY PŁATNOŚCI (Modal) ZGODNY Z HUB WIDGET --- */}
+      {/* --- OVERLAY PŁATNOŚCI (Modal) --- */}
       {mounted &&
         createPortal(
           <AnimatePresence>
@@ -278,11 +265,11 @@ export default function DashboardPayments({ booking, trip }: any) {
                           </span>
                         </div>
 
-                        {/* Komponent Stripe Elements - sformatowana kwota bez groszy */}
+                        {/* Komponent Stripe Elements */}
                         <StripePaymentStep
                           clientSecret={clientSecret}
                           depositLabel={`${amountToPay.toLocaleString("pl-PL")} zł`}
-                          returnUrl={`${window.location.origin}/wyjazdy/sukces`}
+                          returnUrl={`${window.location.origin}/panel/wyjazdy/${booking.id}?status=processing`}
                         />
                       </div>
                     )}

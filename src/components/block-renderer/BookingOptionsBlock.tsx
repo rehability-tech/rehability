@@ -31,7 +31,7 @@ export default function BookingOptionsBlock({ content }: { content: any }) {
               <UsersFour size={22} weight="duotone" />
             </div>
             <h4 className="flex-1 font-jakarta font-bold text-[18px] text-[#287D88] m-0 min-w-[200px]">
-              {content.duoTitle || "Pakiet Zabierz Przyjaciółkę (2 osoby)"}
+              {content.duoTitle || "Pakiet Wyjazd we Dwoje (2 osoby)"}
             </h4>
             <span className="shrink-0 flex items-center gap-1 font-montserrat text-[11px] font-semibold uppercase tracking-wide text-[#287D88] bg-[#287D88]/10 px-2.5 py-1 rounded-full border border-[#287D88]/20">
               <StarFour size={11} weight="fill" />

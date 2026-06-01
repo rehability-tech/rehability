@@ -260,7 +260,7 @@ function BasicDataFormContent() {
               icon={<TextAa size={18} />}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="np. Między nami kobietami - Wiosenny Reset"
+              placeholder="np. Wiosenny Reset w Bieszczadach"
               name="tripTitle"
               autoComplete="off"
               isLoading={isGeneratingData}
@@ -271,7 +271,7 @@ function BasicDataFormContent() {
               label="Krótki opis wyjazdu"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opisz w kilku zdaniach czego uczestniczki mogą się spodziewać — klimat, aktywności, wyjątkowe momenty..."
+              placeholder="Opisz w kilku zdaniach czego uczestnicy mogą się spodziewać — klimat, aktywności, wyjątkowe momenty..."
               name="campDescription"
               isLoading={isGeneratingData}
               containerClassName="md:col-span-2"
@@ -393,7 +393,7 @@ function BasicDataFormContent() {
               helperText={
                 mapUrl
                   ? "✅ Interaktywna mapa Google została pomyślnie powiązana."
-                  : "Wyszukaj to miejsce, aby klientki widziały precyzyjną mapę w szczegółach wyjazdu."
+                  : "Wyszukaj to miejsce, aby klienci widzieli precyzyjną mapę w szczegółach wyjazdu."
               }
             />
           </div>
@@ -433,11 +433,11 @@ function BasicDataFormContent() {
               name="campDeposit"
               autoComplete="off"
               isLoading={isGeneratingData}
-              helperText="Kwota, którą uczestniczka opłaca przy rezerwacji miejsca."
+              helperText="Kwota, którą uczestnik opłaca przy rezerwacji miejsca."
             />
           </div>
-          {/* PAKIET ZABIERZ PRZYJACIÓŁKĘ */}
-          {/* OPCJA ZABIERZ PRZYJACIÓŁKĘ */}
+          {/* PAKIET WYJAZD WE DWOJE */}
+          {/* OPCJA WYJAZD WE DWOJE */}
           <div
             className={`border rounded-[16px] mt-6 p-5 md:p-6 transition-all duration-300 ${
               allowBringFriend && editId && !hasBookingOptionsBlock
@@ -472,10 +472,10 @@ function BasicDataFormContent() {
               {/* Teksty */}
               <div className="flex flex-col">
                 <span className="text-[15px] font-bold text-[#0B3B4C] font-jakarta transition-colors group-hover:text-brand-primary">
-                  Włącz opcję "Zabierz przyjaciółkę"
+                  Włącz opcję "Zabierz osobę towarzyszącą"
                 </span>
                 <p className="text-[13px] text-gray-500 font-montserrat mt-1 leading-relaxed max-w-2xl">
-                  Pozwala uczestniczce zarezerwować 2 miejsca jednocześnie (cena
+                  Pozwala uczestnikowi zarezerwować 2 miejsca jednocześnie (cena
                   i zadatek ulegają podwojeniu) i wysłać automatyczne
                   zaproszenie e-mail do drugiej osoby z prośbą o uzupełnienie
                   danych.

@@ -1,14 +1,16 @@
 import React from "react";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
-import { prisma } from "@/lib/prisma";
-import TimeGrid, { type SerializedEvent } from "./_components/TimeGrid";
+import TimeGridContainer from "./_components/TimeGridContainer";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
+// Cienki server component: tylko auth guard + przekazanie tripId.
+// Dane harmonogramu (trip/services/events/bloki/rezerwacje) ładuje
+// TimeGridContainer przez useEffect z /api/admin/wyjazdy/[id]/harmonogram.
 export default async function HarmonogramAdminPage({ params }: Props) {
   const { id } = await params;
 
@@ -17,55 +19,19 @@ export default async function HarmonogramAdminPage({ params }: Props) {
     redirect("/logowanie");
   }
 
-  const trip = await prisma.trip.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      startDate: true,
-      endDate: true,
-    },
-  });
-
-  if (!trip) notFound();
-
-  const events = await prisma.tripEvent.findMany({
-    where: { tripId: id },
-    orderBy: [{ startTime: "asc" }, { sortOrder: "asc" }],
-  });
-
-  const serialized: SerializedEvent[] = events.map((e) => ({
-    id: e.id,
-    title: e.title,
-    description: e.description,
-    startTime: e.startTime.toISOString(),
-    endTime: e.endTime ? e.endTime.toISOString() : null,
-    type: e.type,
-    icon: e.icon,
-    isPublished: e.isPublished,
-    sortOrder: e.sortOrder,
-  }));
-
   return (
     <div className="p-6 lg:p-8 max-w-[1400px] mx-auto w-full">
-      <header className="mb-6">
-        <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-brand-secondary/40">
-          Trip / Harmonogram
-        </p>
-        <h1 className="font-jakarta text-[26px] lg:text-[30px] font-bold text-brand-secondary leading-tight mt-1">
-          {trip.title}
-        </h1>
-        <p className="text-sm text-brand-secondary/60 mt-1">
-          Plan wyjazdu — kliknij w pustą przestrzeń dnia, aby dodać punkt.
-        </p>
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100/80 pb-5">
+        <div>
+          <h1 className="font-jakarta text-2xl sm:text-3xl font-bold text-brand-secondary">
+            Harmonogram wyjazdu
+          </h1>
+          <p className="text-[13px] text-brand-secondary/50 font-medium mt-1">
+            Kliknij w pustą przestrzeń dnia aby dodać punkt
+          </p>
+        </div>
       </header>
-
-      <TimeGrid
-        tripId={trip.id}
-        startDate={trip.startDate.toISOString()}
-        endDate={trip.endDate.toISOString()}
-        initialEvents={serialized}
-      />
+      <TimeGridContainer tripId={id} />
     </div>
   );
 }

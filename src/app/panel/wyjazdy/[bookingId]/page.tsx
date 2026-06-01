@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Spinner } from "@phosphor-icons/react/dist/ssr";
 
@@ -8,38 +8,51 @@ import DashboardHero from "./_components/DashboardHero";
 import DashboardPayments from "./_components/DashboardPayments";
 import DashboardHealthCard from "./_components/DashboardHealthCard";
 import DashboardAgendaPreview from "./_components/DashboardAgendaPreview";
-import DashboardNews from "./_components/DashboardNews";
+import DashboardNews, {
+  type PersonalNotificationItem,
+  type SystemUpdateItem,
+} from "./_components/DashboardNews";
+import PaymentSuccessModal from "./_components/PaymentSuccessModal";
+
+interface DashboardData {
+  booking: Record<string, unknown> & { id: string; name?: string | null };
+  trip: Record<string, unknown>;
+  healthFilled: boolean;
+  fullSchedule: unknown;
+  isSchedulePublished: boolean;
+  systemUpdates: SystemUpdateItem[];
+  personalNotifications: PersonalNotificationItem[];
+}
 
 export default function BookingDashboardPage() {
   const params = useParams();
   const bookingId = params.bookingId as string;
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(async () => {
     if (!bookingId) return;
+    try {
+      const res = await fetch(`/api/panel/wyjazdy/${bookingId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Nie udało się pobrać danych");
 
-    async function fetchDashboardData() {
-      try {
-        const res = await fetch(`/api/panel/wyjazdy/${bookingId}`);
-        if (!res.ok) throw new Error("Nie udało się pobrać danych");
-
-        const json = await res.json();
-        setData(json);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+      const json = (await res.json()) as DashboardData;
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nieznany błąd");
+    } finally {
+      setIsLoading(false);
     }
-
-    fetchDashboardData();
   }, [bookingId]);
-  console.log(data);
 
-  // EKRAN ŁADOWANIA CAŁEGO PANELU
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   if (isLoading) {
     return (
       <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -55,7 +68,6 @@ export default function BookingDashboardPage() {
     );
   }
 
-  // EKRAN BŁĘDU (np. brak autoryzacji lub rezerwacji)
   if (error || !data) {
     return (
       <div className="w-full p-8 text-center bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -65,23 +77,46 @@ export default function BookingDashboardPage() {
     );
   }
 
-  // DESTRUKTURYZACJA DANYCH Z API
-  const { booking, trip, healthFilled, agendaPreview } = data;
-  const firstName = (booking.name ?? "").split(" ")[0] || "Uczestniku";
+  const {
+    booking,
+    trip,
+    healthFilled,
+    fullSchedule,
+    isSchedulePublished,
+    systemUpdates,
+    personalNotifications,
+  } = data;
 
-  // WŁAŚCIWY RENDER PANELU
+  const firstName = (booking.name ?? "").split(" ")[0] || "Uczestniku";
+  console.log("Updates", systemUpdates);
+  console.log("Personal notification", personalNotifications);
+
   return (
     <div className="pb-4 flex flex-col gap-5 lg:gap-6 animate-in fade-in duration-500">
       <DashboardHero booking={booking} trip={trip} firstName={firstName} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
         <DashboardPayments booking={booking} trip={trip} />
-        <DashboardHealthCard healthFilled={healthFilled} />
+        <DashboardHealthCard
+          healthFilled={healthFilled}
+          bookingId={bookingId}
+        />
       </div>
 
-      <DashboardAgendaPreview agendaPreview={agendaPreview} />
+      <DashboardAgendaPreview
+        schedule={fullSchedule as never}
+        isPublished={isSchedulePublished}
+      />
 
-      <DashboardNews />
+      <DashboardNews
+        updates={systemUpdates}
+        personalNotifications={personalNotifications}
+      />
+
+      <PaymentSuccessModal
+        bookingId={bookingId}
+        onConfirmed={fetchDashboardData}
+      />
     </div>
   );
 }

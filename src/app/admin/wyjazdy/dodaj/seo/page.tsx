@@ -184,7 +184,7 @@ function SeoFormContent() {
             }
             value={focusKeyword}
             onChange={setFocusKeyword}
-            placeholder="np. obozy fizjoterapeutyczne kobiety"
+            placeholder="np. obozy fizjoterapeutyczne karkonosze"
             isLoading={isGenerating || isFixing}
             hint="Główna fraza, na którą pozycjonujesz ten wyjazd."
           />

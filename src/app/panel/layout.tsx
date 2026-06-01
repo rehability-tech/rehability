@@ -35,7 +35,8 @@ export default async function PanelLayout({
       <OneSignalProvider userId={session.user.id} />
       <NotificationPrompt />
       <PWAInstallPrompt />
-      <UserSideBar /> {/* Poprawione */}
+      {/* 1. SIDEBAR (lg+) */}
+      <UserSideBar />
       {/* 2. GŁÓWNA STREFA TREŚCI (Prawa strona) */}
       <div className="flex flex-col min-w-0 min-h-screen relative z-10">
         {/* Dekoracyjne Tła */}
@@ -47,7 +48,7 @@ export default async function PanelLayout({
         {/* TOPBAR */}
         <UserTopBar user={user} /> {/* Poprawione */}
         {/* DYNAMICZNY CONTENT (Hub, Wyjazdy, VOD) */}
-        <main className="flex-1 pb-28 lg:pb-12 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-6 lg:pt-8">
+        <main className="flex-1 pb-28 lg:pb-12 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-6 lg:pt-8 overflow-x-clip">
           {children}
         </main>
       </div>
