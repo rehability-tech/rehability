@@ -132,7 +132,7 @@ export default function HubRecentUpdates() {
         </h4>
         <p className="text-[14px] text-brand-secondary/60 mt-2 max-w-sm">
           Nie ma tu nic do przeczytania w tym momencie. Oczekuj na powiadomienia
-          o nowych campach i VOD!
+          o nowych wyjazdach i VOD!
         </p>
       </div>
     );

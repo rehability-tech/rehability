@@ -166,7 +166,7 @@ export default function TripDashboardPage() {
               Panel zarządzania wyjazdem
             </h1>
             <p className="text-[13px] text-brand-secondary/50 font-medium mt-1">
-              Monitoruj stan zapisów, harmonogram oraz finanse campu na żywo.
+              Monitoruj stan zapisów, harmonogram oraz finanse wyjazdu na żywo.
             </p>
           </div>
         </header>

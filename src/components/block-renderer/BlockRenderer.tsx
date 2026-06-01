@@ -12,7 +12,7 @@ import VideoEmbedBlock from "./VideoEmbedBlock";
 import SpacerBlock from "./SpacerBlock";
 import MapBlock from "./MapBlock";
 import HeroBlock from "./HeroBlock";
-import { TripBlock } from "@/app/admin/ustawienia/wyjazdy/dodaj/edytor-tresci/_components/hooks/useTripAiGenerator";
+import { TripBlock } from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/hooks/useTripAiGenerator";
 import BookingOptionsBlock from "./BookingOptionsBlock";
 
 interface BlockRendererProps {

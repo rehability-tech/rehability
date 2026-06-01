@@ -6,7 +6,6 @@ import { signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDown,
-  Gear,
   Globe,
   SignOut,
 } from "@phosphor-icons/react/dist/ssr";
@@ -97,15 +96,6 @@ export default function ProfileMenu({ user }: { user?: AdminUser }) {
                     Strona główna
                   </Link>
                 )}
-
-                <Link
-                  href="/admin/ustawienia"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-brand-secondary hover:bg-brand-primary/10 transition"
-                >
-                  <Gear size={16} weight="duotone" />
-                  Ustawienia
-                </Link>
 
                 <button
                   onClick={() => {

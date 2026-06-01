@@ -37,7 +37,7 @@ export default async function RegulaminPage() {
               <p>
                 Niniejszy regulamin okreL�la zasady korzystania z platformy
                 Rehability, dostępnej online, w tym z kursAlw VOD, rezerwacji
-                campAlw oraz funkcji panelu kursanta. Akceptacja regulaminu jest
+                wyjazdów oraz funkcji panelu kursanta. Akceptacja regulaminu jest
                 warunkiem zaL�oLLenia konta.
               </p>
             </section>

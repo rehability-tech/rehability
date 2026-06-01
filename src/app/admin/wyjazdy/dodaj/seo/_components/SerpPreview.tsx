@@ -19,7 +19,7 @@ export default function SerpPreview({
   const displayDesc =
     metaDescription ||
     "Opis meta wyjazdu pojawi się tutaj. Opisz krótko gdzie, kiedy i dla kogo jest ten trip.";
-  const displayUrl = `rehability.pl › campy › ${tripId || "twoj-wyjazd"}`;
+  const displayUrl = `rehability.pl › wyjazdy › ${tripId || "twoj-wyjazd"}`;
 
   const titleLen = metaTitle.length;
   const descLen = metaDescription.length;

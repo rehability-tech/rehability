@@ -162,7 +162,7 @@ const BottomTextBlock = () => (
     </h3>
     <p className="typography-paragraph text-brand-secondary/80">
       Poznaj autorskie metody diagnostyki i terapii. Rozwiń swój warsztat dzięki
-      kursom VOD i zjazdom na Campach.
+      kursom VOD i wyjazdom stacjonarnym.
     </p>
     {/* Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia. */}
     <Button variant="primary" showArrow href="/w-budowie">

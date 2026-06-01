@@ -30,7 +30,7 @@ function parseServiceFields(body: any) {
   };
 }
 
-// GET — pełny stan strony sklepu: usługi campu (ze statystykami), katalog globalny, agregaty
+// GET — pełny stan strony sklepu: usługi wyjazdu (ze statystykami), katalog globalny, agregaty
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -59,7 +59,7 @@ export async function GET(
     prisma.extraService.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
-  // Ile campów łącznie korzysta z danej usługi katalogowej (do ostrzeżenia przy edycji globalnej)
+  // Ile wyjazdów łącznie korzysta z danej usługi katalogowej (do ostrzeżenia przy edycji globalnej)
   const linkedCounts = await prisma.tripService.groupBy({
     by: ["sourceServiceId"],
     where: { sourceServiceId: { not: null } },
@@ -78,7 +78,7 @@ export async function GET(
       .filter((v): v is string => !!v),
   );
 
-  // Mapowanie usług campu + statystyki sprzedaży
+  // Mapowanie usług wyjazdu + statystyki sprzedaży
   const services = tripServices.map((s) => {
     const active = s.orders.filter((o) => o.status !== "CANCELLED");
     const paid = s.orders.filter((o) => o.status === "PAID");
@@ -107,7 +107,7 @@ export async function GET(
     };
   });
 
-  // Agregaty całego campu
+  // Agregaty całego wyjazdu
   const totalSold = services.reduce((s, x) => s + x.stats.ordersPaid, 0);
   const pendingCount = services.reduce((s, x) => s + x.stats.ordersPending, 0);
   const totalRevenue = services.reduce((s, x) => s + x.stats.revenuePaid, 0);
@@ -147,7 +147,7 @@ export async function GET(
   });
 }
 
-// POST — dodanie usług z katalogu globalnego do campu: { extraServiceIds: string[] }
+// POST — dodanie usług z katalogu globalnego do wyjazdu: { extraServiceIds: string[] }
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -235,7 +235,7 @@ export async function PATCH(
   });
   if (!service) {
     return NextResponse.json(
-      { error: "Usługa nie istnieje w tym campie." },
+      { error: "Usługa nie istnieje w tym wyjeździe." },
       { status: 404 },
     );
   }
@@ -253,7 +253,7 @@ export async function PATCH(
     return NextResponse.json(
       {
         error:
-          "Ta usługa nie jest powiązana z katalogiem globalnym — można ją edytować tylko w tym campie.",
+          "Ta usługa nie jest powiązana z katalogiem globalnym — można ją edytować tylko w tym wyjeździe.",
       },
       { status: 400 },
     );
@@ -280,7 +280,7 @@ export async function PATCH(
   });
 }
 
-// DELETE — usunięcie usługi z campu. Blokada, jeśli istnieją zamówienia.
+// DELETE — usunięcie usługi z wyjazdu. Blokada, jeśli istnieją zamówienia.
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -301,7 +301,7 @@ export async function DELETE(
   });
   if (!service) {
     return NextResponse.json(
-      { error: "Usługa nie istnieje w tym campie." },
+      { error: "Usługa nie istnieje w tym wyjeździe." },
       { status: 404 },
     );
   }

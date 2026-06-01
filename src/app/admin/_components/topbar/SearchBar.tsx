@@ -9,7 +9,6 @@ import {
   Tent,
   Article,
   FileText,
-  Gear,
 } from "@phosphor-icons/react/dist/ssr";
 
 const mockSearchData = [
@@ -24,12 +23,6 @@ const mockSearchData = [
     title: "Kategorie Bloga",
     href: "/admin/blog/kategorie",
     icon: FileText,
-  },
-  {
-    id: "3",
-    title: "Ustawienia systemu",
-    href: "/admin/ustawienia",
-    icon: Gear,
   },
   {
     id: "4",

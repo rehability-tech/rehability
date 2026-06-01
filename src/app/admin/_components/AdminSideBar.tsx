@@ -9,7 +9,6 @@ import {
   SquaresFour,
   Suitcase,
   Users,
-  Gear,
   SignOut,
   Info,
   UserList,
@@ -134,12 +133,6 @@ export default function AdminSidebar() {
           name: "Czat",
           href: `/admin/wyjazdy/${actualTripId}/chat`,
           icon: <ChatCircleDots size={16} />,
-          exact: false,
-        },
-        {
-          name: "Ustawienia",
-          href: `/admin/wyjazdy/edycja?id=${actualTripId}`,
-          icon: <Gear size={16} />,
           exact: false,
         },
       ]
@@ -306,7 +299,7 @@ export default function AdminSidebar() {
             </div>
           )}
 
-          {/* ZARZĄDZANIE KONKRETNYM CAMPEM */}
+          {/* ZARZĄDZANIE KONKRETNYM WYJAZDEM */}
           {isManagingCamp && (
             <div className="mt-2 flex flex-col animate-in slide-in-from-top-2 duration-300 bg-brand-primary/5 rounded-2xl p-2 mx-1 border border-brand-primary/10">
               <span className="px-2 py-1.5 text-[10px] font-medium text-brand-primary uppercase tracking-wider mb-1">
@@ -525,41 +518,11 @@ export default function AdminSidebar() {
         </div>
       </nav>
 
-      {/* STOPKA (Ustawienia + Wyloguj) */}
+      {/* STOPKA (Wyloguj) */}
       <div className="relative z-10 p-4 border-t border-brand-primary/5 bg-white/30 shrink-0">
-        <Link href="/admin/ustawienia">
-          <div
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 mb-1 group relative overflow-hidden",
-              pathname.startsWith("/admin/ustawienia")
-                ? "bg-brand-primary text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.25)]"
-                : "text-brand-secondary/60 hover:text-brand-secondary hover:bg-white/50",
-            )}
-          >
-            {pathname.startsWith("/admin/ustawienia") && (
-              <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/30 rounded-full blur-lg pointer-events-none" />
-            )}
-            <Gear
-              size={20}
-              weight={
-                pathname.startsWith("/admin/ustawienia") ? "fill" : "duotone"
-              }
-              className={cn(
-                "relative z-10 transition-colors",
-                pathname.startsWith("/admin/ustawienia")
-                  ? "text-white"
-                  : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
-              )}
-            />
-            <span className="font-montserrat text-[13px] font-medium tracking-wide relative z-10">
-              Ustawienia
-            </span>
-          </div>
-        </Link>
-
         <button
           onClick={() => signOut({ callbackUrl: "/logowanie" })}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-brand-secondary/60 hover:text-rose-600 hover:bg-white/50 transition-all w-full text-left cursor-pointer group mt-1"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-brand-secondary/60 hover:text-rose-600 hover:bg-white/50 transition-all w-full text-left cursor-pointer group"
         >
           <SignOut
             size={20}

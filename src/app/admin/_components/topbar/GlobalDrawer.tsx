@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Article,
   CaretRight,
-  Gear,
   House,
   PlayCircle,
   SignOut,
@@ -165,20 +164,6 @@ export default function GlobalDrawer({ open, onClose, user }: Props) {
                   </motion.li>
                 ))}
               </motion.ul>
-
-              <div className="mt-6 px-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-brand-secondary/40 font-bold mb-2">
-                  Konto
-                </p>
-                <Link
-                  href="/admin/ustawienia"
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-brand-secondary hover:bg-white/70 transition"
-                >
-                  <Gear size={18} weight="duotone" />
-                  Ustawienia
-                </Link>
-              </div>
             </nav>
 
             <div

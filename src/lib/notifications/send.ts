@@ -42,7 +42,7 @@ export async function sendOneSignalPush(
   }
 
   if (playerIds.length === 0) return;
-
+  const BADGE_URL = "https://rehability-q534.vercel.app//badge-96x96.png";
   try {
     const res = await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
@@ -54,6 +54,7 @@ export async function sendOneSignalPush(
         app_id: ONESIGNAL_APP_ID,
         include_player_ids: playerIds,
         headings: { en: title, pl: title },
+        chrome_web_badge: BADGE_URL,
         contents: { en: message || title, pl: message || title },
         ...(link && { url: link }),
       }),
@@ -73,7 +74,14 @@ export async function sendOneSignalPush(
  * Zachowane jako fasada — `push: false` ogranicza kanały do IN_APP.
  */
 export async function sendNotification(input: SendNotificationInput) {
-  const { userId, title, message = "", type = "INFO", link, push = true } = input;
+  const {
+    userId,
+    title,
+    message = "",
+    type = "INFO",
+    link,
+    push = true,
+  } = input;
 
   const channels: NotificationChannel[] = ["IN_APP"];
   if (push) channels.push("PUSH");

@@ -223,7 +223,7 @@ function SeoFormContent() {
             }
             value={canonicalUrl}
             onChange={setCanonicalUrl}
-            placeholder="https://rehability.pl/campy/..."
+            placeholder="https://rehability.pl/wyjazdy/..."
             hint="Zostaw puste, jeśli to oryginalny adres wyjazdu. Wypełnij tylko przy duplikatach treści."
           />
 

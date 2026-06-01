@@ -50,3 +50,14 @@ export const formatPLN = (amount: number) =>
     currency: "PLN",
     maximumFractionDigits: 0,
   }).format(amount);
+
+// Upload zdjęcia usługi do Vercel Blob. Zwraca publiczny URL lub null.
+export async function uploadServiceImage(file: File): Promise<string | null> {
+  const res = await fetch(
+    `/api/admin/wyjazdy/service-image?filename=${encodeURIComponent(file.name)}`,
+    { method: "POST", body: file },
+  );
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => null);
+  return data?.url ?? null;
+}

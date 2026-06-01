@@ -18,8 +18,8 @@ import { Button } from "@/components/ui/Button";
 import {
   FormInput,
   FormTextarea,
-} from "@/app/admin/ustawienia/wyjazdy/dodaj/_components/FormFields";
-import AiGeneratorModal from "@/app/admin/ustawienia/wyjazdy/dodaj/_components/AiGeneratorModal";
+} from "@/app/admin/wyjazdy/dodaj/_components/FormFields";
+import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
 import NeonAiPanel, {
   type NeonStep,
   type StepStatus,

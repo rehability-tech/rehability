@@ -56,7 +56,7 @@ export default async function PolitykaPrywatnosciPage() {
                 Przetwarzamy dane podane przy rejestracji (imię, nazwisko, adres
                 e-mail, awatar z dostawcy logowania), dane wynikające z
                 aktywnoL�ci na platformie (zakupy, postępy w kursach VOD,
-                rezerwacje campAlw) oraz dane techniczne (adres IP, cookies,
+                rezerwacje wyjazdów) oraz dane techniczne (adres IP, cookies,
                 identyfikatory urządzenia) niezbędne do zapewnienia
                 bezpieczeL�stwa i prawidL�owego dziaL�ania usL�ugi.
               </p>

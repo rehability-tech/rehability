@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Plus,
   CheckCircle,
@@ -10,8 +11,10 @@ import {
   CircleNotch,
   MagnifyingGlass,
   Package,
+  Image as ImageIcon,
+  Trash,
 } from "@phosphor-icons/react/dist/ssr";
-import { formatPLN, type CatalogService } from "./types";
+import { formatPLN, uploadServiceImage, type CatalogService } from "./types";
 
 export function CatalogPicker({
   catalog,
@@ -19,7 +22,7 @@ export function CatalogPicker({
   onCreate,
 }: {
   catalog: CatalogService[];
-  // Dodaje wskazane usługi katalogowe do campu; zwraca po zakończeniu
+  // Dodaje wskazane usługi katalogowe do wyjazdu; zwraca po zakończeniu
   onAdd: (extraServiceIds: string[]) => Promise<void>;
   // Tworzy nową usługę w katalogu globalnym; zwraca id nowej usługi
   onCreate: (payload: {
@@ -27,6 +30,7 @@ export function CatalogPicker({
     duration: string;
     price: string;
     description: string;
+    image: string | null;
   }) => Promise<string | null>;
 }) {
   const [query, setQuery] = useState("");
@@ -34,12 +38,26 @@ export function CatalogPicker({
   const [isAdding, setIsAdding] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     name: "",
     duration: "",
     price: "",
     description: "",
   });
+  const [image, setImage] = useState<string | null>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadServiceImage(file);
+    setUploading(false);
+    if (url) setImage(url);
+    else toast.error("Nie udało się przesłać zdjęcia.");
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,9 +90,10 @@ export function CatalogPicker({
     if (!form.name.trim() || !form.duration || !form.price) return;
     setCreating(true);
     try {
-      const id = await onCreate(form);
+      const id = await onCreate({ ...form, image });
       if (id) {
         setForm({ name: "", duration: "", price: "", description: "" });
+        setImage(null);
         setShowCreate(false);
       }
     } finally {
@@ -94,7 +113,7 @@ export function CatalogPicker({
               Katalog globalny
             </h2>
             <p className="text-[12px] text-slate-400 font-medium">
-              Dodaj usługi z bazy do tego campu
+              Dodaj usługi z bazy do tego wyjazdu
             </p>
           </div>
         </div>
@@ -117,6 +136,53 @@ export function CatalogPicker({
             className="overflow-hidden"
           >
             <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl bg-slate-50/80 p-4">
+              {/* Zdjęcie usługi */}
+              <div className="sm:col-span-2 flex items-center gap-3">
+                <div className="relative w-16 h-16 rounded-2xl rounded-tr-none overflow-hidden border border-slate-200 bg-white shrink-0 group">
+                  {image ? (
+                    <>
+                      <img
+                        src={image}
+                        alt="Podgląd"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImage(null)}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 text-rose-500 flex items-center justify-center shadow-sm hover:bg-white"
+                        title="Usuń zdjęcie"
+                      >
+                        <Trash size={12} weight="bold" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="w-full h-full flex items-center justify-center text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-colors"
+                    >
+                      {uploading ? (
+                        <CircleNotch size={20} className="animate-spin" />
+                      ) : (
+                        <ImageIcon size={22} weight="duotone" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="text-[12px] text-slate-400 font-medium">
+                  {uploading
+                    ? "Wysyłanie zdjęcia..."
+                    : "Zdjęcie usługi (opcjonalnie)"}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFile}
+                  className="hidden"
+                />
+              </div>
+
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -163,7 +229,7 @@ export function CatalogPicker({
                 ) : (
                   <Plus size={16} weight="bold" />
                 )}
-                Zapisz w katalogu i dodaj do campu
+                Zapisz w katalogu i dodaj do wyjazdu
               </button>
             </div>
           </motion.div>
@@ -185,7 +251,7 @@ export function CatalogPicker({
       </div>
 
       {/* Lista katalogu */}
-      <div className="flex flex-col gap-1.5 max-h-[360px] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-1.5 max-h-[520px] overflow-y-auto pr-1">
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400 italic">
             {catalog.length === 0
@@ -222,6 +288,18 @@ export function CatalogPicker({
                     <CheckCircle size={14} weight="fill" />
                   )}
                 </span>
+                {c.image ? (
+                  <img
+                    src={c.image}
+                    alt={c.name}
+                    loading="lazy"
+                    className="w-10 h-10 rounded-xl rounded-tr-none object-cover shrink-0 border border-white shadow-sm"
+                  />
+                ) : (
+                  <span className="flex items-center justify-center w-10 h-10 rounded-xl rounded-tr-none bg-brand-primary/10 text-brand-primary shrink-0">
+                    <ImageIcon size={18} weight="duotone" />
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-brand-secondary truncate">
                     {c.name}
@@ -237,7 +315,7 @@ export function CatalogPicker({
                 </div>
                 {c.inCamp && (
                   <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
-                    W campie
+                    W wyjeździe
                   </span>
                 )}
               </button>
@@ -258,7 +336,7 @@ export function CatalogPicker({
           ) : (
             <Plus size={18} weight="bold" />
           )}
-          Dodaj zaznaczone ({selected.size}) do campu
+          Dodaj zaznaczone ({selected.size}) do wyjazdu
         </button>
       )}
     </div>
