@@ -35,9 +35,18 @@ const mockSearchData = [
 export default function SearchBar() {
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+
+  // Po rozwinięciu searchbara (mobile) ustawiamy focus na input,
+  // gdy skończy się animacja rozwijania (300ms = duration-300).
+  useEffect(() => {
+    if (!isFocused) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => clearTimeout(t);
+  }, [isFocused]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -76,6 +85,7 @@ export default function SearchBar() {
           <MagnifyingGlass size={18} weight="bold" />
         </button>
         <input
+          ref={inputRef}
           type="text"
           placeholder="Znajdź czego potrzebujesz..."
           value={query}

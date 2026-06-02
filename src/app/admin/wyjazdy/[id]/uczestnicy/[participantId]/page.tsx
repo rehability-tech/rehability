@@ -15,6 +15,7 @@ import { HealthCard } from "./_components/HealthCard";
 import { SpaOrdersCard } from "./_components/SpaOrdersCard";
 import { ActivityLogCard } from "./_components/ActivityLogCard";
 import { EmergencyContactCard } from "./_components/EmergencyContactCard";
+import { PackageCard } from "./_components/PackageCard";
 // Importujemy podzielone karty z tego samego pliku
 import { EmailCard, PhoneCard } from "./_components/ContactCardInfo";
 import type { ParticipantData } from "@/types/participant";
@@ -125,6 +126,13 @@ export default function ParticipantDetailPage() {
           {/* LEWA KOLUMNA: 4 Karty */}
           <div className="flex flex-col gap-4 sm:gap-6 xl:gap-8">
             <ProfileHeader participant={participant} />
+
+            {participant.packagePartner && (
+              <PackageCard
+                partner={participant.packagePartner}
+                tripId={tripId}
+              />
+            )}
 
             <EmailCard email={email} />
             <PhoneCard phone={phone} />

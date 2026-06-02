@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
@@ -87,6 +86,9 @@ export default function UserMobileBottomNav() {
     segments.length >= 4;
   const tripId = isTripContext ? segments[3] : null;
 
+  // Na chacie chowamy dolny pasek — czat jest pełnoekranowy ze strzałką wstecz.
+  const isChatPage = pathname?.includes("/chat");
+
   // Itemy bara — Karta + Czat mają `wideOnly` (≥450px)
   const tripItems: TripItem[] = [
     {
@@ -160,6 +162,8 @@ export default function UserMobileBottomNav() {
     setIsMoreOpen(false);
   }, [pathname]);
 
+  if (isChatPage) return null;
+
   return (
     <div
       className="fixed inset-x-0 z-50 md:hidden flex justify-center pointer-events-none px-4 max-[400px]:px-1"
@@ -189,35 +193,8 @@ export default function UserMobileBottomNav() {
                 className="absolute inset-0 flex items-center justify-between w-full h-full"
               >
                 <div className="flex items-center justify-between gap-1.5 w-full max-w-full">
-                  {/* LEWA STRONA: Pigułka z avatarem */}
-                  <Link
-                    href="/panel/wyjazdy"
-                    className={cn(
-                      "relative flex items-center gap-1.5 h-11 pl-3 pr-1.5 rounded-full overflow-hidden shrink-0 transition-all duration-300",
-                      "bg-brand-primary shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] border border-brand-primary/20",
-                    )}
-                  >
-                    {/* ŻÓŁTA SFERA DO STEROWANIA EFEKTEM */}
-                    <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
-
-                    <Suitcase
-                      size={20}
-                      weight="fill"
-                      className="text-white relative z-10 shrink-0"
-                    />
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/40 z-10 shrink-0">
-                      <Image
-                        src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?q=80&w=200&auto=format&fit=crop"
-                        alt="Wyjazd"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </Link>
-
-                  <div className="w-[1px] h-5 bg-brand-secondary/20 mx-0.5 shrink-0" />
-
-                  {/* PRAWA STRONA: Scrollowane menu wyjazdu */}
+                  {/* Powrót do listy wyjazdów jest teraz w topbarze (ikona back). */}
+                  {/* Scrollowane menu wyjazdu */}
                   <ul
                     className={cn(
                       "flex flex-1 items-center justify-start gap-1.5 overflow-x-auto scroll-smooth relative transition-all duration-300",

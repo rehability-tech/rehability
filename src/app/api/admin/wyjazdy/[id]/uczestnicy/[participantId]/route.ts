@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
+import { resolvePackage, PACKAGE_RELATION_SELECT } from "@/lib/bookings/partner";
 
 export async function GET(
   _req: NextRequest,
@@ -36,6 +37,7 @@ export async function GET(
           },
           orderBy: { createdAt: "asc" },
         },
+        ...PACKAGE_RELATION_SELECT,
       },
     });
 
@@ -44,7 +46,17 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ participant });
+    const pkg = resolvePackage(participant);
+    const packagePartner = pkg
+      ? {
+          bookingId: pkg.partner.bookingId,
+          name: pkg.partner.name,
+          relation: pkg.partner.relation,
+          active: pkg.active,
+        }
+      : null;
+
+    return NextResponse.json({ participant: { ...participant, packagePartner } });
   } catch (error) {
     console.error(
       "[GET /api/admin/wyjazdy/[id]/uczestnicy/[participantId]]",

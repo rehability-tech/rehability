@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { logCampEvent } from "@/lib/notifications/send";
+import { logCampEvent, sendNotification } from "@/lib/notifications/send";
+import { sendFriendInvitationEmail } from "@/lib/email/friendInvitation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,7 +108,14 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       userId: true,
       amountPaid: true,
       tripId: true,
-      trip: { select: { title: true } },
+      trip: {
+        select: {
+          title: true,
+          location: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
     },
   });
 
@@ -117,7 +125,14 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
   }
 
   // Idempotency — ten sam event może przyjść wielokrotnie.
-  if (paymentType === "deposit" && booking.status !== "PENDING") return;
+  // PENDING = zwykła bookerka, PENDING_INVITATION = zaproszona gościni
+  // (oba to stany "przed opłaceniem zadatku").
+  if (
+    paymentType === "deposit" &&
+    booking.status !== "PENDING" &&
+    booking.status !== "PENDING_INVITATION"
+  )
+    return;
   if (paymentType === "remainder" && booking.status === "FULLY_PAID") return;
 
   const paidNow = pi.amount_received ?? pi.amount ?? 0;
@@ -156,6 +171,12 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       console.error("[stripe-webhook] Błąd wysyłki powiadomień:", err),
     );
 
+    // "Zabierz przyjaciółkę" — zaproszenie wysyłamy DOPIERO gdy zapraszająca
+    // realnie opłaciła zadatek (nie przy porzuconym koszyku).
+    await maybeSendFriendInvitation(booking.id, booking.name, booking.trip).catch(
+      (err) => console.error("[stripe-webhook] Błąd wysyłki zaproszenia:", err),
+    );
+
     return;
   }
 
@@ -190,6 +211,123 @@ async function handlePaymentFailed(pi: Stripe.PaymentIntent) {
     where: { id: bookingId, status: "PENDING" },
     data: { status: "CANCELLED" },
   });
+}
+
+/**
+ * Po opłaceniu zadatku przez zapraszającą obsługuje "gościa" (Booking
+ * PENDING_INVITATION) wg drzewa decyzyjnego:
+ *
+ *  A) e-mail NIE należy do żadnego użytkownika
+ *       → wysyłamy mail z linkiem zaproszenia (24h od teraz).
+ *  B1) e-mail to istniejący użytkownik, który MA już opłaconą zaliczkę na ten wyjazd
+ *       → łączymy istniejącą rezerwację jako partnera, kasujemy placeholder,
+ *         wysyłamy TYLKO powiadomienie "połączono Cię z…". Bez maila.
+ *  B2) e-mail to istniejący użytkownik BEZ opłaconej zaliczki (lub bez push)
+ *       → podpinamy userId do placeholdera, wysyłamy in-app + push ORAZ mail.
+ */
+async function maybeSendFriendInvitation(
+  inviterBookingId: string,
+  inviterName: string | null,
+  trip: {
+    title: string;
+    location: string;
+    startDate: Date;
+    endDate: Date;
+  } | null,
+): Promise<void> {
+  if (!trip) return;
+
+  const guest = await prisma.booking.findFirst({
+    where: { invitedById: inviterBookingId, status: "PENDING_INVITATION" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      invitationToken: true,
+      tripId: true,
+    },
+  });
+
+  if (!guest?.email) return;
+  const email = guest.email.toLowerCase();
+  const inviter = inviterName ?? "Znajoma";
+
+  // Czy ten e-mail należy do istniejącego użytkownika?
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  // Czy ta osoba MA już opłaconą rezerwację na ten wyjazd (inną niż placeholder)?
+  const paidBooking = await prisma.booking.findFirst({
+    where: {
+      tripId: guest.tripId,
+      email,
+      id: { not: guest.id },
+      status: { in: ["DEPOSIT_PAID", "FULLY_PAID"] },
+    },
+    select: { id: true, userId: true },
+  });
+
+  // ── B1: już jedzie → łączymy w pakiet, kasujemy placeholder, tylko powiadomienie ──
+  if (paidBooking) {
+    await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: paidBooking.id },
+        data: { invitedById: inviterBookingId },
+      }),
+      prisma.booking.update({
+        where: { id: guest.id },
+        data: { status: "CANCELLED" },
+      }),
+    ]);
+
+    const targetUserId = paidBooking.userId ?? user?.id;
+    if (targetUserId) {
+      await sendNotification({
+        userId: targetUserId,
+        title: "🤝 Jedziecie razem!",
+        message: `Zostałaś połączona z ${inviter} — dzielicie pokój na wyjeździe ${trip.title}. Pakiet jest aktywny.`,
+        type: "BOOKING",
+        link: `/panel/wyjazdy/${paidBooking.id}`,
+        push: true,
+      });
+    }
+    return;
+  }
+
+  // Odświeżamy 24h od teraz; jeśli to istniejący user — podpinamy go do placeholdera.
+  const expiresAt = new Date(Date.now() + 24 * 3600 * 1000);
+  await prisma.booking.update({
+    where: { id: guest.id },
+    data: { expiresAt, ...(user ? { userId: user.id } : {}) },
+  });
+
+  // ── B2: ma konto, ale nieopłacone → in-app + push (mail wysyłamy też niżej) ──
+  if (user) {
+    await sendNotification({
+      userId: user.id,
+      title: "✈️ Masz zaproszenie na wyjazd",
+      message: `${inviter} zaprasza Cię na ${trip.title}. Opłać zadatek (24h), aby dołączyć.`,
+      type: "BOOKING",
+      link: `/panel/wyjazdy/${guest.id}`,
+      push: true,
+    });
+  }
+
+  // ── A i B2: wysyłamy mail z linkiem zaproszenia ──
+  if (guest.invitationToken) {
+    await sendFriendInvitationEmail({
+      to: guest.email,
+      inviteeName: guest.name ?? "",
+      inviterName: inviter,
+      campName: trip.title,
+      campStart: trip.startDate,
+      campEnd: trip.endDate,
+      campLocation: trip.location,
+      token: guest.invitationToken,
+    });
+  }
 }
 
 async function linkOrCreateUser(

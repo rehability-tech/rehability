@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import OneSignalProvider from "@/components/notifications/OneSignalProvider";
 import NotificationPrompt from "@/components/notifications/NotificationPrompt";
 import AdminMobileNavBar from "./_components/AdminMobileNavBar";
+import AdminContentArea from "./_components/AdminContentArea";
 
 export default async function AdminLayout({
   children,
@@ -40,7 +41,7 @@ export default async function AdminLayout({
         <AdminSidebar />
         <AdminMobileNavBar />
         {/* GŁÓWNY KONTENER NA TREŚĆ */}
-        <main className="flex flex-col min-w-0 min-h-screen  bg-gradient-to-br to-brand-primary/15 via-transparent from-brand-yellow/5 pb-22">
+        <main className="flex flex-col min-w-0 min-h-screen  bg-gradient-to-br to-brand-primary/15 via-transparent from-brand-yellow/5">
           {/* KLIENCKI KOMPONENT TOPBARA */}
           <AdminTopbar user={user} />
 
@@ -65,12 +66,7 @@ export default async function AdminLayout({
           />
 
           {/* ZAWARTOŚĆ STRONY */}
-          <div className="max-w-[1400px] mx-auto w-full flex-1">
-            {/* Tailwind animations */}
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ">
-              {children}
-            </div>
-          </div>
+          <AdminContentArea>{children}</AdminContentArea>
         </main>
       </div>
     </>

@@ -10,6 +10,7 @@ import UserSideBar from "./_components/UserSideBar";
 import OneSignalProvider from "@/components/notifications/OneSignalProvider";
 import NotificationPrompt from "@/components/notifications/NotificationPrompt";
 import PWAInstallPrompt from "./_components/PWAInstallPrompt";
+import MainClientContainer from "./_components/MainClientContainer";
 
 export default async function PanelLayout({
   children,
@@ -48,9 +49,7 @@ export default async function PanelLayout({
         {/* TOPBAR */}
         <UserTopBar user={user} /> {/* Poprawione */}
         {/* DYNAMICZNY CONTENT (Hub, Wyjazdy, VOD) */}
-        <main className="flex-1 pb-28 lg:pb-12 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-6 lg:pt-8 overflow-x-clip">
-          {children}
-        </main>
+        <MainClientContainer>{children}</MainClientContainer>
       </div>
       {/* 3. PASEK DOLNY (Tylko Mobile) */}
       <UserMobileBottomNav />

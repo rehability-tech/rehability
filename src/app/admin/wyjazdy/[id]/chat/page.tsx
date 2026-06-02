@@ -30,7 +30,7 @@ export default async function AdminChatPage({ params }: Props) {
   if (!trip) notFound();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-220px)] min-h-[480px] lg:h-[calc(100dvh-180px)]">
+    <div className="flex flex-col h-[100dvh] lg:h-[calc(100dvh-180px)]">
       <ChatRoom
         tripId={trip.id}
         variant="admin"

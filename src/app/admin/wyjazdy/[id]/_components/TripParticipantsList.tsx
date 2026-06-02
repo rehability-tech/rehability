@@ -13,6 +13,7 @@ import {
   Clock,
   CaretLeft,
   CaretRight,
+  UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,11 @@ interface Participant {
     healthProfile?: any | null;
   } | null;
   serviceOrders?: any[];
+  packagePartner?: {
+    name?: string | null;
+    relation: "inviter" | "guest";
+    active: boolean;
+  } | null;
 }
 
 interface TripParticipantsListProps {
@@ -388,6 +394,22 @@ export function TripParticipantsList({
                           <span className="text-brand-secondary/50 font-medium text-[11.5px] sm:text-[12px] truncate block w-full mt-0.5">
                             {displayEmail}
                           </span>
+                          {participant.packagePartner && (
+                            <span
+                              title={`W pakiecie z: ${participant.packagePartner.name || "—"}`}
+                              className={cn(
+                                "inline-flex items-center gap-1 mt-1 w-fit max-w-full px-2 py-0.5 rounded-full text-[10px] font-bold truncate",
+                                participant.packagePartner.active
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                  : "bg-amber-50 text-amber-600 border border-amber-100",
+                              )}
+                            >
+                              <UsersThree size={12} weight="fill" className="shrink-0" />
+                              <span className="truncate">
+                                {participant.packagePartner.name || "Pakiet"}
+                              </span>
+                            </span>
+                          )}
                         </div>
                       </div>
 

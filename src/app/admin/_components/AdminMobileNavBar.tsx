@@ -11,9 +11,9 @@ import {
   Article,
   CalendarBlank,
   Users,
-  ChartBar,
+  Storefront,
+  ChatCircle,
   House,
-  ArrowLeft,
   DotsThree,
   Lock,
 } from "@phosphor-icons/react/dist/ssr";
@@ -80,7 +80,7 @@ export default function AdminMobileNavBar() {
     campIdMatch && campIdMatch[1] !== "nowy" ? campIdMatch[1] : null;
   const isTripContext = !!currentCampId;
 
-  // 2. SUB-MENU DLA KONKRETNEGO WYJAZDU
+  // 2. SUB-MENU DLA KONKRETNEGO WYJAZDU — zsynchronizowane z AdminSideBar
   const tripItems: TripItem[] = [
     {
       key: "trip-home",
@@ -89,22 +89,29 @@ export default function AdminMobileNavBar() {
       icon: House,
     },
     {
-      key: "harmonogram",
-      href: `/admin/wyjazdy/${currentCampId}/harmonogram`,
-      label: "Plan",
-      icon: CalendarBlank,
-    },
-    {
       key: "uczestnicy",
       href: `/admin/wyjazdy/${currentCampId}/uczestnicy`,
       label: "Ludzie",
       icon: Users,
     },
     {
-      key: "finanse",
-      href: `/admin/wyjazdy/${currentCampId}/finanse`,
-      label: "Finanse",
-      icon: ChartBar,
+      key: "harmonogram",
+      href: `/admin/wyjazdy/${currentCampId}/harmonogram`,
+      label: "Plan",
+      icon: CalendarBlank,
+    },
+    {
+      key: "sklep",
+      href: `/admin/wyjazdy/${currentCampId}/sklep`,
+      label: "Sklep",
+      icon: Storefront,
+      wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
+    },
+    {
+      key: "chat",
+      href: `/admin/wyjazdy/${currentCampId}/chat`,
+      label: "Czat",
+      icon: ChatCircle,
       wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
     },
   ];
@@ -142,6 +149,10 @@ export default function AdminMobileNavBar() {
     setIsMoreOpen(false);
   }, [pathname]);
 
+  // Na chacie chowamy dolny pasek — czat jest pełnoekranowy ze strzałką wstecz.
+  const isChatPage = pathname?.includes("/chat");
+  if (isChatPage) return null;
+
   return (
     <div
       className="fixed inset-x-0 z-[100] md:hidden flex justify-center pointer-events-none px-4 max-[400px]:px-1"
@@ -171,26 +182,8 @@ export default function AdminMobileNavBar() {
                 className="absolute inset-0 flex items-center justify-between w-full h-full"
               >
                 <div className="flex items-center justify-between gap-1.5 w-full max-w-full">
-                  {/* LEWA STRONA: Wróć do wyjazdów (Okrągły przycisk) */}
-                  <Link
-                    href="/admin/wyjazdy"
-                    className={cn(
-                      "relative flex items-center justify-center gap-1.5 w-11 h-11 rounded-full overflow-hidden shrink-0 transition-all duration-300",
-                      "bg-brand-primary shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] border border-brand-primary/20 hover:scale-95",
-                    )}
-                  >
-                    {/* ŻÓŁTA SFERA DO STEROWANIA EFEKTEM */}
-                    <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
-                    <ArrowLeft
-                      size={20}
-                      weight="bold"
-                      className="text-white relative z-10 shrink-0"
-                    />
-                  </Link>
-
-                  <div className="w-[1px] h-5 bg-brand-secondary/20 mx-0.5 shrink-0" />
-
-                  {/* PRAWA STRONA: Scrollowane menu wyjazdu */}
+                  {/* Powrót do listy wyjazdów jest teraz w topbarze (ikona back). */}
+                  {/* Scrollowane menu wyjazdu */}
                   <ul
                     className={cn(
                       "flex flex-1 items-center justify-start gap-1.5 overflow-x-auto scroll-smooth relative transition-all duration-300",

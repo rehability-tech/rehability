@@ -34,6 +34,13 @@ export interface ServiceOrderData {
   spaBlock?: { startTime?: string | null } | null;
 }
 
+export interface PackagePartnerData {
+  bookingId?: string;
+  name?: string | null;
+  relation: "inviter" | "guest";
+  active: boolean;
+}
+
 export interface ParticipantData {
   id: string;
   name?: string | null;
@@ -47,4 +54,5 @@ export interface ParticipantData {
   remainderPaidAt?: string | null;
   user?: ParticipantUserData | null;
   serviceOrders?: ServiceOrderData[] | null;
+  packagePartner?: PackagePartnerData | null;
 }

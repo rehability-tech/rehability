@@ -46,3 +46,23 @@ export async function GET(req: NextRequest) {
     notifications: items,
   });
 }
+
+// Czyszczenie powiadomień zalogowanej użytkowniczki.
+// ?scope=read (domyślnie) — usuwa tylko przeczytane; ?scope=all — wszystkie.
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const scope = searchParams.get("scope") === "all" ? "all" : "read";
+
+  const where: Prisma.NotificationWhereInput = {
+    userId: session.user.id,
+    ...(scope === "read" ? { isRead: true } : {}),
+  };
+
+  const result = await prisma.notification.deleteMany({ where });
+  return NextResponse.json({ deleted: result.count });
+}

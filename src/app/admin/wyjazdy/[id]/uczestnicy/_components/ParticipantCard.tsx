@@ -11,6 +11,7 @@ import {
   EnvelopeSimple,
   CaretRight,
   Receipt,
+  UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
 
 interface ParticipantDTO {
@@ -28,6 +29,11 @@ interface ParticipantDTO {
     healthProfile?: any;
   };
   serviceOrders?: any[];
+  packagePartner?: {
+    name?: string | null;
+    relation: "inviter" | "guest";
+    active: boolean;
+  } | null;
 }
 
 interface ParticipantCardProps {
@@ -126,6 +132,22 @@ export const ParticipantCard = React.memo(function ParticipantCard({
           >
             {data.name}
           </h3>
+
+          {participant.packagePartner && (
+            <span
+              title={`W pakiecie z: ${participant.packagePartner.name || "—"}`}
+              className={`inline-flex items-center gap-1 mb-1.5 w-fit max-w-full px-2 py-0.5 rounded-full text-[10px] font-bold truncate ${
+                participant.packagePartner.active
+                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  : "bg-amber-50 text-amber-600 border border-amber-100"
+              }`}
+            >
+              <UsersThree size={12} weight="fill" className="shrink-0" />
+              <span className="truncate">
+                Pakiet: {participant.packagePartner.name || "—"}
+              </span>
+            </span>
+          )}
 
           <div className="flex flex-col gap-1.5 text-[11px] sm:text-[12px] text-slate-500 font-medium relative z-10">
             <div className="flex items-center gap-2 truncate">

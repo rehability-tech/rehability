@@ -13,6 +13,9 @@ import DashboardNews, {
   type SystemUpdateItem,
 } from "./_components/DashboardNews";
 import PaymentSuccessModal from "./_components/PaymentSuccessModal";
+import DashboardRoommateCard, {
+  type BookingPackage,
+} from "./_components/DashboardRoommateCard";
 
 interface DashboardData {
   booking: Record<string, unknown> & { id: string; name?: string | null };
@@ -22,6 +25,7 @@ interface DashboardData {
   isSchedulePublished: boolean;
   systemUpdates: SystemUpdateItem[];
   personalNotifications: PersonalNotificationItem[];
+  bookingPackage: BookingPackage | null;
 }
 
 export default function BookingDashboardPage() {
@@ -85,6 +89,7 @@ export default function BookingDashboardPage() {
     isSchedulePublished,
     systemUpdates,
     personalNotifications,
+    bookingPackage,
   } = data;
 
   const firstName = (booking.name ?? "").split(" ")[0] || "Uczestniku";
@@ -94,6 +99,8 @@ export default function BookingDashboardPage() {
   return (
     <div className="pb-4 flex flex-col gap-5 lg:gap-6 animate-in fade-in duration-500">
       <DashboardHero booking={booking} trip={trip} firstName={firstName} />
+
+      {bookingPackage && <DashboardRoommateCard pkg={bookingPackage} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
         <DashboardPayments booking={booking} trip={trip} />

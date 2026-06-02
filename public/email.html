@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Zaproszenie na wyjazd</title>
+    <style>
+      /* Reset stylów dla klientów pocztowych */
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
+
+      /* Główne style responsywne */
+      @media screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+          padding: 0 16px !important;
+        }
+        .content-box {
+          padding: 32px 24px !important;
+        }
+        .btn {
+          display: block !important;
+          width: 100% !important;
+          text-align: center !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f7fafb;
+      font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    "
+  >
+    <div
+      style="
+        display: none;
+        max-height: 0px;
+        overflow: hidden;
+        opacity: 0;
+        font-size: 1px;
+        line-height: 1px;
+        color: #f7fafb;
+      "
+    >
+      Masz wyjątkowe zaproszenie od {{inviterName}}! Sprawdź szczegóły
+      wyjazdu...
+    </div>
+
+    <table
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="background-color: #f7fafb; padding: 40px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            class="container"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+            style="max-width: 600px; width: 100%"
+          >
+            <tr>
+              <td align="center" style="padding-bottom: 24px">
+                <h1
+                  style="
+                    margin: 0;
+                    color: #287d88;
+                    font-size: 24px;
+                    font-weight: bold;
+                    letter-spacing: 1px;
+                  "
+                >
+                  REHABILITY
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                class="content-box"
+                style="
+                  background-color: #ffffff;
+                  border-radius: 24px;
+                  padding: 48px;
+                  border: 1px solid #e2e8f0;
+                  box-shadow: 0 8px 30px -12px rgba(3, 63, 99, 0.08);
+                "
+              >
+                <h2
+                  style="
+                    margin: 0 0 24px 0;
+                    color: #0f172a;
+                    font-size: 22px;
+                    font-weight: bold;
+                    text-align: center;
+                  "
+                >
+                  Pakuj walizki! ✈️
+                </h2>
+
+                <p
+                  style="
+                    margin: 0 0 16px 0;
+                    color: #475569;
+                    font-size: 16px;
+                    line-height: 1.6;
+                  "
+                >
+                  Cześć <strong>{{inviteeName}}</strong>,
+                </p>
+                <p
+                  style="
+                    margin: 0 0 24px 0;
+                    color: #475569;
+                    font-size: 16px;
+                    line-height: 1.6;
+                  "
+                >
+                  Twoja znajoma <strong>{{inviterName}}</strong> serdecznie
+                  zaprasza Cię do wspólnego udziału w wyjeździe
+                  <strong>{{campName}}</strong>. Czeka na Was wspaniały czas,
+                  relaks, świetne jedzenie i niezapomniane wspomnienia!
+                </p>
+
+                <table
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  width="100%"
+                  style="
+                    background-color: #f8fafc;
+                    border-radius: 16px;
+                    margin-bottom: 32px;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 20px">
+                      <p
+                        style="
+                          margin: 0 0 8px 0;
+                          color: #0f172a;
+                          font-size: 14px;
+                          font-weight: bold;
+                        "
+                      >
+                        Kiedy?
+                      </p>
+                      <p
+                        style="
+                          margin: 0 0 16px 0;
+                          color: #64748b;
+                          font-size: 14px;
+                        "
+                      >
+                        {{campDate}}
+                      </p>
+
+                      <p
+                        style="
+                          margin: 0 0 8px 0;
+                          color: #0f172a;
+                          font-size: 14px;
+                          font-weight: bold;
+                        "
+                      >
+                        Gdzie?
+                      </p>
+                      <p style="margin: 0; color: #64748b; font-size: 14px">
+                        {{campLocation}}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td align="center">
+                      <a
+                        href="{{invitationLink}}"
+                        class="btn"
+                        style="
+                          display: inline-block;
+                          background-color: #287d88;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-size: 15px;
+                          font-weight: bold;
+                          padding: 16px 32px;
+                          border-radius: 12px;
+                          border: 1px solid #1f646d;
+                        "
+                      >
+                        Zobacz szczegóły i dołącz
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding-top: 32px">
+                <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 13px">
+                  Otrzymujesz tę wiadomość, ponieważ {{inviterName}} wpisała
+                  Twój adres e-mail w naszym panelu zaproszeń.
+                </p>
+                <p style="margin: 0; color: #94a3b8; font-size: 13px">
+                  &copy; {{currentYear}} Rehability. Wszystkie prawa
+                  zastrzeżone.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

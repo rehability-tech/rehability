@@ -5,11 +5,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BellRinging, X } from "@phosphor-icons/react/dist/ssr";
 // Zmieniony import - korzystamy teraz z niezawodnego pobierania
 import { getOneSignal } from "@/lib/notifications/onesignal";
+import { isStandalone, isMobileDevice } from "@/lib/pwa/clientEnv";
+import { NOTIF_PROMPT_EVENT } from "@/lib/pwa/triggers";
 
 // Po ilu dniach od ostatniego pytania możemy zapytać ponownie.
 const REMIND_AFTER_DAYS = 14;
 // Po ilu dniach od rejestracji (czyli braku promptedAt) zaczynamy pytać.
 const FIRST_PROMPT_AFTER_DAYS = 0; // 0 = od razu po wejściu
+// Maksymalna liczba automatycznych pokazań (potem tylko ręczny przycisk).
+const MAX_ASKS = 2;
+const ASKS_KEY = "notif_asks";
 
 interface Preferences {
   isNotificationEnabled: boolean;
@@ -46,6 +51,13 @@ export default function NotificationPrompt({ force = false }: Props) {
           return;
         }
 
+        // Na mobile prosimy o powiadomienia DOPIERO po instalacji PWA
+        // (na iOS push w ogóle nie działa bez instalacji). Desktop bez zmian.
+        if (isMobileDevice() && !isStandalone()) return;
+
+        // Cap automatycznych pokazań — potem zostaje tylko ręczny przycisk.
+        if (Number(localStorage.getItem(ASKS_KEY) || 0) >= MAX_ASKS) return;
+
         const promptedAt = preferences.notificationPromptedAt
           ? new Date(preferences.notificationPromptedAt).getTime()
           : null;
@@ -68,7 +80,21 @@ export default function NotificationPrompt({ force = false }: Props) {
     };
   }, [force]);
 
+  // Ręczne wyzwolenie z menu profilu — pomija kadencję i limit pokazań.
+  useEffect(() => {
+    const onRequest = () => setVisible(true);
+    window.addEventListener(NOTIF_PROMPT_EVENT, onRequest);
+    return () => window.removeEventListener(NOTIF_PROMPT_EVENT, onRequest);
+  }, []);
+
   async function markPrompted() {
+    // Lokalny licznik automatycznych pokazań (cap MAX_ASKS).
+    try {
+      const asks = Number(localStorage.getItem(ASKS_KEY) || 0) + 1;
+      localStorage.setItem(ASKS_KEY, String(asks));
+    } catch {
+      // brak localStorage — ignorujemy
+    }
     await fetch("/api/user/notification-preferences", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

@@ -7,18 +7,24 @@ import { Role } from "@/generated/prisma";
 
 const ADMIN_EMAILS = ["biuro@kocikdev.com", "piotrsiemaszkofizjo@gmail.com"];
 
-const MOCK_USERS: Record<string, { email: string; name: string; role: Role }> = {
-  "biuro@kocikdev.com": {
-    email: "biuro@kocikdev.com",
-    name: "Michał (Mock Admin)",
-    role: "ADMIN",
-  },
-  "piotr.eher@gmail.com": {
-    email: "piotr.eher@gmail.com",
-    name: "Piotr (Mock User)",
-    role: "USER",
-  },
-};
+const MOCK_USERS: Record<string, { email: string; name: string; role: Role }> =
+  {
+    "biuro@kocikdev.com": {
+      email: "biuro@kocikdev.com",
+      name: "Michał (Mock Admin)",
+      role: "ADMIN",
+    },
+    "piotr.eher@gmail.com": {
+      email: "piotr.eher@gmail.com",
+      name: "Piotr (Mock User)",
+      role: "USER",
+    },
+    "mch.kocik@gmail.com": {
+      email: "mch.kocik@gmail.com",
+      name: "Michał (Mock User)",
+      role: "USER",
+    },
+  };
 
 const isDev = process.env.NODE_ENV === "development";
 

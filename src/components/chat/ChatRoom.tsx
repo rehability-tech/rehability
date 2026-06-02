@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,6 +10,7 @@ import {
   CircleNotch,
   ChatCircleDots,
   ShieldCheck,
+  ArrowLeft,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +85,7 @@ export default function ChatRoom({
   title = "Czat wyjazdowy",
   subtitle = "Bądź na bieżąco z organizatorem i grupą",
 }: ChatRoomProps) {
+  const router = useRouter();
   const { data, error, isLoading, mutate } = useSWR<ChatResponse>(
     `/api/wyjazdy/${tripId}/chat`,
     fetcher,
@@ -138,9 +141,7 @@ export default function ChatRoom({
       // Optymistyczne dołączenie + rewalidacja w tle.
       await mutate(
         (prev) =>
-          prev
-            ? { ...prev, messages: [...prev.messages, created] }
-            : prev,
+          prev ? { ...prev, messages: [...prev.messages, created] } : prev,
         { revalidate: true },
       );
     } catch {
@@ -151,7 +152,7 @@ export default function ChatRoom({
   }
 
   return (
-    <div className="relative flex flex-col h-full rounded-3xl rounded-tr-none border border-white/60 bg-white/40 backdrop-blur-2xl shadow-[0_8px_40px_-12px_rgba(3,63,99,0.15)] overflow-hidden">
+    <div className="relative flex flex-col h-full   overflow-hidden">
       {/* Poświata w tle */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute -top-24 -right-16 w-72 h-72 bg-brand-yellow/20 rounded-full blur-[90px]" />
@@ -159,8 +160,19 @@ export default function ChatRoom({
       </div>
 
       {/* Nagłówek */}
-      <header className="relative z-10 flex items-center gap-3 px-5 py-4 border-b border-white/50 bg-white/30 backdrop-blur-xl shrink-0">
-        <div className="relative flex items-center justify-center w-11 h-11 rounded-2xl rounded-tr-none bg-brand-primary text-white shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] border border-brand-yellow/30">
+      <header className="relative z-10 flex items-center gap-3 px-5 py-4 border-b border-white/50 bg-white/30 backdrop-blur-xl shrink-0 shadow-[0_12px_30px_-12px] shadow-brand-yellow/40">
+        {/* Mobile: przycisk powrotu (topbar jest ukryty na chacie) */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Wróć"
+          className="md:hidden relative flex items-center justify-center w-11 h-11 rounded-2xl rounded-tr-none bg-brand-primary text-white shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] border border-brand-yellow/30 transition-transform active:scale-95"
+        >
+          <ArrowLeft size={22} weight="bold" />
+          <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-yellow/50 blur-[10px] rounded-full pointer-events-none" />
+        </button>
+        {/* Desktop: dekoracyjna ikona czatu */}
+        <div className="hidden md:flex relative items-center justify-center w-11 h-11 rounded-2xl rounded-tr-none bg-brand-primary text-white shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] border border-brand-yellow/30">
           <ChatCircleDots size={22} weight="fill" />
           <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-yellow/50 blur-[10px] rounded-full" />
         </div>
@@ -194,9 +206,15 @@ export default function ChatRoom({
 
         {!isLoading && !error && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-brand-secondary/40 text-center px-6">
-            <ChatCircleDots size={40} weight="duotone" className="mb-3 opacity-50" />
+            <ChatCircleDots
+              size={40}
+              weight="duotone"
+              className="mb-3 opacity-50"
+            />
             <p className="text-sm font-semibold">Tu jeszcze cicho…</p>
-            <p className="text-xs mt-1">Napisz pierwszą wiadomość, aby rozpocząć rozmowę.</p>
+            <p className="text-xs mt-1">
+              Napisz pierwszą wiadomość, aby rozpocząć rozmowę.
+            </p>
           </div>
         )}
 
@@ -262,8 +280,15 @@ function MessageBubble({
   message: ChatMessage;
   variant: "panel" | "admin";
 }) {
-  const { isMine, isAdmin, senderName, senderImage, senderRole, text, createdAt } =
-    message;
+  const {
+    isMine,
+    isAdmin,
+    senderName,
+    senderImage,
+    senderRole,
+    text,
+    createdAt,
+  } = message;
 
   // Admin wykrywany po fladze wiadomości LUB aktualnej roli nadawcy.
   const isAdminSender = isAdmin || senderRole === "ADMIN";
@@ -276,11 +301,21 @@ function MessageBubble({
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2 }}
-      className={cn("flex items-end gap-2", isMine ? "justify-end" : "justify-start")}
+      className={cn(
+        "flex items-end gap-2",
+        isMine ? "justify-end" : "justify-start",
+      )}
     >
-      {!isMine && <Avatar name={senderName} image={senderImage} isAdmin={isAdminSender} />}
+      {!isMine && (
+        <Avatar name={senderName} image={senderImage} isAdmin={isAdminSender} />
+      )}
 
-      <div className={cn("max-w-[75%] flex flex-col", isMine ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          "max-w-[75%] flex flex-col",
+          isMine ? "items-end" : "items-start",
+        )}
+      >
         {!isMine && (
           <span className="flex items-center gap-1.5 text-[11px] font-bold text-brand-secondary/70 mb-1 px-1">
             {senderName}
@@ -315,7 +350,9 @@ function MessageBubble({
         </span>
       </div>
 
-      {isMine && <Avatar name={senderName} image={senderImage} isAdmin={isAdminSender} />}
+      {isMine && (
+        <Avatar name={senderName} image={senderImage} isAdmin={isAdminSender} />
+      )}
     </motion.div>
   );
 }
@@ -339,7 +376,13 @@ function Avatar({
       )}
     >
       {image ? (
-        <Image src={image} alt={name} fill className="object-cover" sizes="32px" />
+        <Image
+          src={image}
+          alt={name}
+          fill
+          className="object-cover"
+          sizes="32px"
+        />
       ) : (
         initials(name)
       )}

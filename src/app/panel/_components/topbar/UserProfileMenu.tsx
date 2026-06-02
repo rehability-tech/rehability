@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,11 +8,23 @@ import {
   SignOut,
   CaretDown,
   Globe,
+  DownloadSimple,
+  BellRinging,
 } from "@phosphor-icons/react/dist/ssr";
 import { getInitials, type UserTopbarUser } from "./types";
+import { isStandalone } from "@/lib/pwa/clientEnv";
+import {
+  triggerInstallPrompt,
+  triggerNotificationPrompt,
+} from "@/lib/pwa/triggers";
 
 export default function UserProfileMenu({ user }: { user?: UserTopbarUser }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  // Liczone po stronie klienta (unikamy niezgodności hydracji).
+  const [canInstall, setCanInstall] = useState(false);
+  useEffect(() => {
+    setCanInstall(!isStandalone());
+  }, []);
 
   return (
     <div className="relative">
@@ -85,6 +97,30 @@ export default function UserProfileMenu({ user }: { user?: UserTopbarUser }) {
                   <Globe size={16} weight="duotone" />
                   Strona główna
                 </Link>
+
+                {canInstall && (
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      triggerInstallPrompt();
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-[13px] text-brand-secondary hover:bg-brand-primary/10 transition w-full text-left mt-1"
+                  >
+                    <DownloadSimple size={16} weight="duotone" />
+                    Zainstaluj aplikację
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    triggerNotificationPrompt();
+                  }}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-[13px] text-brand-secondary hover:bg-brand-primary/10 transition w-full text-left mt-1"
+                >
+                  <BellRinging size={16} weight="duotone" />
+                  Powiadomienia
+                </button>
 
                 <button
                   onClick={() => {

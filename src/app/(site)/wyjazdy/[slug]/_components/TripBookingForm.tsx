@@ -20,9 +20,11 @@ import {
 import { cn } from "@/lib/utils";
 import StripePaymentStep from "./StripePaymentStep";
 import Link from "next/link";
+import { MOCK_ACCOUNTS } from "@/lib/auth/mockAccounts";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SPRING = { type: "spring", stiffness: 320, damping: 32 } as const;
+const IS_DEV = process.env.NODE_ENV === "development";
 
 export type CurrentUser = {
   email: string;
@@ -139,9 +141,17 @@ export default function TripBookingForm({
     setStep(next);
   }
 
+  function bookingCallbackUrl() {
+    return `/wyjazdy/${tripId}?variant=${variant}&step=3#formularz-rezerwacji`;
+  }
+
   function handleGoogleLogin() {
-    const callbackUrl = `/wyjazdy/${tripId}?variant=${variant}&step=3#formularz-rezerwacji`;
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: bookingCallbackUrl() });
+  }
+
+  // Dev-only — logowanie przez provider `dev-mock`, wraca do kroku 3 formularza.
+  function handleMockLogin(email: string) {
+    signIn("dev-mock", { email, callbackUrl: bookingCallbackUrl() });
   }
 
   function handleNext() {
@@ -257,6 +267,7 @@ export default function TripBookingForm({
                 <Step2Login
                   currentUser={currentUser}
                   onLogin={handleGoogleLogin}
+                  onMockLogin={handleMockLogin}
                   variant={variant}
                 />
               )}
@@ -457,7 +468,9 @@ function Step1Variant({ variant, setVariant, price, allowBringFriend }: any) {
 
 /* ───────────────────────── Step 2: Login ───────────────────────── */
 
-function Step2Login({ currentUser, onLogin, variant }: any) {
+function Step2Login({ currentUser, onLogin, onMockLogin, variant }: any) {
+  const [mockEmail, setMockEmail] = useState(MOCK_ACCOUNTS[0].email);
+
   if (currentUser) {
     return (
       <Stagger>
@@ -527,6 +540,36 @@ function Step2Login({ currentUser, onLogin, variant }: any) {
           </p>
         </div>
       </Item>
+
+      {IS_DEV && (
+        <Item>
+          <div className="rounded-2xl border-2 border-dashed border-yellow-400 bg-yellow-50 px-4 py-3">
+            <p className="text-[12px] font-bold text-brand-secondary mb-2">
+              🛠️ DEV: Mock Login
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={mockEmail}
+                onChange={(e) => setMockEmail(e.target.value)}
+                className="flex-1 text-[13px] px-3 py-2 rounded-lg border border-yellow-400 bg-white text-brand-secondary focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              >
+                {MOCK_ACCOUNTS.map((acc) => (
+                  <option key={acc.email} value={acc.email}>
+                    {acc.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => onMockLogin(mockEmail)}
+                className="text-[13px] font-semibold px-4 py-2 rounded-lg bg-brand-secondary text-white hover:bg-brand-primary transition-colors"
+              >
+                Zaloguj jako mock
+              </button>
+            </div>
+          </div>
+        </Item>
+      )}
     </Stagger>
   );
 }
@@ -675,6 +718,7 @@ function Step3Details({
                 Akceptuję{" "}
                 <Link
                   target="_blank"
+                  onClick={(e) => e.stopPropagation()}
                   className="font-bold hover:text-brand-primary transition"
                   href={"/polityka-prywatnosci"}
                 >
@@ -979,7 +1023,19 @@ function Field({ label, value, onChange, type = "text", error }: any) {
 
 function Consent({ checked, onChange, label, error }: any) {
   return (
-    <label className="flex items-start gap-3.5 cursor-pointer group p-3 rounded-[14px] hover:bg-white/40 transition-colors border border-transparent hover:border-white/60">
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
+      className="flex items-start gap-3.5 cursor-pointer group p-3 rounded-[14px] hover:bg-white/40 transition-colors border border-transparent hover:border-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+    >
       <motion.span
         animate={{
           background: checked ? "#287D88" : "#ffffff",
@@ -1009,7 +1065,7 @@ function Consent({ checked, onChange, label, error }: any) {
           <span className="text-[11px] font-bold text-rose-500">{error}</span>
         )}
       </div>
-    </label>
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { resolvePackage, PACKAGE_RELATION_SELECT } from "@/lib/bookings/partner";
 
 const routeParamsSchema = z.object({
   bookingId: z.string().cuid("Nieprawidłowy format ID rezerwacji"),
@@ -57,6 +58,7 @@ export async function GET(
             service: true,
           },
         },
+        ...PACKAGE_RELATION_SELECT,
       },
     });
 
@@ -118,8 +120,20 @@ export async function GET(
       }),
     ]);
 
+    // 3b. Pakiet "zabierz przyjaciółkę" — partner + czy aktywny (obie opłacone)
+    const pkg = resolvePackage(booking);
+    const bookingPackage = pkg
+      ? {
+          partnerName: pkg.partner.name,
+          partnerStatus: pkg.partner.status,
+          relation: pkg.partner.relation,
+          active: pkg.active,
+        }
+      : null;
+
     // 4. Formatujemy odpowiedź
     return NextResponse.json({
+      bookingPackage,
       booking: {
         id: booking.id,
         qrToken: booking.qrToken,

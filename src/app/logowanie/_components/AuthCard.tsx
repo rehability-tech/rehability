@@ -7,15 +7,11 @@ import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 // DODANO: Import funkcji signIn z next-auth/react
 import { signIn } from "next-auth/react";
+import { MOCK_ACCOUNTS } from "@/lib/auth/mockAccounts";
 
 type AuthMode = "login" | "register";
 
 const IS_DEV = process.env.NODE_ENV === "development";
-
-const MOCK_ACCOUNTS = [
-  { email: "biuro@kocikdev.com", label: "Admin (biuro@kocikdev.com)" },
-  { email: "piotr.eher@gmail.com", label: "Klient (piotr.eher@gmail.com)" },
-];
 
 export default function AuthCard() {
   const [mode, setMode] = useState<AuthMode>("register"); // Domyślnie rejestracja (biała karta po prawej)

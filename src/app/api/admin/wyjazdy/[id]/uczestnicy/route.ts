@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
+import { resolvePackage, PACKAGE_RELATION_SELECT } from "@/lib/bookings/partner";
 
 export async function GET(
   _req: NextRequest,
@@ -49,6 +50,7 @@ export async function GET(
             // BUGFIX PROACTIVE: Dodałem 'price', ponieważ Twój frontend używa go do sortowania "Najwięcej wydano"
             select: { id: true, price: true },
           },
+          ...PACKAGE_RELATION_SELECT,
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -59,8 +61,23 @@ export async function GET(
       return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     }
 
+    // Dla każdej rezerwacji dokładamy info o partnerze "pakietu" (zabierz przyjaciółkę).
+    const withPackage = participants.map((p) => {
+      const pkg = resolvePackage(p);
+      return {
+        ...p,
+        packagePartner: pkg
+          ? {
+              name: pkg.partner.name,
+              relation: pkg.partner.relation,
+              active: pkg.active,
+            }
+          : null,
+      };
+    });
+
     return NextResponse.json({
-      participants,
+      participants: withPackage,
       heroImage: trip.heroImage,
     });
   } catch (error) {

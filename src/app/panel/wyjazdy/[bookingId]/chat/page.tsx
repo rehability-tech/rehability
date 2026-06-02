@@ -33,7 +33,10 @@ export default async function ChatPage({ params }: Props) {
   if (!owns) notFound();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-220px)] min-h-[480px] lg:h-[calc(100dvh-180px)]">
+    // 1. Używamy precyzyjnego calc() dla wysokości (odliczamy paski i marginesy).
+    // 2. flex-1 i min-h-0 to magiczne combo blokujące rozpychanie flexboxa na siłę.
+    // 3. overflow-hidden zamyka input w ryzach kontenera.
+    <div className="flex flex-col flex-1 w-full min-h-0 h-[100dvh] lg:h-[calc(100dvh-64px)]  overflow-hidden">
       <ChatRoom
         tripId={booking.trip.id}
         variant="panel"

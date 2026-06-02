@@ -53,6 +53,18 @@ export function requireCron(req: Request): CronAuthResult {
     return { ok: true };
   }
 
+  // --- LOGOWANIE BŁĘDÓW DO KONSOLI ---
+  if (!provided) {
+    console.warn(
+      `[cron 401] Odrzucono żądanie do ${url.pathname}: Nie podano hasła CRON_SECRET (brak w nagłówkach i query stringu).`,
+    );
+  } else {
+    console.warn(
+      `[cron 401] Odrzucono żądanie do ${url.pathname}: Podane hasło jest nieprawidłowe (nie zgadza się ze zmienną środowiskową na serwerze).`,
+    );
+  }
+  // -----------------------------------
+
   return {
     ok: false,
     response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
@@ -62,6 +74,7 @@ export function requireCron(req: Request): CronAuthResult {
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < a.length; i++)
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return mismatch === 0;
 }
