@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCron } from "@/lib/auth/requireCron";
 import { generateTrendSchedule } from "@/lib/blog/generateTrendSchedule";
+import { sendNotificationToAdmins } from "@/lib/notifications/send";
 
 // POST /api/cron/blog/generate-schedule
 //
@@ -38,6 +39,19 @@ export async function POST(req: Request) {
 
   try {
     const result = await generateTrendSchedule(year, month);
+
+    // Powiadom adminów tylko, gdy faktycznie powstały nowe wpisy
+    // (idempotentne wywołanie zwraca created: 0 — wtedy cisza, brak alert fatigue).
+    if (result.created > 0) {
+      await sendNotificationToAdmins({
+        title: "🗓️ Wygenerowano harmonogram bloga",
+        message: buildAdminMessage(result.created, year, month, result.source),
+        link: "/admin/blog/harmonogram",
+        type: "SYSTEM",
+        push: true,
+      });
+    }
+
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     // Awaria tutaj oznacza problem infrastrukturalny (np. DB) — błędy samego
@@ -72,4 +86,45 @@ function num(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+const MONTHS_PL = [
+  "styczeń",
+  "luty",
+  "marzec",
+  "kwiecień",
+  "maj",
+  "czerwiec",
+  "lipiec",
+  "sierpień",
+  "wrzesień",
+  "październik",
+  "listopad",
+  "grudzień",
+];
+
+const SOURCE_LABEL: Record<string, string> = {
+  trends: "na podstawie realnych trendów",
+  fallback: "na podstawie fraz evergreen",
+  mixed: "z trendów i fraz evergreen",
+};
+
+function buildAdminMessage(
+  created: number,
+  year: number,
+  month: number,
+  source: string,
+): string {
+  const monthLabel = `${MONTHS_PL[month] ?? `miesiąc ${month + 1}`} ${year}`;
+  const entries = `${created} ${pluralizeWpis(created)}`;
+  const origin = SOURCE_LABEL[source] ?? "";
+  return `Zaplanowano ${entries} na ${monthLabel} ${origin}.`.trim();
+}
+
+function pluralizeWpis(n: number): string {
+  if (n === 1) return "wpis";
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "wpisy";
+  return "wpisów";
 }
