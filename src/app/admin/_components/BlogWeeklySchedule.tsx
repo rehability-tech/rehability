@@ -15,8 +15,16 @@ import {
   MonitorPlay,
 } from "@phosphor-icons/react/dist/ssr";
 
-// Prosty fetcher dla SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher dla SWR — rzuca błąd na nie-OK i pilnuje, by wynik był tablicą,
+// dzięki czemu odpowiedź błędu (obiekt) nie wywala renderowania widgetu.
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Błąd pobierania harmonogramu (${res.status})`);
+  }
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+};
 
 // Nasz typ z bazy danych
 type Status = "PLANNED" | "IN_PROGRESS" | "SCHEDULED" | "PUBLISHED" | "SKIPPED";

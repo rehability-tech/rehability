@@ -28,6 +28,19 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
   const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
   const isTripContext = !!campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1]);
 
+  // Cel strzałki "wstecz" w topbarze.
+  // Wyjazd → lista wyjazdów; sekcja bloga (/admin/blog/*) → korzeń bloga,
+  // a sam korzeń /admin/blog → dashboard.
+  const isBlogSection =
+    pathname === "/admin/blog" || !!pathname?.startsWith("/admin/blog/");
+  const backHref = isTripContext
+    ? "/admin/wyjazdy"
+    : isBlogSection
+      ? pathname === "/admin/blog"
+        ? "/admin"
+        : "/admin/blog"
+      : null;
+
   return (
     <>
       <header
@@ -36,19 +49,17 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
           isChatPage && "max-md:hidden",
         )}
       >
-        <div className="flex items-center gap-2 flex-1">
-          {isTripContext && (
-            <>
-              <Link
-                href="/admin/wyjazdy"
-                aria-label="Wróć do listy wyjazdów"
-                className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
-              >
-                <ArrowLeft size={20} weight="bold" />
-              </Link>
-              <QrCheckInScanner tripId={campIdMatch![1]} />
-            </>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {backHref && (
+            <Link
+              href={backHref}
+              aria-label="Wróć"
+              className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
+            >
+              <ArrowLeft size={20} weight="bold" />
+            </Link>
           )}
+          {isTripContext && <QrCheckInScanner tripId={campIdMatch![1]} />}
           <SearchBar />
         </div>
 

@@ -72,6 +72,17 @@ export async function POST(
       );
     }
 
+    // Bilet jest aktywny dopiero po opłaceniu CAŁOŚCI. Sam zadatek nie wystarcza.
+    if (booking.status !== "FULLY_PAID") {
+      return NextResponse.json(
+        {
+          error:
+            "Bilet nieaktywny — wymagana pełna opłata za wyjazd (opłacono tylko zadatek).",
+        },
+        { status: 409 },
+      );
+    }
+
     const participantName =
       booking.name || booking.user?.name || booking.email || "Uczestniczka";
 

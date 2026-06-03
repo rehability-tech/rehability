@@ -74,6 +74,9 @@ export default function DashboardHero({ booking, trip, firstName }: any) {
   const timeLeft = useCountdown(trip.startDate);
   const campStarted = !timeLeft;
   const statusCfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG["PENDING"];
+  // Bilet (QR odprawy) jest aktywny dopiero po opłaceniu CAŁOŚCI za wyjazd.
+  // Sam zadatek (DEPOSIT_PAID) nie wystarcza — kod QR pozostaje zablokowany.
+  const isTicketActive = booking.status === "FULLY_PAID";
 
   useEffect(() => {
     setMounted(true);
@@ -136,16 +139,23 @@ export default function DashboardHero({ booking, trip, firstName }: any) {
 
             <button
               onClick={() => setIsQrModalOpen(true)}
-              className="group flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all shadow-sm"
+              className="group relative flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all shadow-sm"
             >
               <QrCode
                 size={20}
                 weight="duotone"
-                className="text-brand-yellow group-hover:scale-110 transition-transform"
+                className={`group-hover:scale-110 transition-transform ${
+                  isTicketActive ? "text-brand-yellow" : "text-white/50"
+                }`}
               />
               <span className="text-xs font-bold tracking-wide hidden sm:block">
                 Twój bilet
               </span>
+              {!isTicketActive && (
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-brand-yellow text-brand-secondary text-[9px] font-bold shadow-sm">
+                  !
+                </span>
+              )}
             </button>
           </div>
 
@@ -275,31 +285,72 @@ export default function DashboardHero({ booking, trip, firstName }: any) {
                     <div className="flex-1 border-t-2 border-dashed border-gray-200 mx-4" />
                   </div>
 
-                  {/* Sekcja QR */}
-                  <div className="p-8 flex flex-col items-center bg-white">
-                    <div className="bg-white p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100">
-                      <QRCode
-                        value={booking.qrToken}
-                        size={200}
-                        style={{
-                          height: "auto",
-                          maxWidth: "100%",
-                          width: "100%",
-                        }}
-                        viewBox="0 0 256 256"
-                        fgColor="#033f63"
-                      />
-                    </div>
-                    <p className="text-center text-xs text-gray-400 mt-6 max-w-[200px] leading-relaxed">
-                      Pokaż ten kod obsłudze przy odprawie na miejscu.
-                    </p>
+                  {/* Sekcja QR — aktywna dopiero po opłaceniu całości */}
+                  {isTicketActive ? (
+                    <div className="p-8 flex flex-col items-center bg-white">
+                      <div className="bg-white p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100">
+                        <QRCode
+                          value={booking.qrToken}
+                          size={200}
+                          style={{
+                            height: "auto",
+                            maxWidth: "100%",
+                            width: "100%",
+                          }}
+                          viewBox="0 0 256 256"
+                          fgColor="#033f63"
+                        />
+                      </div>
+                      <p className="text-center text-xs text-gray-400 mt-6 max-w-[200px] leading-relaxed">
+                        Pokaż ten kod obsłudze przy odprawie na miejscu.
+                      </p>
 
-                    <div className="mt-4 px-4 py-1.5 bg-gray-100 rounded-full">
-                      <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                        ID: {booking.id.slice(0, 8)}
+                      <div className="mt-4 px-4 py-1.5 bg-gray-100 rounded-full">
+                        <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
+                          ID: {booking.id.slice(0, 8)}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-8 flex flex-col items-center bg-white text-center">
+                      {/* Zablokowany podgląd kodu */}
+                      <div className="relative">
+                        <div className="bg-white p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 blur-[6px] opacity-40 pointer-events-none select-none">
+                          <QRCode
+                            value="locked"
+                            size={200}
+                            style={{
+                              height: "auto",
+                              maxWidth: "100%",
+                              width: "100%",
+                            }}
+                            viewBox="0 0 256 256"
+                            fgColor="#033f63"
+                          />
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-14 h-14 rounded-full bg-brand-secondary flex items-center justify-center shadow-lg">
+                            <SealWarning
+                              size={28}
+                              weight="fill"
+                              className="text-brand-yellow"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <h4 className="font-jakarta font-bold text-lg text-brand-secondary mt-6">
+                        Bilet jeszcze nieaktywny
+                      </h4>
+                      <p className="text-sm text-gray-500 mt-2 max-w-[240px] leading-relaxed">
+                        Kod QR do odprawy aktywuje się automatycznie po opłaceniu{" "}
+                        <span className="font-semibold text-brand-secondary">
+                          całości kwoty
+                        </span>{" "}
+                        za wyjazd.
                       </p>
                     </div>
-                  </div>
+                  )}
                 </motion.div>
               </div>
             )}

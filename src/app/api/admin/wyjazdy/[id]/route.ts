@@ -312,3 +312,73 @@ export async function PATCH(
     );
   }
 }
+
+// ==========================================
+// DELETE: Usunięcie wyjazdu wraz z zależnościami
+// ==========================================
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    // 1. Autoryzacja Admina
+    const { isAuthorized, response } = await requireAdmin();
+    if (!isAuthorized) return response as NextResponse;
+
+    // 2. Walidacja ID
+    const resolvedParams = await params;
+    const validatedParams = paramsSchema.safeParse(resolvedParams);
+    if (!validatedParams.success) {
+      return NextResponse.json(
+        { error: validatedParams.error.issues[0].message },
+        { status: 400 },
+      );
+    }
+    const { id } = validatedParams.data;
+
+    // 3. Upewniamy się, że wyjazd istnieje (czytelny 404 zamiast błędu Prismy)
+    const existing = await prisma.trip.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Nie znaleziono wyjazdu o podanym ID" },
+        { status: 404 },
+      );
+    }
+
+    // 3b. BLOKADA: nie pozwalamy usunąć wyjazdu, na który zapisały się uczestniczki.
+    // Anulowane / wygasłe rezerwacje się nie liczą. Taki wyjazd należy archiwizować.
+    const activeBookings = await prisma.booking.count({
+      where: { tripId: id, status: { notIn: ["CANCELLED", "EXPIRED"] } },
+    });
+    if (activeBookings > 0) {
+      return NextResponse.json(
+        {
+          error: `Nie można usunąć — wyjazd ma zapisane uczestniczki (${activeBookings}). Zamiast usuwać, przenieś go do archiwum.`,
+        },
+        { status: 409 },
+      );
+    }
+
+    // 4. Usuwanie.
+    // Relacja ServiceOrder.service → TripService NIE ma kaskady (domyślnie Restrict),
+    // więc najpierw kasujemy zamówienia SPA tego wyjazdu, inaczej kaskadowe
+    // usunięcie TripService zostałoby zablokowane. Pozostałe zależności
+    // (bookings, services, spaBlocks, events, views, activities, messages)
+    // mają onDelete: Cascade i znikną razem z wyjazdem.
+    await prisma.$transaction([
+      prisma.serviceOrder.deleteMany({ where: { booking: { tripId: id } } }),
+      prisma.trip.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Błąd podczas usuwania wyjazdu:", error);
+    return NextResponse.json(
+      { error: "Nie udało się usunąć wyjazdu" },
+      { status: 500 },
+    );
+  }
+}

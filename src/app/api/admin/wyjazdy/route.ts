@@ -27,6 +27,13 @@ export async function GET() {
         allowBringFriend: true,
         views: true,
         blocks: true, // <--- Upewnij się, że to tutaj jest!
+        // Liczba zapisanych uczestniczek (bez anulowanych/wygasłych) —
+        // używana w karcie do blokady usuwania i paska "Miejsca".
+        _count: {
+          select: {
+            bookings: { where: { status: { notIn: ["CANCELLED", "EXPIRED"] } } },
+          },
+        },
       },
     });
 

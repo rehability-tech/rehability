@@ -19,7 +19,12 @@ import {
   BellSlash,
   CheckSquareOffset,
   Clock,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
+
+// Liczba powiadomień na stronę w widoku mobilnym (paginacja zamiast scrolla)
+const MOBILE_PAGE_SIZE = 5;
 
 type ActivityPillar = "CAMP" | "VOD" | "BLOG" | "SYSTEM";
 
@@ -120,6 +125,18 @@ export default function RecentActivity() {
   const [isMuted, setIsMuted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Paginacja tylko dla widoku mobilnego (na desktopie zostaje scroll)
+  const [isMobile, setIsMobile] = useState(false);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // --- LOGIKA BIZNESOWA: POBIERANIE DANYCH (SWR) ---
   // refreshInterval: 60000 = co 60 sekund uderza w tle po świeże powiadomienia!
   const {
@@ -135,6 +152,29 @@ export default function RecentActivity() {
   const filteredEntries = (entries || []).filter(
     (e) => activeFilter === "ALL" || e.pillar === activeFilter,
   );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEntries.length / MOBILE_PAGE_SIZE),
+  );
+
+  // Reset strony przy zmianie filtra
+  useEffect(() => {
+    setPage(0);
+  }, [activeFilter]);
+
+  // Pilnujemy, by strona nie wyszła poza zakres (np. po odświeżeniu danych)
+  useEffect(() => {
+    if (page > totalPages - 1) setPage(0);
+  }, [page, totalPages]);
+
+  // Na mobile pokazujemy max 5 wpisów na stronę, na desktopie pełną listę (scroll)
+  const visibleEntries = isMobile
+    ? filteredEntries.slice(
+        page * MOBILE_PAGE_SIZE,
+        page * MOBILE_PAGE_SIZE + MOBILE_PAGE_SIZE,
+      )
+    : filteredEntries;
 
   // Zamykanie menu
   useEffect(() => {
@@ -289,7 +329,7 @@ export default function RecentActivity() {
         </AnimatePresence>
       </div>
 
-      <div className="relative flex-1 overflow-y-auto px-4 py-4 space-y-2 custom-scrollbar">
+      <div className="relative flex-1 overflow-hidden md:overflow-y-auto px-4 py-4 space-y-2 custom-scrollbar">
         {/* Renderujemy Szkielet, dopóki dane po raz pierwszy się nie załadują */}
         {isLoading && <ActivitySkeleton />}
 
@@ -303,8 +343,8 @@ export default function RecentActivity() {
         {/* Gotowe dane */}
         {!isLoading && !error && (
           <AnimatePresence mode="popLayout">
-            {filteredEntries.length > 0 ? (
-              filteredEntries.map((e, i) => {
+            {visibleEntries.length > 0 ? (
+              visibleEntries.map((e, i) => {
                 const v = KIND_VISUAL[e.kind] ?? FALLBACK_VISUAL;
                 const Icon = v.icon;
 
@@ -341,13 +381,6 @@ export default function RecentActivity() {
                       <p className="font-montserrat text-[11px] text-brand-secondary/60 leading-snug mt-0.5">
                         {e.text}
                       </p>
-                      {e.meta && (
-                        <p
-                          className={`font-montserrat text-[11px] font-bold mt-1 ${v.color}`}
-                        >
-                          {e.meta}
-                        </p>
-                      )}
                     </div>
                   </motion.div>
                 );
@@ -370,6 +403,33 @@ export default function RecentActivity() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* Paginacja — tylko mobile, gdy jest więcej niż jedna strona */}
+      {isMobile && !isLoading && !error && totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-gray-100/60 shrink-0 md:hidden">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-gray-50 text-brand-secondary/70 transition-colors enabled:hover:bg-brand-primary/10 enabled:hover:text-brand-primary disabled:opacity-30"
+            aria-label="Poprzednia strona"
+          >
+            <CaretLeft size={16} weight="bold" />
+          </button>
+
+          <span className="font-montserrat text-[12px] font-semibold text-brand-secondary/60">
+            {page + 1} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-gray-50 text-brand-secondary/70 transition-colors enabled:hover:bg-brand-primary/10 enabled:hover:text-brand-primary disabled:opacity-30"
+            aria-label="Następna strona"
+          >
+            <CaretRight size={16} weight="bold" />
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

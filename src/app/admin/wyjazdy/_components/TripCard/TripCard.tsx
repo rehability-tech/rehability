@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isSameMonth, isSameYear } from "date-fns";
@@ -12,6 +13,7 @@ import {
   CalendarBlank,
   CaretRight,
   CheckCircle,
+  CircleNotch,
   DotsSixVertical,
   Eye,
   FileDashed,
@@ -136,6 +138,8 @@ interface TripCardProps {
   onFeature?: (id: string) => void;
   onUnfeature?: (id: string) => void;
   onChangeStatus?: (id: string, newStatus: string) => void;
+  onDelete?: (id: string) => void;
+  activeBookings?: number;
 }
 
 export function TripCard({
@@ -145,15 +149,23 @@ export function TripCard({
   onFeature,
   onUnfeature,
   onChangeStatus,
+  onDelete,
+  activeBookings = 0,
 }: TripCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [confirmedStatus, setConfirmedStatus] = useState(trip.status);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   const isDraft = confirmedStatus === "DRAFT";
   const canDrag = !isFeaturedZone && !isDraft;
-  const enrolled = 0; // Docelowo z bazy
+  const enrolled = activeBookings; // Liczba zapisanych uczestniczek (bez anulowanych)
+  const hasBookings = activeBookings > 0; // Blokuje usuwanie wyjazdu
   const capacity = trip.capacity || 0;
   const fillPercentage = capacity > 0 ? (enrolled / capacity) * 100 : 0;
   const views = trip.views ?? 0;
@@ -198,6 +210,25 @@ export function TripCard({
       if (onChangeStatus) onChangeStatus(trip.id, previousStatus);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/wyjazdy/${trip.id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error || "Błąd usuwania");
+
+      toast.success("Wyjazd został usunięty.");
+      setShowDeleteConfirm(false);
+      // Usunięcie z listy w komponencie nadrzędnym (karta zniknie z animacją).
+      onDelete?.(trip.id);
+    } catch (error: any) {
+      toast.error(error?.message || "Nie udało się usunąć wyjazdu.");
+      setIsDeleting(false);
     }
   };
 
@@ -305,8 +336,22 @@ export function TripCard({
         </Link>
       </Tooltip>
 
-      <Tooltip content="Usuń" position="top">
-        <button className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-white/80 hover:shadow-sm transition-all">
+      <Tooltip
+        content={
+          hasBookings
+            ? "Nie można usunąć — wyjazd ma zapisane uczestniczki"
+            : "Usuń"
+        }
+        position="top"
+      >
+        <button
+          onClick={() => {
+            setIsMenuOpen(false);
+            setShowDeleteConfirm(true);
+          }}
+          disabled={isDeleting || hasBookings}
+          className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-white/80 hover:shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent disabled:hover:shadow-none"
+        >
           <Trash size={16} weight="bold" />
         </button>
       </Tooltip>
@@ -334,7 +379,7 @@ export function TripCard({
             : "border-gray-200/80 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing",
       )}
     >
-      {isUpdating && <CardShimmer />}
+      {(isUpdating || isDeleting) && <CardShimmer />}
 
       {!canPublish && <PublishWarning missingFields={missingFields} />}
 
@@ -467,6 +512,78 @@ export function TripCard({
           </Link>
         </div>
       </div>
+
+      {/* MODAL POTWIERDZENIA USUNIĘCIA (portal → poza transformowaną kartą) */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {showDeleteConfirm && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brand-secondary/40 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-sm bg-white rounded-[24px] rounded-tr-none shadow-[0_30px_60px_-15px_rgba(3,63,99,0.35)] p-6 flex flex-col items-center text-center"
+                >
+                  <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                    <Trash size={26} weight="bold" className="text-red-500" />
+                  </div>
+                  <h3 className="font-jakarta font-bold text-lg text-brand-secondary">
+                    Usunąć wyjazd?
+                  </h3>
+                  <p className="text-[13px] text-gray-500 font-montserrat mt-2 leading-relaxed">
+                    Tej operacji nie można cofnąć. Usuniesz{" "}
+                    <span className="font-semibold text-brand-secondary">
+                      „{trip.title}"
+                    </span>{" "}
+                    wraz z rezerwacjami, harmonogramem i usługami SPA.
+                  </p>
+
+                  <div className="w-full flex items-center gap-2.5 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                      className="flex-1 h-11 rounded-2xl bg-gray-100 text-brand-secondary font-bold text-[13.5px] hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      Anuluj
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="flex-1 h-11 rounded-2xl bg-red-500 text-white font-bold text-[13.5px] hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <CircleNotch
+                            size={16}
+                            weight="bold"
+                            className="animate-spin"
+                          />
+                          Usuwam...
+                        </>
+                      ) : (
+                        <>
+                          <Trash size={16} weight="bold" />
+                          Usuń
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </motion.div>
   );
 }

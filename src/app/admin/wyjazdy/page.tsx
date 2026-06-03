@@ -15,8 +15,11 @@ import { cn } from "@/lib/utils";
 
 import { TripCard } from "./_components/TripCard/TripCard";
 import { FeaturedTripZone } from "./_components/FeaturedTripZone";
-import { StatCards } from "./_components/StatCards";
+
 import { Trip } from "@/generated/prisma";
+
+// Wyjazd z listy wzbogacony o liczbę zapisanych uczestniczek (z `_count`).
+type TripListItem = Trip & { _count?: { bookings: number } };
 
 type FilterStatus = "ALL" | "PUBLISHED" | "DRAFT" | "ARCHIVED";
 
@@ -28,7 +31,7 @@ const FILTERS: { label: string; value: FilterStatus }[] = [
 ];
 
 export default function AdminCampyList() {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<TripListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
 
@@ -92,6 +95,11 @@ export default function AdminCampyList() {
     setTrips((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c)),
     );
+  };
+
+  // Usunięcie wyjazdu z listy po skutecznym DELETE w karcie.
+  const handleDeleteTrip = (id: string) => {
+    setTrips((prev) => prev.filter((c) => c.id !== id));
   };
 
   const handleFeatureCamp = async (tripId: string | null) => {
@@ -218,15 +226,6 @@ export default function AdminCampyList() {
         {/* ========================================================= */}
         {/* STATYSTYKI */}
         {/* ========================================================= */}
-        {!isLoading && (
-          <StatCards
-            totalViews={stats.totalViews}
-            soldSeats={stats.soldSeats}
-            totalSeats={stats.totalCapacity}
-            revenuePln={stats.revenuePln}
-            activeCount={stats.activeTripsCount}
-          />
-        )}
 
         {/* ========================================================= */}
         {/* WYRÓŻNIONY WYJAZD */}
@@ -237,6 +236,7 @@ export default function AdminCampyList() {
             <FeaturedTripZone
               featuredTrip={featuredTrip}
               onUpdateFeatured={handleFeatureCamp}
+              onDelete={handleDeleteTrip}
             />
           </section>
         )}
@@ -286,8 +286,7 @@ export default function AdminCampyList() {
                   className="text-brand-primary"
                 />
                 <span>
-                  Widok:{" "}
-                  {FILTERS.find((f) => f.value === filterStatus)?.label}
+                  Widok: {FILTERS.find((f) => f.value === filterStatus)?.label}
                 </span>
               </div>
               <CaretDown
@@ -374,6 +373,8 @@ export default function AdminCampyList() {
                     onDragStart={handleDragStart}
                     onChangeStatus={handleUpdateLocalStatus}
                     onFeature={() => handleFeatureCamp(trip.id)}
+                    onDelete={handleDeleteTrip}
+                    activeBookings={trip._count?.bookings ?? 0}
                   />
                 ))}
               </AnimatePresence>

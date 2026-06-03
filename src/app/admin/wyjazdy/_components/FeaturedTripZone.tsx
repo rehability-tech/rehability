@@ -8,13 +8,15 @@ import { TripCard } from "./TripCard/TripCard";
 import { Trip } from "@/generated/prisma";
 
 interface FeaturedCampZoneProps {
-  featuredTrip: Trip | undefined;
+  featuredTrip: (Trip & { _count?: { bookings: number } }) | undefined;
   onUpdateFeatured: (tripId: string | null) => void;
+  onDelete?: (tripId: string) => void;
 }
 
 export function FeaturedTripZone({
   featuredTrip,
   onUpdateFeatured,
+  onDelete,
 }: FeaturedCampZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -78,6 +80,8 @@ export function FeaturedTripZone({
                 onUpdateFeatured(null);
               }
             }}
+            onDelete={onDelete}
+            activeBookings={featuredTrip._count?.bookings ?? 0}
           />
         ) : (
           <div className="text-center p-8 pointer-events-none">

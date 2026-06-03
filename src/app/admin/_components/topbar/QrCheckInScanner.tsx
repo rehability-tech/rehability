@@ -102,12 +102,30 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
 
   const startScanner = useCallback(async () => {
     lockRef.current = false;
+
+    // Czekamy aż element readera pojawi się w DOM — portal + AnimatePresence
+    // mogą go wyrenderować z opóźnieniem. Brak elementu spowodowałby rzut błędu
+    // przez Html5Qrcode jeszcze przed wywołaniem getUserMedia, więc prompt
+    // o kamerę nigdy by się nie pojawił.
+    let attempts = 0;
+    while (!document.getElementById(READER_ID) && attempts < 20) {
+      await new Promise<void>((r) => setTimeout(r, 50));
+      attempts++;
+    }
+    if (!document.getElementById(READER_ID)) {
+      setResult({ status: "error", message: "Nie udało się uruchomić skanera." });
+      setPhase("done");
+      return;
+    }
+
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode(READER_ID, false);
       scannerRef.current = scanner;
       await scanner.start(
-        { facingMode: "environment" },
+        // `ideal` zamiast ścisłego stringa — iOS rzuca błąd przy exact constraint
+        // gdy tylna kamera nie jest natychmiast dostępna, co blokuje prompt uprawnień.
+        { facingMode: { ideal: "environment" } },
         { fps: 10, qrbox: { width: 230, height: 230 } },
         (decodedText) => {
           void handleDecoded(decodedText);
@@ -128,15 +146,10 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
     }
   }, [handleDecoded]);
 
-  // Uruchamiamy kamerę po wejściu w fazę skanowania (otwarcie / „Skanuj dalej").
-  // setTimeout daje portalowi czas na wyrenderowanie elementu readera.
   useEffect(() => {
     if (!open || phase !== "scanning") return;
-    const t = setTimeout(() => {
-      void startScanner();
-    }, 100);
+    void startScanner();
     return () => {
-      clearTimeout(t);
       void stopScanner();
     };
   }, [open, phase, startScanner, stopScanner]);
@@ -219,10 +232,15 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
                       <div className="relative">
                         <div
                           id={READER_ID}
-                          className="w-[260px] h-[260px] overflow-hidden rounded-[28px] bg-black/40 [&_video]:object-cover [&_video]:rounded-[28px]"
+                          className="w-[260px] h-[260px] overflow-hidden rounded-[28px] bg-black/40 [&_video]:object-cover [&_video]:rounded-[28px] [&_#qr-shaded-region]:!hidden"
                         />
-                        {/* Ramka celownika */}
-                        <div className="pointer-events-none absolute inset-0 rounded-[28px] border-2 border-brand-yellow/70 shadow-[0_0_0_4px_rgba(242,217,103,0.15)]" />
+                        {/* Delikatna poświata */}
+                        <div className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[0_0_0_4px_rgba(242,217,103,0.15)]" />
+                        {/* Narożniki celownika */}
+                        <div className="pointer-events-none absolute top-0 left-0 w-10 h-10 border-t-[3px] border-l-[3px] border-brand-yellow rounded-tl-[28px]" />
+                        <div className="pointer-events-none absolute top-0 right-0 w-10 h-10 border-t-[3px] border-r-[3px] border-brand-yellow rounded-tr-[28px]" />
+                        <div className="pointer-events-none absolute bottom-0 left-0 w-10 h-10 border-b-[3px] border-l-[3px] border-brand-yellow rounded-bl-[28px]" />
+                        <div className="pointer-events-none absolute bottom-0 right-0 w-10 h-10 border-b-[3px] border-r-[3px] border-brand-yellow rounded-br-[28px]" />
                       </div>
                       <p className="text-white/70 text-[13px] font-montserrat text-center mt-6 max-w-[260px] leading-relaxed">
                         Skieruj aparat na kod QR z biletu uczestniczki, aby
