@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { safeUuid } from "@/lib/utils";
 
 let apiCallCount = 0;
 let apiResetTime = Date.now();
-const RPM_LIMIT = 12;
+// Realny limit Gemini 3.1 Flash Lite to 15 RPM — trzymamy 14 jako margines.
+const RPM_LIMIT = 14;
 export type BlockType =
   | "heading"
   | "paragraph"
@@ -96,7 +98,7 @@ export function useTripAiGenerator(
       }
 
       let currentBlocks: TripBlock[] = blueprint.map((step: any) => ({
-        id: crypto.randomUUID(),
+        id: safeUuid(),
         type: step.type,
         content: {},
         isGenerating: true,

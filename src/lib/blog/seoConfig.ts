@@ -29,11 +29,19 @@ export interface Pillar {
   label: string;
   /** Zasięg — wpływa na geo-modyfikatory w tytułach (np. "Prudnik"). */
   scope: "LOCAL" | "NATIONAL";
+  /**
+   * Źródło fraz dla generatora:
+   *   - "TRENDS"       Google Trends (top+rising) — dla fraz o dużym wolumenie (krajowe).
+   *   - "AUTOCOMPLETE" Google Autocomplete — dla fraz LOKALNYCH, których Trends nie widzi.
+   * Kluczowe: dla okolicy Prudnika Trends zwraca pustkę, więc filar lokalny MUSI
+   * korzystać z autocomplete (frazy typu "fizjoterapia prudnik nfz").
+   */
+  discovery: "TRENDS" | "AUTOCOMPLETE";
   /** Kategoria bloga, do której trafią posty z tego filaru. */
   category: BlogCategory;
-  /** Frazy bazowe wysyłane do API trendów. */
+  /** Frazy bazowe. Dla AUTOCOMPLETE krzyżowane z `geoModifiers` (seed + miasto). */
   seedKeywords: string[];
-  /** Modyfikatory geo doklejane do tytułów (puste dla zasięgu krajowego). */
+  /** Modyfikatory geo doklejane do tytułów oraz (dla AUTOCOMPLETE) do zapytań. */
   geoModifiers: string[];
 }
 
@@ -47,28 +55,31 @@ export const PILLARS: readonly Pillar[] = [
     id: "PHYSIO_LOCAL",
     label: "Fizjoterapia lokalna (Prudnik)",
     scope: "LOCAL",
+    discovery: "AUTOCOMPLETE",
     category: "Fizjoterapia",
-    seedKeywords: ["Fizjoterapia", "Masaż Kobido", "Rwa kulszowa ćwiczenia"],
-    geoModifiers: ["Prudnik", "Nysa", "woj. opolskie"],
+    // Bazy krzyżowane z geoModifiers => "fizjoterapia prudnik", "masaż prudnik"...
+    // "woj. opolskie" usunięte — autocomplete zwracał dla niego pustkę (zwiad).
+    seedKeywords: ["fizjoterapia", "masaż", "rehabilitacja"],
+    geoModifiers: ["Prudnik", "Nysa", "Głuchołazy"],
   },
   {
     id: "HOLISTIC_TRIPS",
     label: "Wyjazdy holistyczne (cała Polska)",
     scope: "NATIONAL",
+    // AUTOCOMPLETE z pustymi geoModifiers => seedy odpytywane wprost (krajowo).
+    // Trends dla tych fraz zwracał pustkę albo szum (hotele) — patrz zwiad.
+    discovery: "AUTOCOMPLETE",
     category: "Camp Stories",
-    seedKeywords: [
-      "Wyjazd holistyczny",
-      "Wyjazd SPA dla kobiet",
-      "Redukcja stresu",
-    ],
+    seedKeywords: ["wyjazd dla kobiet", "wyjazd weekendowy", "wyjazd ze spa"],
     geoModifiers: [],
   },
   {
     id: "EDUCATION_VOD",
     label: "Edukacja / VOD (cała Polska)",
     scope: "NATIONAL",
+    discovery: "AUTOCOMPLETE",
     category: "Ruch",
-    seedKeywords: ["Trening siłowy dla kobiet", "Bezpieczny trening w domu"],
+    seedKeywords: ["trening siłowy", "trening w domu", "joga dla"],
     geoModifiers: [],
   },
 ] as const;
@@ -103,26 +114,26 @@ export const EVERGREEN_TOPICS: readonly EvergreenTopic[] = [
     focusKeyword: "rwa kulszowa leczenie",
     supportingKeywords: ["rwa kulszowa", "ćwiczenia", "ból nogi"],
   },
-  // Filar 2 — Wyjazdy holistyczne
+  // Filar 2 — Wyjazdy holistyczne (frazy potwierdzone w autocomplete)
   {
     pillar: "HOLISTIC_TRIPS",
-    focusKeyword: "wyjazd holistyczny dla kobiet",
+    focusKeyword: "wyjazd dla kobiet na weekend",
     supportingKeywords: ["wellness", "SPA", "regeneracja", "reset"],
   },
   {
     pillar: "HOLISTIC_TRIPS",
-    focusKeyword: "jak zredukować stres",
-    supportingKeywords: ["redukcja stresu", "wypalenie", "mindfulness"],
+    focusKeyword: "wyjazd weekendowy ze spa w Polsce",
+    supportingKeywords: ["wyjazd weekendowy", "spa", "joga", "relaks"],
   },
-  // Filar 3 — Edukacja / VOD
+  // Filar 3 — Edukacja / VOD (frazy potwierdzone w autocomplete)
   {
     pillar: "EDUCATION_VOD",
-    focusKeyword: "trening siłowy dla początkujących kobiet",
-    supportingKeywords: ["trening siłowy", "siłownia", "plan treningowy"],
+    focusKeyword: "trening siłowy w domu dla kobiet",
+    supportingKeywords: ["trening siłowy", "plan treningowy", "siłownia"],
   },
   {
     pillar: "EDUCATION_VOD",
-    focusKeyword: "bezpieczny trening w domu",
+    focusKeyword: "trening w domu bez sprzętu",
     supportingKeywords: ["trening w domu", "ćwiczenia", "bez sprzętu"],
   },
 ] as const;

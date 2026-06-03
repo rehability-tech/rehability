@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Reorder } from "framer-motion";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
 import DraggableFaqItem from "./DraggableFaqItem";
+import { safeUuid } from "@/lib/utils";
 
 export default function FaqBlock({
   content,
@@ -49,7 +50,7 @@ export default function FaqBlock({
           onClick={() => {
             const newItems = [
               ...faqItems,
-              { id: crypto.randomUUID(), question: "", answer: "" },
+              { id: safeUuid(), question: "", answer: "" },
             ];
             onChange({ items: newItems });
             setOpenFaqIndex(newItems.length - 1);

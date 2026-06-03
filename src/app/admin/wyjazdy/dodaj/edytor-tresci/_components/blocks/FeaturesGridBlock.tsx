@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { safeUuid } from "@/lib/utils";
 import {
   Plus,
   Trash,
@@ -64,7 +65,7 @@ export default function FeaturesGridBlock({
           return (
             <div
               key={item.id}
-              className="flex flex-col items-start gap-4 p-5 w-full bg-[#287D88] rounded-[20px] shadow-sm relative group/card transition-all"
+              className="on-dark-card flex flex-col items-start gap-4 p-5 w-full bg-[#287D88] rounded-[20px] shadow-sm relative group/card transition-all"
             >
               <button
                 onClick={() =>
@@ -149,7 +150,7 @@ export default function FeaturesGridBlock({
         })}
         <button
           onClick={() => {
-            const newItemId = crypto.randomUUID();
+            const newItemId = safeUuid();
             onChange({
               items: [
                 ...items,

@@ -101,7 +101,8 @@ export function Navbar({ session }: NavbarProps) {
   const isGabinetRoute =
     path === "/gabinet" ||
     path === "/wyjazdy" ||
-    path === `/wyjazdy/${currentPathname[2]}`;
+    path === `/wyjazdy/${currentPathname[2]}` ||
+    path === `/blog/${currentPathname[2]}`;
 
   // Ustalanie uprawnień i linków na podstawie roli
   const isAdmin = (session?.user as any)?.role === "ADMIN";

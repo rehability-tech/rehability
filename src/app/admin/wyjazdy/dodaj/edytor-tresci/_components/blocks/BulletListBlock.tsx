@@ -3,6 +3,7 @@
 import React from "react";
 import { Plus, Trash, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import RichTextInput from "../lib/RichTextInput";
+import { safeUuid } from "@/lib/utils";
 
 // TYPOWANIE PROPSÓW
 interface BulletListBlockProps {
@@ -53,7 +54,7 @@ export default function BulletListBlock({
       <button
         onClick={() =>
           onChange({
-            items: [...listItems, { id: crypto.randomUUID(), text: "" }],
+            items: [...listItems, { id: safeUuid(), text: "" }],
           })
         }
         className="flex items-start gap-4 w-full opacity-50 hover:opacity-100 transition-opacity group/add cursor-pointer mt-1"

@@ -9,11 +9,13 @@ import {
   MapPin,
   CalendarBlank,
   Wallet,
+  MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/Button";
 
 import { Trash } from "@phosphor-icons/react";
 import { CampContentState } from "./hooks/useTripContent";
+import BlogCoverPicker from "@/app/admin/blog/dodaj/_components/BlogCoverPicker";
 
 interface EditableHeroProps {
   title: string;
@@ -62,6 +64,7 @@ export default function EditableHero({
   const [newTagValue, setNewTagValue] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const [localPreview, setLocalPreview] = useState<string | null>(null);
 
@@ -159,6 +162,14 @@ export default function EditableHero({
       />
 
       <div className="absolute top-6 right-6 z-30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={() => setPickerOpen(true)}
+          disabled={isUploading || isDeleting}
+          className="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 rounded-full font-montserrat text-sm font-semibold flex items-center gap-2 transition-all shadow-lg border border-white/30 cursor-pointer"
+        >
+          <MagnifyingGlass size={18} weight="bold" />
+          Pexels
+        </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading || isDeleting}
@@ -320,6 +331,20 @@ export default function EditableHero({
           <Button showArrow>Zapisz się teraz</Button>
         </motion.div>
       </motion.div>
+
+      <BlogCoverPicker
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(url) => {
+          setLocalPreview(null);
+          updateField("heroImage", url);
+          setPickerOpen(false);
+        }}
+        defaultQuery={title || displayLocation || ""}
+        heading="Wybierz tło Hero wyjazdu"
+        subheading="Zaciągnij zdjęcie z Pexels albo wgraj własne — trafi prosto do naszego magazynu."
+        uploadEndpoint={`/api/admin/wyjazdy/${tripId}/upload`}
+      />
     </section>
   );
 }

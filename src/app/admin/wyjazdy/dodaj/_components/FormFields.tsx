@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlacesWidget } from "react-google-autocomplete";
 import DatePicker, { DatePickerProps } from "react-datepicker";
-import { CalendarBlank } from "@phosphor-icons/react/dist/ssr";
+import { CalendarBlank, CaretDown } from "@phosphor-icons/react/dist/ssr";
 interface CustomDatePickerProps {
   selected?: Date | null;
   onChange: (date: Date | null) => void; // Sztywno ustalamy, że to pojedyncza data
@@ -179,6 +179,74 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   },
 );
 FormTextarea.displayName = "FormTextarea";
+
+// ==========================================
+// 3b. SELECT (lista rozwijana) — z tym samym shimmerem ładowania AI
+// ==========================================
+export interface FormSelectProps
+  extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
+  helperText?: string;
+  containerClassName?: string;
+}
+
+export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
+  (
+    {
+      label,
+      icon,
+      isLoading,
+      helperText,
+      containerClassName,
+      required,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    return (
+      <div className={cn("flex flex-col gap-1.5", containerClassName)}>
+        {label && (
+          <label className="text-sm font-semibold text-[#0B3B4C] font-montserrat">
+            {label} {required && <span className="text-brand-primary">*</span>}
+          </label>
+        )}
+        <div className="relative z-0">
+          {icon && (
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 z-30">
+              {icon}
+            </div>
+          )}
+          <select
+            ref={ref}
+            disabled={disabled || isLoading}
+            className={cn(
+              // appearance-none — natywną strzałkę zastępujemy własnym chevronem
+              "relative z-10 w-full appearance-none bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pr-11 py-3 font-montserrat font-medium focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
+              icon ? "pl-10" : "pl-4",
+              (disabled || isLoading) && "opacity-80 text-gray-500",
+            )}
+            {...props}
+          >
+            {children}
+          </select>
+          {/* Własny chevron */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 text-brand-primary pointer-events-none">
+            <CaretDown size={16} weight="bold" />
+          </div>
+          <AiInputLoader isLoading={isLoading} />
+        </div>
+        {helperText && (
+          <span className="text-xs text-gray-400">{helperText}</span>
+        )}
+      </div>
+    );
+  },
+);
+FormSelect.displayName = "FormSelect";
 
 // ==========================================
 // 4. INPUT LOKALIZACJI (Google Autocomplete)

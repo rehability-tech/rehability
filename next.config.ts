@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.100.12"],
+  allowedDevOrigins: ["192.168.1.109"],
   devIndicators: false,
 
   compress: true,
@@ -27,6 +27,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "example.com",
         port: "",
         pathname: "/**",
       },

@@ -16,7 +16,8 @@ import { sendNotificationToAdmins } from "@/lib/notifications/send";
 //   "?year=2026&month=4"
 //   "?offset=2"                       // bieżący + N miesięcy
 //
-// Domyślnie generuje dla NASTĘPNEGO miesiąca (kalendarz zawsze miesiąc do przodu).
+// Domyślnie generuje dla BIEŻĄCEGO miesiąca (odpalenie 1 czerwca => cały czerwiec).
+// Aby zaplanować z wyprzedzeniem, użyj "?offset=1" (następny miesiąc) itd.
 // Idempotentny: jeśli plan na dany miesiąc istnieje, zwraca { created: 0 }.
 
 export async function POST(req: Request) {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   const offset = num(body.offset ?? url.searchParams.get("offset"));
 
   if (year === null || month === null) {
-    const base = new Date(now.getFullYear(), now.getMonth() + (offset ?? 1), 1);
+    const base = new Date(now.getFullYear(), now.getMonth() + (offset ?? 0), 1);
     year = base.getFullYear();
     month = base.getMonth();
   }
@@ -104,7 +105,7 @@ const MONTHS_PL = [
 ];
 
 const SOURCE_LABEL: Record<string, string> = {
-  trends: "na podstawie realnych trendów",
+  live: "na podstawie realnych trendów wyszukiwań",
   fallback: "na podstawie fraz evergreen",
   mixed: "z trendów i fraz evergreen",
 };

@@ -5,6 +5,7 @@ import { Reorder } from "framer-motion";
 import BlogBlockEditorCard from "./BlogBlockEditorCard";
 import BlogBlockAdder from "./BlogBlockAdder";
 import { BlogBlock, BlogBlockType } from "../hooks/useBlogAiGenerator";
+import { safeUuid } from "@/lib/utils";
 
 interface BlogBlockBuilderProps {
   blocks: BlogBlock[];
@@ -25,13 +26,14 @@ export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderP
       case "paragraph":    defaultContent = { text: "" }; break;
       case "highlight":    defaultContent = { text: "" }; break;
       case "spacer":       defaultContent = {}; break;
-      case "bulletList":   defaultContent = { items: [{ id: crypto.randomUUID(), text: "<p>Nowy punkt...</p>" }] }; break;
-      case "faq":          defaultContent = { items: [{ id: crypto.randomUUID(), question: "", answer: "" }] }; break;
-      case "featuresGrid": defaultContent = { items: [{ id: crypto.randomUUID(), icon: "Sparkle", text: "Nowa zaleta" }] }; break;
+      case "bulletList":   defaultContent = { items: [{ id: safeUuid(), text: "<p>Nowy punkt...</p>" }] }; break;
+      case "faq":          defaultContent = { items: [{ id: safeUuid(), question: "", answer: "" }] }; break;
+      case "featuresGrid": defaultContent = { items: [{ id: safeUuid(), icon: "Sparkle", text: "Nowa zaleta" }] }; break;
       case "inlineImage":  defaultContent = { url: "", alt: "" }; break;
       case "videoEmbed":   defaultContent = { url: "" }; break;
+      case "table":        defaultContent = { caption: "", headers: ["Kolumna 1", "Kolumna 2"], rows: [["", ""], ["", ""]] }; break;
     }
-    onChange([...blocks, { id: crypto.randomUUID(), type, content: defaultContent }]);
+    onChange([...blocks, { id: safeUuid(), type, content: defaultContent }]);
   };
 
   const handleDeleteBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));

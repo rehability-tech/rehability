@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "discover-keywords": "npx tsx scripts/discover-keywords.mts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -30,6 +31,7 @@
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.38.0",
+    "google-trends-api": "^4.9.2",
     "html-react-parser": "^6.1.1",
     "html5-qrcode": "^2.3.8",
     "next": "16.2.4",

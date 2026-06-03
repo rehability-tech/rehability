@@ -16,6 +16,7 @@ import {
   House,
   DotsThree,
   Lock,
+  PlusCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +80,30 @@ export default function AdminMobileNavBar() {
   const currentCampId =
     campIdMatch && campIdMatch[1] !== "nowy" ? campIdMatch[1] : null;
   const isTripContext = !!currentCampId;
+
+  // KONTEKST BLOGA — analogicznie do kontekstu wyjazdu (sub-menu sekcji bloga).
+  const isBlogContext = pathname?.startsWith("/admin/blog") ?? false;
+
+  const blogItems = [
+    { key: "blog-list", href: "/admin/blog", label: "Wpisy", icon: Article },
+    {
+      key: "blog-schedule",
+      href: "/admin/blog/harmonogram",
+      label: "Harmonogram",
+      icon: CalendarBlank,
+    },
+    {
+      key: "blog-new",
+      href: "/admin/blog/dodaj/dane-podstawowe",
+      label: "Nowy",
+      icon: PlusCircle,
+      activePrefix: "/admin/blog/dodaj",
+    },
+  ];
+  const isBlogItemActive = (item: (typeof blogItems)[number]) =>
+    item.activePrefix
+      ? pathname?.startsWith(item.activePrefix)
+      : pathname === item.href;
 
   // 2. SUB-MENU DLA KONKRETNEGO WYJAZDU — zsynchronizowane z AdminSideBar
   const tripItems: TripItem[] = [
@@ -171,7 +196,84 @@ export default function AdminMobileNavBar() {
 
         <div className="relative w-full h-11">
           <AnimatePresence mode="wait" initial={false}>
-            {isTripContext ? (
+            {isBlogContext ? (
+              /* WIDOK 0: KONTEKST BLOGA (Wpisy, Harmonogram, Nowy) */
+              <motion.ul
+                key="blog-nav"
+                variants={navVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="absolute inset-0 flex items-center justify-between w-full h-full gap-1.5"
+              >
+                {blogItems.map(({ key, href, label, icon: Icon, ...rest }) => {
+                  const isActive = isBlogItemActive({
+                    key,
+                    href,
+                    label,
+                    icon: Icon,
+                    ...rest,
+                  });
+                  return (
+                    <motion.li
+                      key={key}
+                      layout
+                      transition={LAYOUT_SPRING}
+                      className={cn("list-none shrink-0", isActive && "flex-grow")}
+                    >
+                      <Link
+                        href={href}
+                        className={cn(
+                          "relative flex items-center justify-center gap-2 h-11 min-w-11 rounded-full",
+                          isActive
+                            ? "w-full px-4 text-white"
+                            : "text-brand-secondary/40 hover:text-brand-primary",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="admin-blog-pill"
+                            transition={LAYOUT_SPRING}
+                            className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
+                          >
+                            <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md" />
+                          </motion.div>
+                        )}
+                        <motion.div
+                          layout="position"
+                          transition={LAYOUT_SPRING}
+                          className="relative flex items-center justify-center z-10"
+                        >
+                          <Icon
+                            size={22}
+                            weight={isActive ? "fill" : "regular"}
+                            className="shrink-0 transition-colors duration-200"
+                          />
+                        </motion.div>
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {isActive && (
+                            <motion.span
+                              key="label"
+                              layout="position"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{
+                                duration: 0.18,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
+                              className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap"
+                            >
+                              {label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
+            ) : isTripContext ? (
               /* WIDOK 1: KONTEKST KONKRETNEGO WYJAZDU */
               <motion.div
                 key="trip-nav"

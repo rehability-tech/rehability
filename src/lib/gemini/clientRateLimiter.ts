@@ -2,7 +2,8 @@
 
 const STORAGE_KEY = "gemini:rl:timestamps:v1";
 const WINDOW_MS = 60_000;
-export const RPM_LIMIT = 12;
+// Realny limit Gemini 3.1 Flash Lite to 15 RPM — trzymamy 14 jako bezpieczny margines.
+export const RPM_LIMIT = 14;
 
 export type RateStatus =
   | { kind: "idle"; used: number; limit: number }

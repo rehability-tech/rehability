@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Sparkle, CaretDown, Check } from "@phosphor-icons/react/dist/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -30,14 +31,8 @@ interface AiGeneratorModalProps {
 }
 
 const AI_MODELS = [
-  // Najbezpieczniejszy i główny model - zawsze celuje w najnowszą, stabilną wersję Flash
-  { id: "gemini-flash-latest", label: "⚡ Flash Latest (Zalecany)" },
-
-  // Najlżejszy model z najnowszej generacji 3.1 - błyskawiczny i zużywa mało limitu
-  { id: "gemini-3.1-flash-lite", label: "✨ 3.1 Flash Lite (Najszybszy)" },
-
-  // Solidna alternatywa, gdyby nowsze wersje miały czkawkę
-  { id: "gemini-2.5-flash", label: "🔋 2.5 Flash (Stabilny)" },
+  // Jedyny używany model — Gemini 3.1 Flash Lite (15 RPM / 250K TPM / 500 RPD).
+  { id: "gemini-3.1-flash-lite", label: "✨ Gemini 3.1 Flash Lite" },
 ];
 
 export default function AiGeneratorModal({
@@ -52,6 +47,10 @@ export default function AiGeneratorModal({
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Portal montujemy dopiero po stronie klienta (document istnieje).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // --- NOWOŚĆ: Stan kontrolujący ekran ładowania wewnątrz modala ---
   const [isLocalGenerating, setIsLocalGenerating] = useState(false);
@@ -87,7 +86,9 @@ export default function AiGeneratorModal({
 
   const activeModelLabel = AI_MODELS.find((m) => m.id === selectedModel)?.label;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -140,7 +141,8 @@ export default function AiGeneratorModal({
                       </h3>
                     </div>
 
-                    {/* CUSTOMOWY DROPDOWN */}
+                    {/* Dropdown modeli — pokazujemy TYLKO gdy jest realny wybór */}
+                    {AI_MODELS.length > 1 && (
                     <div className="relative" ref={dropdownRef}>
                       <button
                         type="button"
@@ -196,6 +198,7 @@ export default function AiGeneratorModal({
                         )}
                       </AnimatePresence>
                     </div>
+                    )}
                   </div>
 
                   <p className="text-sm text-gray-500 font-montserrat mb-4">
@@ -314,6 +317,7 @@ export default function AiGeneratorModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -59,8 +59,9 @@ function StepperContent() {
                 {isCompleted ? <Check size={22} weight="bold" /> : <Icon size={22} weight={isCurrent ? "fill" : "regular"} />}
               </button>
 
+              {/* Etykieta pod kółkiem — tylko na desktopie (na mobile nachodziłyby) */}
               <span
-                className={`font-montserrat text-xs md:text-sm font-semibold absolute top-[56px] whitespace-nowrap transition-colors duration-300 ${
+                className={`hidden sm:block font-montserrat text-xs md:text-sm font-semibold absolute top-[56px] whitespace-nowrap transition-colors duration-300 ${
                   isCurrent ? "text-brand-primary" : isCompleted ? "text-[#0B3B4C]" : isLocked ? "text-gray-300" : "text-gray-400"
                 }`}
               >
@@ -70,7 +71,19 @@ function StepperContent() {
           );
         })}
       </div>
-      <div className="h-10" />
+
+      {/* Desktop: miejsce w DOM na absolutne etykiety */}
+      <div className="hidden sm:block h-10" />
+
+      {/* Mobile: etykieta tylko aktywnego kroku (zero nachodzenia) */}
+      <div className="sm:hidden mt-5 text-center">
+        <span className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-brand-primary/60">
+          Krok {currentStepIndex + 1} z {steps.length}
+        </span>
+        <p className="font-jakarta text-[15px] font-bold text-brand-secondary mt-0.5">
+          {steps[currentStepIndex].name}
+        </p>
+      </div>
     </div>
   );
 }

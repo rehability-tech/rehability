@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkle, CheckCircle, CircleNotch, Circle, WarningCircle, CaretDown,
+  Pause, Play, X,
 } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,14 @@ interface Props {
   steps: (NeonStep & { status: StepStatus })[];
   onAbort?: () => void;
   liveMessage?: string;
+  /** Czy generacja jest wstrzymana (steruje ikoną pauza/wznów i przyciskiem zamknięcia). */
+  isPaused?: boolean;
+  /** Wstrzymaj generację. Gdy podane — w nagłówku pojawia się przycisk pauzy. */
+  onPause?: () => void;
+  /** Wznów generację. */
+  onResume?: () => void;
+  /** Zamknij agenta. Przycisk pokazuje się WYŁĄCZNIE gdy generacja jest wstrzymana. */
+  onClose?: () => void;
 }
 
 export default function NeonAiPanel({
@@ -29,6 +38,10 @@ export default function NeonAiPanel({
   steps,
   onAbort,
   liveMessage,
+  isPaused = false,
+  onPause,
+  onResume,
+  onClose,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -38,10 +51,17 @@ export default function NeonAiPanel({
   const allDone = doneCount === steps.length && !errorStep;
   const progress = (doneCount / steps.length) * 100;
 
+  // Generacja "trwa" (możemy ją pauzować) gdy nie ma błędu i nie jest skończona.
+  const inProgress = !errorStep && !allDone;
+  // Animacje grają tylko gdy realnie pracujemy — przy pauzie zamierają.
+  const isAnimating = inProgress && !isPaused;
+
   const defaultSubtitle = errorStep
     ? "Wystąpił błąd"
     : allDone
     ? "Wszystko gotowe"
+    : isPaused
+    ? "Wstrzymano — wznów lub zamknij"
     : activeStep
     ? "Pracuję nad artykułem..."
     : "Czekam...";
@@ -52,12 +72,12 @@ export default function NeonAiPanel({
       animate={{ opacity: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, x: 40, y: -10 }}
       transition={{ type: "spring", damping: 22, stiffness: 260 }}
-      className="fixed top-6 right-6 z-[100] w-[320px] pointer-events-auto"
+      className="fixed top-4 left-3 right-3 sm:top-6 sm:left-auto sm:right-6 z-[100] w-auto sm:w-[320px] pointer-events-auto"
     >
       {/* Neon glow halo */}
       <motion.div
         animate={
-          !errorStep && !allDone
+          isAnimating
             ? { opacity: [0.5, 0.85, 0.5], scale: [1, 1.04, 1] }
             : { opacity: allDone ? 0.6 : 0.3 }
         }
@@ -82,7 +102,7 @@ export default function NeonAiPanel({
         )}
       >
         {/* Inner shimmer streak */}
-        {!errorStep && !allDone && (
+        {isAnimating && (
           <motion.div
             initial={{ left: "-40%" }}
             animate={{ left: "120%" }}
@@ -96,7 +116,7 @@ export default function NeonAiPanel({
           <div className="relative w-10 h-10 rounded-[12px] bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center shrink-0">
             <motion.div
               animate={
-                !errorStep && !allDone
+                isAnimating
                   ? { rotate: [0, 12, -12, 8, 0], scale: [1, 1.15, 1] }
                   : {}
               }
@@ -115,7 +135,7 @@ export default function NeonAiPanel({
                 )}
               />
             </motion.div>
-            {!errorStep && !allDone && (
+            {isAnimating && (
               <motion.div
                 animate={{ opacity: [0.2, 0.6, 0.2], scale: [1, 1.3, 1] }}
                 transition={{ repeat: Infinity, duration: 2 }}
@@ -132,6 +152,37 @@ export default function NeonAiPanel({
               {subtitle ?? defaultSubtitle}
             </p>
           </div>
+
+          {/* Pauza / wznowienie generacji */}
+          {inProgress && onPause && (
+            <button
+              onClick={() => (isPaused ? onResume?.() : onPause())}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors shrink-0",
+                isPaused
+                  ? "bg-cyan-400/20 text-cyan-200 hover:bg-cyan-400/30"
+                  : "hover:bg-white/10 text-cyan-200/70 hover:text-white",
+              )}
+              title={isPaused ? "Wznów generację" : "Wstrzymaj generację"}
+            >
+              {isPaused ? (
+                <Play size={14} weight="fill" />
+              ) : (
+                <Pause size={14} weight="fill" />
+              )}
+            </button>
+          )}
+
+          {/* Zamknięcie agenta — tylko gdy wstrzymane */}
+          {isPaused && onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-red-500/15 text-red-300 hover:bg-red-500/30 hover:text-red-200 transition-colors shrink-0"
+              title="Zamknij agenta"
+            >
+              <X size={14} weight="bold" />
+            </button>
+          )}
 
           <button
             onClick={() => setCollapsed((c) => !c)}

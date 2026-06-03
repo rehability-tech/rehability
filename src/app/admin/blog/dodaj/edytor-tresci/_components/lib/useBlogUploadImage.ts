@@ -1,6 +1,9 @@
 import { useState } from "react";
 
-export function useBlogUploadImage(onUploadSuccess: (url: string) => void) {
+export function useBlogUploadImage(
+  onUploadSuccess: (url: string) => void,
+  endpoint: string = "/api/admin/blog/upload",
+) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -8,7 +11,7 @@ export function useBlogUploadImage(onUploadSuccess: (url: string) => void) {
     setIsUploading(true);
     setUploadError(null);
     try {
-      const res = await fetch(`/api/admin/blog/upload?filename=${encodeURIComponent(file.name)}`, {
+      const res = await fetch(`${endpoint}?filename=${encodeURIComponent(file.name)}`, {
         method: "POST",
         body: file,
       });

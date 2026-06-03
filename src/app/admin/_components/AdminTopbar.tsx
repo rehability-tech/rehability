@@ -8,6 +8,7 @@ import SearchBar from "./topbar/SearchBar";
 import NotificationsDropdown from "./topbar/NotificationsDropdown";
 import ProfileMenu from "./topbar/ProfileMenu";
 import GlobalDrawer from "./topbar/GlobalDrawer";
+import { QrCheckInScanner } from "./topbar/QrCheckInScanner";
 import { cn } from "@/lib/utils";
 import { AdminUser } from "./topbar/types";
 
@@ -24,8 +25,8 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
   // Kontekst konkretnego wyjazdu (/admin/wyjazdy/[id], poza kreatorem "dodaj").
   // Wtedy pokazujemy back, który wraca do listy wyjazdów ("głównego menu").
   const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
-  const isTripContext =
-    !!campIdMatch && campIdMatch[1] !== "dodaj" && campIdMatch[1] !== "nowy";
+  const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
+  const isTripContext = !!campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1]);
 
   return (
     <>
@@ -37,13 +38,16 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
       >
         <div className="flex items-center gap-2 flex-1">
           {isTripContext && (
-            <Link
-              href="/admin/wyjazdy"
-              aria-label="Wróć do listy wyjazdów"
-              className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
-            >
-              <ArrowLeft size={20} weight="bold" />
-            </Link>
+            <>
+              <Link
+                href="/admin/wyjazdy"
+                aria-label="Wróć do listy wyjazdów"
+                className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
+              >
+                <ArrowLeft size={20} weight="bold" />
+              </Link>
+              <QrCheckInScanner tripId={campIdMatch![1]} />
+            </>
           )}
           <SearchBar />
         </div>

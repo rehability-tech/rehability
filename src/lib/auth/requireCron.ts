@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { devLog } from "@/lib/devLog";
 
 // Lightweight bearer-token auth for cron endpoints.
 //
@@ -55,6 +56,9 @@ export function requireCron(req: Request): CronAuthResult {
 
   // --- LOGOWANIE BŁĘDÓW DO KONSOLI ---
   if (!provided) {
+    // Debug tylko w dev — nagłówek auth to dane wrażliwe, nie trafia na prod.
+    devLog.log("PROVIDED", headerAuth);
+
     console.warn(
       `[cron 401] Odrzucono żądanie do ${url.pathname}: Nie podano hasła CRON_SECRET (brak w nagłówkach i query stringu).`,
     );

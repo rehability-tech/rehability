@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { prisma } from "@/lib/prisma";
 import { generateMonthlySchedule } from "@/lib/blog/generateMonthlySchedule";
+import { devLog } from "@/lib/devLog";
 
 export async function GET(req: Request) {
   const { isAuthorized, response } = await requireAdmin();
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
   const year = Number(body.year ?? new Date().getFullYear());
   const month = Number(body.month ?? new Date().getMonth());
 
-  console.log(`[CRON/MANUAL] Generowanie planu na miesiąc: ${month} / ${year}`);
+  devLog.log(`[CRON/MANUAL] Generowanie planu na miesiąc: ${month} / ${year}`);
 
   try {
     const result = await generateMonthlySchedule(year, month);

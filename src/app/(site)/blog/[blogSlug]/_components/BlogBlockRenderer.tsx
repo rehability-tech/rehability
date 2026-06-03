@@ -1,38 +1,49 @@
-import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
-import BlogFaqBlock from "./BlogFaqBlock";
+import {
+  CheckCircle,
+  Bed,
+  ForkKnife,
+  Sparkle,
+  Person,
+  Leaf,
+  Gift,
+  Heartbeat,
+  Brain,
+  Drop,
+  Mountains,
+  Sun,
+  HandHeart,
+  Campfire,
+  Tree,
+  Barbell,
+} from "@phosphor-icons/react/dist/ssr";
+import { FAQ } from "@/components/ui/FAQ";
+import { isUsableImageUrl } from "@/lib/utils";
 
-const PHOSPHOR_ICONS: Record<string, string> = {
-  Heartbeat:
-    "M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 4.151 2.798 2 5 2c1.322 0 2.952.85 4 2.25C10.048 2.85 11.678 2 13 2c2.202 0 4 2.151 4 5.191 0 4.105-5.37 8.863-11 14.402z",
-  Leaf: "M6 21c0-13.5 9-18 9-18",
-  Sun: "M12 17a5 5 0 100-10 5 5 0 000 10z",
-  Person: "M12 12a5 5 0 100-10 5 5 0 000 10zm-7 9a7 7 0 0114 0",
-  Sparkle: "M12 2l2.4 7.4H22l-6.4 4.6 2.4 7.4L12 17l-6 4.4 2.4-7.4L2 9.4h7.6z",
-  Mountains: "M2 20l7-14 4 8 3-6 6 12H2z",
-  Tree: "M12 2l4 8H8l4-8zM8 10l-4 10h16L16 10",
-  Bed: "M3 7v13M21 7v13M3 14h18M7 7a2 2 0 114 0M13 7a2 2 0 114 0",
-  Campfire: "M12 2c0 6-6 8-6 14a6 6 0 0012 0c0-6-6-8-6-14z",
+// Bloki na publicznej stronie wpisu renderujemy WIZUALNIE IDENTYCZNIE jak w
+// edytorze treści — te same klasy, kolory, typografia i komponenty. Edytorowe
+// "chrome" (toolbary, drag-handle, przyciski „dodaj") to tylko afordancje
+// edycji i tu nie występuje; sama prezentacja treści jest 1:1.
+
+// Ten sam zestaw ikon co w edytorowym FeaturesGridBlock.
+const FEATURE_ICONS: Record<string, React.ElementType> = {
+  CheckCircle,
+  Bed,
+  ForkKnife,
+  Sparkle,
+  Person,
+  Leaf,
+  Gift,
+  Heartbeat,
+  Brain,
+  Drop,
+  Mountains,
+  Sun,
+  HandHeart,
+  Campfire,
+  Tree,
+  Barbell,
 };
-
-function BlockIcon({ name }: { name: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className="w-6 h-6"
-      aria-hidden="true"
-    >
-      <path
-        d={PHOSPHOR_ICONS[name] || PHOSPHOR_ICONS["Sparkle"]}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function getYouTubeId(rawUrl: string): string | null {
   return (
@@ -54,53 +65,59 @@ function renderBlock(block: Block, index: number) {
   const c = (content ?? {}) as Record<string, unknown>;
 
   switch (type) {
+    // Edytor: HeadingBlock → RichTextInput "text-2xl md:text-3xl font-jakarta font-bold ..."
     case "heading":
       return (
         <h2
           key={key}
-          className="font-jakarta font-bold text-[#0B3B4C] text-[22px] sm:text-[26px] leading-snug mt-10 mb-4 first:mt-0"
+          className="font-jakarta font-bold text-[#0B3B4C] text-2xl md:text-3xl leading-[1.2]"
           dangerouslySetInnerHTML={{ __html: (c.text as string) || "" }}
         />
       );
 
+    // Edytor: ParagraphBlock → RichTextInput "text-gray-600 font-montserrat text-base leading-[1.7]"
     case "paragraph":
       return (
         <div
           key={key}
-          className="font-montserrat text-gray-600 text-[15px] leading-[1.85] mb-5 [&_span]:text-inherit"
+          className="font-montserrat text-gray-600 text-base leading-[1.7] [&_p]:m-0 [&_p+p]:mt-3"
           dangerouslySetInnerHTML={{ __html: (c.text as string) || "" }}
         />
       );
 
+    // Edytor: HighlightBlock → "border-l-4 border-brand-primary pl-4 py-1" + tekst jakarta medium
     case "highlight":
       return (
-        <blockquote
+        <div
           key={key}
-          className="border-l-4 border-brand-primary pl-5 py-2 my-6 bg-brand-primary/[0.03] rounded-r-xl"
+          className="w-full border-l-4 border-brand-primary pl-4 py-1"
         >
           <div
-            className="font-jakarta font-semibold text-[#0B3B4C] text-[17px] leading-relaxed"
+            className="font-jakarta font-medium text-lg text-[#0B3B4C] leading-relaxed [&_p]:m-0"
             dangerouslySetInnerHTML={{ __html: (c.text as string) || "" }}
           />
-        </blockquote>
+        </div>
       );
 
+    // Edytor: SpacerBlock to dashed placeholder (afordancja). Na froncie to po
+    // prostu pusta przerwa wizualna o zbliżonej wysokości.
     case "spacer":
-      return <div key={key} className="h-10" aria-hidden="true" />;
+      return <div key={key} className="h-16" aria-hidden="true" />;
 
+    // Edytor: BulletListBlock → CheckCircle size 24 fill #287D88, gap-4, text-base
     case "bulletList": {
       const items = (c.items as Array<{ id?: string; text?: string }>) || [];
       return (
-        <ul key={key} className="flex flex-col gap-3 my-5">
+        <ul key={key} className="w-full flex flex-col gap-3">
           {items.map((item, i) => (
-            <li key={item.id || i} className="flex items-start gap-3">
+            <li key={item.id || i} className="flex items-start gap-4 w-full">
               <CheckCircle
-                size={20}
+                size={24}
                 weight="fill"
-                className="text-brand-primary shrink-0 mt-0.5"
+                className="text-[#287D88] shrink-0 mt-1"
               />
               <div
-                className="font-montserrat text-gray-600 text-[15px] leading-[1.7] flex-1 [&_p]:m-0"
+                className="flex-1 font-montserrat text-gray-600 text-base leading-[1.7] [&_p]:m-0 [&_p+p]:mt-2"
                 dangerouslySetInnerHTML={{ __html: item.text || "" }}
               />
             </li>
@@ -109,65 +126,132 @@ function renderBlock(block: Block, index: number) {
       );
     }
 
+    // Edytor: FeaturesGridBlock → morskie karty (#287D88), biały tekst, biała
+    // okrągła ikona, grid 1/2/3 kolumny, gap-5.
     case "featuresGrid": {
       const items =
         (c.items as Array<{ id?: string; icon?: string; text?: string }>) || [];
       return (
         <div
           key={key}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-6"
+          className="flex flex-row flex-wrap gap-5 w-full justify-around gap-y-9"
         >
-          {items.map((item, i) => (
-            <div
-              key={item.id || i}
-              className="bg-brand-primary/5 rounded-2xl p-5 flex flex-col gap-3"
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                <BlockIcon name={item.icon || "Sparkle"} />
-              </div>
+          {items.map((item, i) => {
+            const Icon = FEATURE_ICONS[item.icon || ""] || Sparkle;
+            return (
               <div
-                className="font-montserrat text-[14px] text-[#0B3B4C] leading-snug font-medium"
-                dangerouslySetInnerHTML={{ __html: item.text || "" }}
-              />
-            </div>
-          ))}
+                key={item.id || i}
+                className="flex flex-col items-start gap-4 p-5 w-full bg-[#287D88] rounded-[20px] shadow-sm max-w-[280px]"
+              >
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 shrink-0">
+                  <Icon size={24} weight="duotone" className="text-white" />
+                </div>
+                <div
+                  className="w-full font-montserrat font-medium text-[14px] leading-relaxed text-white [&_span]:!text-white [&_p]:m-0"
+                  dangerouslySetInnerHTML={{ __html: item.text || "" }}
+                />
+              </div>
+            );
+          })}
         </div>
       );
     }
 
-    case "faq":
+    // Sekcja FAQ — używa współdzielonego komponentu FAQ.tsx (ten sam wygląd, co
+    // numerowany akordeon w edytorze: 01/02…, morski przycisk +/−).
+    case "faq": {
+      const items =
+        (c.items as Array<{
+          id?: string;
+          question?: string;
+          answer?: string;
+        }>) || [];
+      if (items.length === 0) return null;
+      // FAQ.tsx ma własny `container px-4`; -mx-4 niweluje px-4 artykułu, by
+      // krawędzie FAQ pokrywały się z resztą treści (a nie były węższe).
       return (
-        <BlogFaqBlock
-          key={key}
-          items={
-            (c.items as Array<{ id: string; question: string; answer: string }>) ||
-            []
-          }
-        />
+        <div key={key} className="-mx-4">
+          <FAQ
+            titlePrefix=""
+            titleHighlight=""
+            items={items.map((it) => ({
+              question: it.question || "",
+              answer: it.answer || "",
+            }))}
+          />
+        </div>
       );
+    }
 
+    // Edytor: BlogInlineImageBlock → zdjęcie w zaokrąglonym boksie z ramką,
+    // object-contain max-h-[500px]. Pomijamy puste/placeholderowe url-e.
     case "inlineImage": {
       const url = (c.url as string) || "";
       const alt = (c.alt as string) || "";
-      if (!url) return null;
+      if (!isUsableImageUrl(url)) return null;
       return (
-        <figure key={key} className="my-8">
-          <div className="relative w-full rounded-2xl overflow-hidden bg-gray-100">
-            <Image
-              src={url}
-              alt={alt}
-              width={1600}
-              height={900}
-              sizes="(max-width: 768px) 100vw, 768px"
-              className="w-full h-auto object-cover max-h-[500px]"
-              loading="lazy"
-            />
-          </div>
-          {alt && (
-            <figcaption className="text-center font-montserrat text-[12px] text-gray-400 mt-2">
-              {alt}
+        <figure
+          key={key}
+          className="relative w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100"
+        >
+          <Image
+            src={url}
+            alt={alt}
+            width={1600}
+            height={900}
+            sizes="(max-width: 768px) 100vw, 768px"
+            className="w-full h-auto object-contain max-h-[500px]"
+            loading="lazy"
+          />
+        </figure>
+      );
+    }
+
+    // Edytor: BlogTableBlock → caption (jakarta semibold), bordered table,
+    // header bg-brand-primary/5, komórki text-sm px-2 py-1.5. Komórki to HTML.
+    case "table": {
+      const caption = (c.caption as string) || "";
+      const headers = (c.headers as string[]) || [];
+      const rows = (c.rows as string[][]) || [];
+      if (headers.length === 0 && rows.length === 0) return null;
+      return (
+        <figure key={key} className="w-full flex flex-col gap-3">
+          {caption && (
+            <figcaption className="font-jakarta font-semibold text-[#0B3B4C] text-sm px-2">
+              {caption}
             </figcaption>
           )}
+          <div className="w-full overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full border-collapse text-left">
+              {headers.length > 0 && (
+                <thead>
+                  <tr className="bg-brand-primary/5">
+                    {headers.map((h, i) => (
+                      <th
+                        key={i}
+                        scope="col"
+                        className="font-montserrat font-semibold text-[#0B3B4C] text-sm px-2 py-1.5 border-b border-r border-gray-200 last:border-r-0 align-top [&_span]:text-inherit"
+                        dangerouslySetInnerHTML={{ __html: h || "" }}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {(row || []).map((cell, ci) => (
+                      <td
+                        key={ci}
+                        className="font-montserrat text-gray-600 text-sm px-2 py-1.5 border-b border-r border-gray-100 last:border-r-0 align-top [&_span]:text-inherit"
+                        dangerouslySetInnerHTML={{ __html: cell || "" }}
+                      />
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </figure>
       );
     }
@@ -178,7 +262,7 @@ function renderBlock(block: Block, index: number) {
       return (
         <div
           key={key}
-          className="my-8 aspect-video w-full rounded-2xl overflow-hidden bg-gray-100"
+          className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100"
         >
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${videoId}`}
@@ -205,5 +289,10 @@ export function BlogBlockRenderer({ blocks }: { blocks: Block[] }) {
       </p>
     );
   }
-  return <div>{blocks.map((b, i) => renderBlock(b, i))}</div>;
+  // Ten sam rytm pionowy co w edytorze (BlogBlockBuilder: flex flex-col gap-2).
+  return (
+    <div className="flex flex-col gap-3">
+      {blocks.map((b, i) => renderBlock(b, i))}
+    </div>
+  );
 }

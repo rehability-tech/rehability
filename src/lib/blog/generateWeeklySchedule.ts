@@ -40,7 +40,7 @@ export async function generateWeeklySchedule(): Promise<{ weekStart: Date; creat
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
   const systemInstruction = `Jesteś strategiem contentu dla polskiego bloga wellness prowadzonego przez fizjoterapeutkę.
 Blog jest skierowany do kobiet i obejmuje tematy: fizjoterapia, mindfulness, zdrowe żywienie, ruch, relaks i campy wellness.

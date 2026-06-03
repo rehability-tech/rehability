@@ -76,16 +76,21 @@ function getSeoIssues(post: BlogPostData): string[] {
 interface Props {
   post: BlogPostData;
   onChangeStatus: (id: string, status: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function BlogPostCard({ post, onChangeStatus }: Props) {
+export function BlogPostCard({ post, onChangeStatus, onDelete }: Props) {
   const [confirmedStatus, setConfirmedStatus] = useState(post.status);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const deleteRef = useRef<HTMLDivElement>(null);
 
   const seoIssues = getSeoIssues(post);
   const canPublish = seoIssues.length === 0;
+  const isBusy = isUpdating || isDeleting;
 
   useEffect(() => {
     if (!isUpdating) setConfirmedStatus(post.status);
@@ -96,10 +101,30 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsStatusMenuOpen(false);
       }
+      if (deleteRef.current && !deleteRef.current.contains(e.target as Node)) {
+        setIsConfirmingDelete(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleDelete = async () => {
+    setIsConfirmingDelete(false);
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/blog/${post.id}`, {
+        method: "DELETE",
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || "Nie udało się usunąć posta");
+      toast.success("Post usunięty.");
+      onDelete(post.id); // odmontowuje kartę — nie resetujemy już isDeleting
+    } catch (err: any) {
+      toast.error(err.message || "Błąd serwera");
+      setIsDeleting(false);
+    }
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     setIsStatusMenuOpen(false);
@@ -138,13 +163,19 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97 }}
       className={cn(
-        "bg-white rounded-[20px] p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative border transition-all",
-        "border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_30px_rgba(40,125,136,0.14)] hover:border-brand-primary/20",
+        "group bg-white/70 backdrop-blur-xl rounded-3xl rounded-tr-none p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative border transition-all duration-300",
+        "border-white/60 shadow-[0_10px_40px_-15px_rgba(3,63,99,0.12)] hover:shadow-[0_18px_50px_-18px_rgba(40,125,136,0.28)] hover:border-brand-primary/30 hover:-translate-y-0.5",
       )}
     >
+      {/* Brandowa poświata w tle (przyklejona do kształtu kropli) */}
+      <div className="absolute inset-0 -z-10 rounded-3xl rounded-tr-none overflow-hidden pointer-events-none">
+        <div className="absolute -bottom-10 -right-6 w-36 h-36 bg-brand-yellow/15 rounded-full blur-2xl opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute -top-12 left-1/4 w-32 h-32 bg-brand-primary/5 rounded-full blur-2xl" />
+      </div>
+
       {/* Shimmer aktualizacji */}
-      {isUpdating && (
-        <div className="absolute inset-0 z-50 bg-white/50 backdrop-blur-[2px] rounded-[20px] overflow-hidden pointer-events-none">
+      {isBusy && (
+        <div className="absolute inset-0 z-50 bg-white/50 backdrop-blur-[2px] rounded-3xl rounded-tr-none overflow-hidden pointer-events-none">
           <motion.div
             className="w-full h-full bg-gradient-to-r from-transparent via-white/80 to-transparent"
             animate={{ x: ["-100%", "100%"] }}
@@ -177,13 +208,14 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
       {/* Lewa część: miniatura + dane */}
       <div className="flex-1 flex gap-4 items-center">
         {/* Miniatura */}
-        <div className="hidden sm:flex items-center justify-center w-[80px] min-w-[80px] h-[80px] shrink-0 bg-gray-50 rounded-[14px] border border-gray-100 overflow-hidden">
+        <div className="hidden sm:flex items-center justify-center w-[84px] min-w-[84px] h-[84px] shrink-0 rounded-2xl rounded-tr-none border border-white/60 overflow-hidden shadow-[0_6px_18px_-8px_rgba(3,63,99,0.25)]">
           {post.coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="flex items-center justify-center text-gray-300">
-              <ArticleMedium size={28} weight="duotone" />
+            <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-primary to-brand-secondary text-white/90 overflow-hidden">
+              <div className="absolute -bottom-3 -right-2 w-12 h-12 bg-brand-yellow/40 rounded-full blur-lg pointer-events-none" />
+              <ArticleMedium size={30} weight="duotone" className="relative z-10" />
             </div>
           )}
         </div>
@@ -201,7 +233,7 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
             )}
           </div>
 
-          <h3 className="font-jakarta font-bold text-[#0B3B4C] text-[17px] leading-tight line-clamp-1">
+          <h3 className="font-jakarta font-bold text-brand-secondary text-[18px] leading-tight line-clamp-1 group-hover:text-brand-primary transition-colors duration-300">
             {post.title}
           </h3>
 
@@ -246,12 +278,14 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
       </div>
 
       {/* Przyciski akcji */}
-      <div className="flex items-center gap-1.5 pt-4 lg:pt-0 border-t border-gray-100 lg:border-t-0 justify-end shrink-0">
+      <div className="flex items-center gap-2 pt-4 lg:pt-0 border-t border-gray-100/80 lg:border-t-0 justify-end shrink-0">
+        {/* Pigułka z ikonami akcji */}
+        <div className="flex items-center gap-0.5 bg-white/60 border border-white/70 rounded-full p-1 shadow-sm">
         {/* Zmiana statusu */}
         <div className="relative" ref={menuRef}>
           <Tooltip content="Zmień status" position="top">
             <button
-              disabled={isUpdating}
+              disabled={isBusy}
               onClick={() => setIsStatusMenuOpen((p) => !p)}
               className={cn(
                 "p-2 rounded-[10px] transition-colors cursor-pointer disabled:cursor-not-allowed",
@@ -270,7 +304,7 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
                 initial={{ opacity: 0, y: 5, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-44 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50 flex flex-col overflow-hidden"
+                className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-44 bg-white/90 backdrop-blur-xl rounded-2xl rounded-tr-none shadow-[0_12px_36px_-12px_rgba(3,63,99,0.28)] border border-white/60 py-2 z-50 flex flex-col overflow-hidden"
               >
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-4 py-1 mb-1 border-b border-gray-50">
                   Ustaw status
@@ -307,10 +341,10 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
         <Tooltip content="Edytuj post" position="top">
           <Link
             href={`/admin/blog/dodaj/${post.lastStage}?id=${post.id}`}
-            className={isUpdating ? "pointer-events-none" : ""}
+            className={isBusy ? "pointer-events-none" : ""}
           >
             <button
-              disabled={isUpdating}
+              disabled={isBusy}
               className="p-2 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-[10px] transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               <PencilSimple size={18} weight="bold" />
@@ -318,18 +352,58 @@ export function BlogPostCard({ post, onChangeStatus }: Props) {
           </Link>
         </Tooltip>
 
-        <Tooltip content="Usuń post" position="top">
-          <button
-            disabled={isUpdating}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-[10px] transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            <Trash size={18} weight="bold" />
-          </button>
-        </Tooltip>
+        {/* Usuwanie — z popoverem potwierdzenia (operacja nieodwracalna) */}
+        <div className="relative" ref={deleteRef}>
+          <Tooltip content="Usuń post" position="top">
+            <button
+              disabled={isBusy}
+              onClick={() => setIsConfirmingDelete((p) => !p)}
+              className={cn(
+                "p-2 rounded-[10px] transition-colors cursor-pointer disabled:cursor-not-allowed",
+                isConfirmingDelete
+                  ? "bg-red-50 text-red-500"
+                  : "text-gray-400 hover:text-red-500 hover:bg-red-50",
+              )}
+            >
+              <Trash size={18} weight="bold" />
+            </button>
+          </Tooltip>
+
+          <AnimatePresence>
+            {isConfirmingDelete && (
+              <motion.div
+                initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl rounded-tr-none shadow-[0_12px_36px_-12px_rgba(3,63,99,0.28)] border border-white/60 p-3 z-50 flex flex-col gap-2"
+              >
+                <p className="text-[12px] font-montserrat text-gray-600 leading-snug px-1">
+                  Usunąć ten post na stałe? Tej operacji nie da się cofnąć.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsConfirmingDelete(false)}
+                    className="flex-1 px-3 py-2 text-[12.5px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[12.5px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
+                  >
+                    <Trash size={14} weight="bold" />
+                    Usuń
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        </div>
 
         <Link href={`/blog/${post.slug}`} target="_blank">
           <button
-            disabled={confirmedStatus !== "PUBLISHED" || isUpdating}
+            disabled={confirmedStatus !== "PUBLISHED" || isBusy}
             className="flex items-center gap-1.5 px-5 py-2.5 bg-brand-primary text-white hover:bg-[#0B3B4C] font-semibold text-[13px] rounded-full rounded-tr-none transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Podgląd

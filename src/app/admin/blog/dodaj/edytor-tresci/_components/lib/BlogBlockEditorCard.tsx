@@ -11,6 +11,7 @@ import { Trash, DotsSixVertical } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { BlogBlock } from "../hooks/useBlogAiGenerator";
 import BlogInlineImageBlock from "../blocks/BlogInlineImageBlock";
+import BlogTableBlock from "../blocks/BlogTableBlock";
 
 // Reuse generic trip blocks — they have no camp-specific logic
 import HeadingBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/HeadingBlock";
@@ -65,6 +66,8 @@ function BlogBlockEditorCardBase({
         return (
           <VideoEmbedBlock content={block.content} onChange={setContent} />
         );
+      case "table":
+        return <BlogTableBlock content={block.content} onChange={setContent} />;
       default:
         return (
           <div className="text-gray-400 text-sm">
@@ -141,7 +144,7 @@ function BlogBlockEditorCardBase({
 
       <div
         className={cn(
-          "w-full pr-16 mt-1 transition-opacity duration-500",
+          "w-full lg:pr-16 mt-1 transition-opacity duration-500",
           block.isGenerating && "opacity-40 pointer-events-none",
         )}
       >

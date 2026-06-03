@@ -70,7 +70,7 @@ export async function generateMonthlySchedule(
     .map((d, i) => `${i + 1}. ${formatDate(d)}`)
     .join("\n");
 
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
   // 3. Rozbudowany Prompt z wstrzykniętym kontekstem i poprawioną formą
   // 3. Rozbudowany Prompt z wstrzykniętym kontekstem i formą nazwiska "Siemaszko"

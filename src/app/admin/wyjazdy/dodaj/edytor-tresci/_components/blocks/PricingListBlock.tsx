@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Reorder, motion } from "framer-motion";
 import { Plus, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import DraggablePricingItem from "./DraggablePricingItem";
+import { safeUuid } from "@/lib/utils";
 
 export default function PricingListBlock({
   content,
@@ -42,7 +43,7 @@ export default function PricingListBlock({
       if (existing) return existing;
       const dbRef = dbServices.find((s) => s.id === dbId);
       return {
-        id: crypto.randomUUID(),
+        id: safeUuid(),
         originalId: dbRef.id,
         name: dbRef.name,
         duration: dbRef.duration?.toString() || "",
@@ -88,7 +89,7 @@ export default function PricingListBlock({
               items: [
                 ...priceItems,
                 {
-                  id: crypto.randomUUID(),
+                  id: safeUuid(),
                   name: "",
                   duration: "",
                   price: "",

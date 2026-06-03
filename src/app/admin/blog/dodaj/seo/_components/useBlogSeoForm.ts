@@ -1,14 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { geminiFetch } from "@/lib/gemini/clientRateLimiter";
-import {
-  truncateSmart,
-  scoreSeoLocally,
-  type SeoAiAnalysis,
-} from "@/lib/seo/utils";
+import { truncateSmart } from "@/lib/seo/utils";
 
 interface PostRaw {
   title?: string;
@@ -48,7 +44,6 @@ function buildPostSummary(post: PostRaw): string {
 
 export function useBlogSeoForm(postId: string | null) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [postTitle, setPostTitle] = useState("");
   const [postSlug, setPostSlug] = useState("");
@@ -68,18 +63,7 @@ export function useBlogSeoForm(postId: string | null) {
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFixing, setIsFixing] = useState(false);
   const [genStatusMsg, setGenStatusMsg] = useState<string | null>(null);
-
-  const [analysis, setAnalysis] = useState<SeoAiAnalysis | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const hasAutoRunRef = useRef(false);
-
-  // Auto-flow flag: jeśli wchodzimy z editora z ?autogenerate=true, BlogSeoPage
-  // odpala starszą sekwencję NeonAiPanel — wtedy NIE chcemy odpalać auto-analysis
-  // równocześnie (kolizja). Po zakończeniu auto-flow page sam wywoła runAnalysis.
-  const isAutoFlow = searchParams.get("autogenerate") === "true";
 
   useEffect(() => {
     if (!postId) return;
@@ -113,79 +97,6 @@ export function useBlogSeoForm(postId: string | null) {
     };
     fetchPost();
   }, [postId]);
-
-  const runAnalysis = useCallback(
-    async (overrides?: {
-      metaTitle?: string;
-      metaDescription?: string;
-      focusKeyword?: string;
-      ogImage?: string;
-      noIndex?: boolean;
-    }) => {
-      if (!postRaw) return;
-      setAnalysisLoading(true);
-      setAnalysisError(null);
-
-      const mt = overrides?.metaTitle ?? metaTitle;
-      const md = overrides?.metaDescription ?? metaDescription;
-      const fk = overrides?.focusKeyword ?? focusKeyword;
-      const ogi = overrides?.ogImage ?? ogImage;
-      const ni = overrides?.noIndex ?? noIndex;
-
-      const seoSnapshot = [
-        `metaTitle (${mt.length}/60): ${mt || "[brak]"}`,
-        `metaDescription (${md.length}/160): ${md || "[brak]"}`,
-        `focusKeyword: ${fk || "[brak]"}`,
-        `ogImage: ${ogi ? "ustawione" : "[brak]"}`,
-        `noIndex: ${ni ? "TAK (strona ukryta)" : "nie"}`,
-      ].join("\n");
-
-      const prompt = [
-        buildPostSummary(postRaw),
-        "",
-        "Aktualne pola SEO:",
-        seoSnapshot,
-      ].join("\n");
-
-      try {
-        const res = await geminiFetch("/api/admin/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, action: "analyzeBlogSeo" }),
-        });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "Błąd analizy SEO.");
-        }
-
-        const data = (await res.json()) as Partial<SeoAiAnalysis>;
-        setAnalysis({
-          score: typeof data.score === "number" ? data.score : 0,
-          summary: data.summary || "",
-          strengths: Array.isArray(data.strengths) ? data.strengths : [],
-          recommendations: Array.isArray(data.recommendations)
-            ? data.recommendations
-            : [],
-        });
-      } catch (err) {
-        setAnalysisError(
-          err instanceof Error ? err.message : "Nie udało się przeanalizować.",
-        );
-      } finally {
-        setAnalysisLoading(false);
-      }
-    },
-    [postRaw, metaTitle, metaDescription, focusKeyword, ogImage, noIndex],
-  );
-
-  // Auto-uruchom analizę przy pierwszym załadowaniu posta — tylko poza auto-flow
-  // generacji z editora (tam page sam zarządza analizą po zakończeniu).
-  useEffect(() => {
-    if (!postRaw || hasAutoRunRef.current || isAutoFlow) return;
-    hasAutoRunRef.current = true;
-    runAnalysis();
-  }, [postRaw, runAnalysis, isAutoFlow]);
 
   const persistSeo = useCallback(
     async (overrides: {
@@ -286,12 +197,6 @@ export function useBlogSeoForm(postId: string | null) {
       } else {
         toast.success("Wygenerowano dane SEO!");
       }
-
-      runAnalysis({
-        metaTitle: nextMetaTitle,
-        metaDescription: nextMetaDescription,
-        focusKeyword: nextFocusKeyword,
-      });
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Nie udało się wygenerować.",
@@ -307,134 +212,6 @@ export function useBlogSeoForm(postId: string | null) {
     metaDescription,
     focusKeyword,
     persistSeo,
-    runAnalysis,
-  ]);
-
-  const applyFixes = useCallback(async () => {
-    if (!postRaw) {
-      toast.error("Dane artykułu jeszcze się ładują.");
-      return;
-    }
-    if (!analysis || analysis.recommendations.length === 0) {
-      toast.info("Nie ma rekomendacji do naprawy.");
-      return;
-    }
-
-    setIsFixing(true);
-    try {
-      const recsBlock = analysis.recommendations
-        .map(
-          (r, i) =>
-            `${i + 1}. [${r.severity.toUpperCase()}] ${r.title}\n   Wskazówka: ${r.hint}`,
-        )
-        .join("\n");
-
-      const prompt = [
-        buildPostSummary(postRaw),
-        "",
-        "Aktualne pola SEO:",
-        `metaTitle (${metaTitle.length}/60): ${metaTitle || "[brak]"}`,
-        `metaDescription (${metaDescription.length}/160): ${metaDescription || "[brak]"}`,
-        `focusKeyword: ${focusKeyword || "[brak]"}`,
-        "",
-        "Rekomendacje do rozwiązania:",
-        recsBlock,
-      ].join("\n");
-
-      const res = await geminiFetch("/api/admin/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, action: "fixBlogSeo" }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Błąd naprawy SEO.");
-      }
-
-      const seo = (await res.json()) as {
-        metaTitle?: string;
-        metaDescription?: string;
-        focusKeyword?: string;
-      };
-
-      const nextMetaTitle = seo.metaTitle ?? metaTitle;
-      const nextMetaDescription = seo.metaDescription ?? metaDescription;
-      const nextFocusKeyword = seo.focusKeyword ?? focusKeyword;
-
-      // BRAMKA: liczymy lokalny score PRZED i PO. Jeśli AI nam pogorszyło dane
-      // — odrzucamy fix. Niezależnie od kapryśnego scoringu Gemini.
-      const hasOg = ogImage.trim().length > 0;
-      const before = scoreSeoLocally({
-        metaTitle,
-        metaDescription,
-        focusKeyword,
-        hasOgImage: hasOg,
-      });
-      const after = scoreSeoLocally({
-        metaTitle: nextMetaTitle,
-        metaDescription: nextMetaDescription,
-        focusKeyword: nextFocusKeyword,
-        hasOgImage: hasOg,
-      });
-
-      if (after.pass < before.pass) {
-        toast.error(
-          `Naprawa pogorszyłaby wynik (${before.pass}/${before.total} → ${after.pass}/${after.total}). Zachowuję obecne dane.`,
-          { duration: 7000 },
-        );
-        runAnalysis();
-        return;
-      }
-
-      if (seo.metaTitle) setMetaTitle(seo.metaTitle);
-      if (seo.metaDescription) setMetaDescription(seo.metaDescription);
-      if (seo.focusKeyword) setFocusKeyword(seo.focusKeyword);
-
-      if (postId) {
-        try {
-          await persistSeo({
-            metaTitle: nextMetaTitle,
-            metaDescription: nextMetaDescription,
-            focusKeyword: nextFocusKeyword,
-          });
-          const improvement = after.pass - before.pass;
-          toast.success(
-            improvement > 0
-              ? `Naprawiono! Wynik lokalny ${before.pass}/${before.total} → ${after.pass}/${after.total}.`
-              : "Naprawiono i zapisano dane SEO.",
-          );
-        } catch (persistErr) {
-          toast.error(
-            persistErr instanceof Error
-              ? `Naprawiono, ale nie zapisano: ${persistErr.message}`
-              : "Naprawiono, ale zapis się nie udał.",
-          );
-        }
-      } else {
-        toast.success("Naprawiono dane SEO!");
-      }
-
-      runAnalysis({
-        metaTitle: nextMetaTitle,
-        metaDescription: nextMetaDescription,
-        focusKeyword: nextFocusKeyword,
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Błąd naprawy SEO.");
-    } finally {
-      setIsFixing(false);
-    }
-  }, [
-    postRaw,
-    postId,
-    analysis,
-    metaTitle,
-    metaDescription,
-    focusKeyword,
-    ogImage,
-    persistSeo,
-    runAnalysis,
   ]);
 
   const saveSeo = useCallback(
@@ -481,16 +258,9 @@ export function useBlogSeoForm(postId: string | null) {
     isFetching,
     isSaving,
     isGenerating,
-    isFixing,
     genStatusMsg,
 
-    analysis,
-    analysisLoading,
-    analysisError,
-    runAnalysis,
-
     generateSeo,
-    applyFixes,
     saveSeo,
   };
 }

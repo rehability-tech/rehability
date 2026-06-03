@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import {
   Plus, TextH, TextAa, Star, X, Question,
   ArrowsOutLineVertical, YoutubeLogo, Image as ImageIcon,
-  ListBullets, Cards,
+  ListBullets, Cards, Table as TableIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { Question as QuestionIcon } from "@phosphor-icons/react";
 import { BlogBlockType } from "../hooks/useBlogAiGenerator";
@@ -23,6 +23,7 @@ export default function BlogBlockAdder({ onAddBlock }: BlogBlockAdderProps) {
     { type: "highlight",    label: "Wyróżnik",       desc: "Cytat lub mocna myśl",         icon: <Star size={20} /> },
     { type: "bulletList",   label: "Lista punktowana", desc: "Lista z ikonką ptaszka",    icon: <ListBullets size={20} /> },
     { type: "featuresGrid", label: "Karty zalet",    desc: "Siatka kart z ikonkami",      icon: <Cards size={20} /> },
+    { type: "table",        label: "Tabela",          desc: "Zestawienie / porównanie (lubi je AI)", icon: <TableIcon size={20} /> },
     { type: "faq",          label: "FAQ",             desc: "Pytania i odpowiedzi",        icon: <QuestionIcon size={20} /> },
     { type: "inlineImage",  label: "Zdjęcie",        desc: "Obrazek w treści artykułu",   icon: <ImageIcon size={20} /> },
     { type: "videoEmbed",   label: "Wideo",          desc: "Odtwarzacz YouTube",          icon: <YoutubeLogo size={20} /> },

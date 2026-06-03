@@ -10,6 +10,10 @@ import {
   Plus,
   Sparkle,
   Tag,
+  ImageSquare,
+  UploadSimple,
+  Trash,
+  MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,7 +22,10 @@ import { Button } from "@/components/ui/Button";
 import {
   FormInput,
   FormTextarea,
+  FormSelect,
 } from "@/app/admin/wyjazdy/dodaj/_components/FormFields";
+import { useBlogUploadImage } from "../edytor-tresci/_components/lib/useBlogUploadImage";
+import BlogCoverPicker from "../_components/BlogCoverPicker";
 import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
 import NeonAiPanel, {
   type NeonStep,
@@ -104,6 +111,19 @@ function BasicDataFormContent() {
   const [excerpt, setExcerpt] = useState("");
   const [category, setCategory] = useState("Ogólne");
   const [tags, setTags] = useState<string[]>([]);
+  const [coverImage, setCoverImage] = useState("");
+
+  // Upload okładki — ta sama logika co w edytorze (Vercel Blob).
+  const { upload: uploadCover, isUploading: isUploadingCover } =
+    useBlogUploadImage((url) => setCoverImage(url));
+
+  // Picker okładki (Pexels / własne). pendingScheduleId !== null oznacza,
+  // że picker jest pierwszym krokiem auto-generacji i po wyborze ruszamy dalej.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pendingScheduleId, setPendingScheduleId] = useState<string | null>(
+    null,
+  );
 
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [newCategoryInput, setNewCategoryInput] = useState("");
@@ -151,7 +171,7 @@ function BasicDataFormContent() {
   // ─── autogenerate (basic data only) ──────────────────────────────────────
 
   const runAutoGenerate = useCallback(
-    async (scheduleId: string) => {
+    async (scheduleId: string, coverUrl: string) => {
       try {
         // 1 – fetch schedule entry
         updateStep("fetch", "active");
@@ -244,6 +264,7 @@ function BasicDataFormContent() {
             title: finalTitle,
             slug,
             excerpt: basicData.excerpt || "",
+            coverImage: coverUrl,
             category: entry.category,
             tags: finalTags,
             lastStage: "edytor-tresci",
@@ -276,6 +297,8 @@ function BasicDataFormContent() {
   );
 
   // ─── detect autogenerate param on mount ──────────────────────────────────
+  // Krok 0 auto-generacji: zamiast od razu lecieć przez AI, najpierw otwieramy
+  // picker okładki. Po wyborze zdjęcia (Pexels lub własne) startuje reszta.
 
   useEffect(() => {
     if (autoStarted.current) return;
@@ -288,10 +311,52 @@ function BasicDataFormContent() {
     router.replace(
       `/admin/blog/dodaj/dane-podstawowe?scheduleId=${scheduleId}`,
     );
-    setAutoSteps(makeSteps());
-    setIsAutoRunning(true);
-    runAutoGenerate(scheduleId);
-  }, [searchParams, router, runAutoGenerate]);
+    setPendingScheduleId(scheduleId);
+
+    // Pobieramy temat, żeby zaproponować trafną frazę dla wyszukiwarki Pexels.
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/blog/schedule/${scheduleId}`);
+        if (res.ok) {
+          const entry = await res.json();
+          const seed =
+            (Array.isArray(entry.keywords) && entry.keywords[0]) ||
+            entry.category ||
+            entry.title ||
+            "";
+          setPickerQuery(String(seed));
+        }
+      } catch {
+        /* brak frazy — user wpisze sam */
+      } finally {
+        setPickerOpen(true);
+      }
+    })();
+  }, [searchParams, router]);
+
+  // ─── cover picker handlers ───────────────────────────────────────────────
+
+  const handleCoverSelected = (url: string) => {
+    setCoverImage(url);
+    setPickerOpen(false);
+    // Tryb auto-generacji: po wyborze okładki ruszamy z resztą sekwencji.
+    if (pendingScheduleId) {
+      const sid = pendingScheduleId;
+      setPendingScheduleId(null);
+      setAutoSteps(makeSteps());
+      setIsAutoRunning(true);
+      runAutoGenerate(sid, url);
+    }
+  };
+
+  const handlePickerClose = () => {
+    // W auto-generacji okładka jest obowiązkowa — wyjście wraca do listy.
+    if (pendingScheduleId) {
+      router.push("/admin/blog");
+      return;
+    }
+    setPickerOpen(false);
+  };
 
   // ─── edit mode: load existing post ───────────────────────────────────────
 
@@ -307,6 +372,7 @@ function BasicDataFormContent() {
         setExcerpt(data.excerpt || "");
         setCategory(data.category || "Ogólne");
         setTags(data.tags || []);
+        setCoverImage(data.coverImage || "");
         if (data.category && !DEFAULT_CATEGORIES.includes(data.category)) {
           setCategories((prev) => [...prev, data.category]);
         }
@@ -371,6 +437,10 @@ function BasicDataFormContent() {
       toast.error("Tytuł jest wymagany.");
       return;
     }
+    if (!coverImage) {
+      toast.error("Dodaj okładkę artykułu — jest wymagana.");
+      return;
+    }
     const slug = slugify(title);
     if (!slug) {
       toast.error("Nie udało się wygenerować sluga z tytułu.");
@@ -386,6 +456,7 @@ function BasicDataFormContent() {
           title,
           slug,
           excerpt,
+          coverImage,
           category,
           tags,
           lastStage: "edytor-tresci",
@@ -422,9 +493,14 @@ function BasicDataFormContent() {
     );
   }
 
-  const tagsLoading = loadingField === "tags";
+  // Manualne „Generuj z AI" to jeden request bez sekwencyjnego loadingField,
+  // więc OR-ujemy isAiGenerating — wtedy wszystkie pola skanują się przez całą generację.
+  // Autogeneracja z harmonogramu nadal odsłania pola po kolei (loadingField).
+  const titleLoading = loadingField === "title" || isAiGenerating;
+  const excerptLoading = loadingField === "excerpt" || isAiGenerating;
+  const tagsLoading = loadingField === "tags" || isAiGenerating;
   const categoryLoading =
-    loadingField === "category" || loadingField === "tags";
+    loadingField === "category" || loadingField === "tags" || isAiGenerating;
 
   return (
     <>
@@ -442,7 +518,7 @@ function BasicDataFormContent() {
 
       <div className="animate-in fade-in duration-500">
         {/* ── header ── */}
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="mb-6 flex items-start justify-between gap-4 max-[495px]:flex-col  max-[495px]:text-center  max-[495px]:items-center  max-[495px]:mb-3 ">
           <div>
             <h2 className="text-xl font-jakarta font-bold text-[#0B3B4C]">
               {editId ? "Edytuj dane podstawowe" : "Dane podstawowe artykułu"}
@@ -455,7 +531,7 @@ function BasicDataFormContent() {
             type="button"
             onClick={() => setIsAiModalOpen(true)}
             disabled={isAiGenerating || isAutoRunning}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-sm font-semibold rounded-[12px] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-sm font-semibold rounded-[12px] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed  max-[495px]:text-md"
           >
             {isAiGenerating ? (
               <CircleNotch size={16} weight="bold" className="animate-spin" />
@@ -467,6 +543,114 @@ function BasicDataFormContent() {
         </div>
 
         <form className="flex flex-col gap-10">
+          {/* ── okładka (wymagana, przed tytułem) ── */}
+          <section>
+            <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+              Okładka <span className="text-brand-primary">*</span>
+            </h3>
+
+            {coverImage ? (
+              <div className="relative group w-full overflow-hidden rounded-2xl rounded-tr-none border border-gray-100 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImage}
+                  alt="Okładka artykułu"
+                  className="w-full h-48 sm:h-56 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickerQuery(title || "");
+                      setPickerOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md text-brand-primary text-[12px] font-semibold rounded-full shadow-sm hover:bg-white transition-colors"
+                  >
+                    <MagnifyingGlass size={15} weight="bold" />
+                    Pexels
+                  </button>
+                  <label className="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md text-brand-secondary text-[12px] font-semibold rounded-full shadow-sm hover:bg-white transition-colors">
+                    <UploadSimple size={15} weight="bold" />
+                    Zmień
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={isUploadingCover}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) uploadCover(f);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage("")}
+                    className="flex items-center justify-center w-9 h-9 bg-white/90 backdrop-blur-md text-red-500 rounded-full shadow-sm hover:bg-white transition-colors"
+                    title="Usuń okładkę"
+                  >
+                    <Trash size={15} weight="bold" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+              <label className="relative flex flex-col items-center justify-center gap-3 w-full min-h-[180px] rounded-2xl rounded-tr-none border-2 border-dashed border-brand-primary/30 bg-brand-primary/5 cursor-pointer hover:border-brand-primary/60 hover:bg-brand-primary/[0.08] transition-colors text-center px-4 py-8">
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  disabled={isUploadingCover}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadCover(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                {isUploadingCover ? (
+                  <>
+                    <CircleNotch
+                      size={28}
+                      weight="bold"
+                      className="text-brand-primary animate-spin"
+                    />
+                    <span className="text-sm font-montserrat font-semibold text-brand-primary">
+                      Przesyłanie okładki...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl rounded-tr-none bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                      <ImageSquare size={26} weight="duotone" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-montserrat font-bold text-brand-secondary">
+                        Dodaj okładkę artykułu
+                      </p>
+                      <p className="text-[12px] font-montserrat text-brand-secondary/50 mt-0.5">
+                        Kliknij, aby wybrać zdjęcie · JPG/PNG · wymagane
+                      </p>
+                    </div>
+                  </>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setPickerQuery(title || "");
+                  setPickerOpen(true);
+                }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-[12px] bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-sm font-semibold transition-colors"
+              >
+                <MagnifyingGlass size={16} weight="bold" />
+                lub wybierz z biblioteki Pexels
+              </button>
+              </div>
+            )}
+          </section>
+
           {/* ── identyfikacja ── */}
           <section>
             <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
@@ -480,7 +664,7 @@ function BasicDataFormContent() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="np. 5 ćwiczeń na zdrowy kręgosłup"
-                isLoading={loadingField === "title"}
+                isLoading={titleLoading}
               />
               <FormTextarea
                 label="Krótki opis (excerpt)"
@@ -488,7 +672,7 @@ function BasicDataFormContent() {
                 onChange={(e) => setExcerpt(e.target.value)}
                 placeholder="1–2 zdania zachęcające do przeczytania. Pojawi się na liście blogów i w SEO."
                 rows={3}
-                isLoading={loadingField === "excerpt"}
+                isLoading={excerptLoading}
               />
             </div>
           </section>
@@ -498,48 +682,18 @@ function BasicDataFormContent() {
             <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
               Kategoria
             </h3>
-            <div className="flex flex-col gap-2 max-w-xs">
-              <div className="relative z-0">
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  disabled={categoryLoading}
-                  className={cn(
-                    "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
-                    categoryLoading &&
-                      "opacity-80 text-gray-500 cursor-default",
-                  )}
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <AnimatePresence>
-                  {categoryLoading && (
-                    <motion.div
-                      key="cat-glow"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 z-20 rounded-[12px] overflow-hidden shadow-[0_0_12px_7px_rgba(40,125,136,0.3)] pointer-events-none"
-                    >
-                      <motion.div
-                        initial={{ left: "-100%" }}
-                        animate={{ left: "100%" }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 2.5,
-                          ease: "linear",
-                        }}
-                        className="absolute top-0 bottom-0 w-[60%] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+            <div className="flex flex-col gap-2.5 w-full sm:max-w-sm">
+              <FormSelect
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                isLoading={categoryLoading}
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </FormSelect>
 
               <div className="flex gap-2">
                 <input
@@ -551,15 +705,17 @@ function BasicDataFormContent() {
                       handleAddCategory();
                     }
                   }}
-                  placeholder="Nowa kategoria..."
-                  className="flex-1 bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[10px] px-3 py-2 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
+                  placeholder="Dodaj własną kategorię..."
+                  className="flex-1 min-w-0 bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[14px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
                 />
                 <button
                   type="button"
                   onClick={handleAddCategory}
-                  className="p-2 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-[10px] transition-colors"
+                  disabled={!newCategoryInput.trim()}
+                  className="flex items-center justify-center gap-1.5 px-4 py-3 bg-brand-primary text-white rounded-[14px] font-semibold text-sm shadow-[0_6px_16px_-6px_rgba(40,125,136,0.5)] hover:bg-[#1E6068] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Plus size={16} weight="bold" />
+                  <span>Dodaj</span>
                 </button>
               </div>
 
@@ -661,7 +817,13 @@ function BasicDataFormContent() {
             <Button
               onClick={handleSaveAndNext}
               isLoading={isSaving}
-              disabled={!title || isSaving || isAutoRunning}
+              disabled={
+                !title ||
+                !coverImage ||
+                isUploadingCover ||
+                isSaving ||
+                isAutoRunning
+              }
               rightIcon={<CaretRight size={18} weight="bold" />}
             >
               Dalej: Edytor treści
@@ -677,6 +839,14 @@ function BasicDataFormContent() {
           setPrompt={setAiPrompt}
           description="Opisz temat artykułu. AI wygeneruje tytuł, krótki opis, zaproponuje kategorie i doda tagi."
           placeholder="np. Artykuł o ćwiczeniach rozciągających dla osób pracujących przy biurku..."
+        />
+
+        <BlogCoverPicker
+          isOpen={pickerOpen}
+          onClose={handlePickerClose}
+          onSelect={handleCoverSelected}
+          defaultQuery={pickerQuery}
+          mandatory={!!pendingScheduleId}
         />
       </div>
     </>

@@ -11,11 +11,11 @@ import {
   Eye,
   EyeSlash,
   Tag,
+  FloppyDisk,
 } from "@phosphor-icons/react/dist/ssr";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import NeonAiPanel, {
   type NeonStep,
@@ -24,7 +24,6 @@ import NeonAiPanel, {
 import NeonInputGlow from "../_components/NeonInputGlow";
 import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
 import PublishControl from "./_components/PublishControl";
-import SeoAiAnalysisCard from "@/components/admin/seo/SeoAiAnalysisCard";
 import GenerateSeoButton from "@/components/admin/seo/GenerateSeoButton";
 import {
   keywordOverlap,
@@ -242,16 +241,9 @@ function SeoFormContent() {
     isFetching,
     isSaving,
     isGenerating,
-    isFixing,
     genStatusMsg,
 
-    analysis,
-    analysisLoading,
-    analysisError,
-    runAnalysis,
-
     generateSeo,
-    applyFixes,
     saveSeo,
   } = useBlogSeoForm(postId);
 
@@ -263,8 +255,8 @@ function SeoFormContent() {
   const autoStarted = useRef(false);
 
   // Globalna flaga "AI pracuje" — dla shimmer/glow na inputach trzymamy razem
-  // ręczny Generate, Fix i auto-flow per-field reveal.
-  const isAiBusy = isGenerating || isFixing;
+  // ręczny Generate i auto-flow per-field reveal.
+  const isAiBusy = isGenerating;
 
   const buildRateStatus =
     (resumeMsg: string) =>
@@ -372,13 +364,10 @@ function SeoFormContent() {
         updateStep("save", "done");
 
         toast.success("Artykuł gotowy! Możesz dopieścić SEO lub opublikować.");
-
-        // Po auto-flow odpalamy analizę żeby user widział wynik AI scoringu.
-        runAnalysis({
-          metaTitle: seoData.metaTitle || post.title || "",
-          metaDescription: seoData.metaDescription || post.excerpt || "",
-          focusKeyword: seoData.focusKeyword || "",
-        });
+        // Pokaż chwilę stan "Gotowe", potem zwiń panel agenta i ODBLOKUJ
+        // przyciski zapisu (inaczej isAutoRunning zostaje na true na zawsze).
+        await sleep(1500);
+        setIsAutoRunning(false);
       } catch (err: unknown) {
         const msg =
           err instanceof Error ? err.message : "Nieznany błąd generowania SEO.";
@@ -390,7 +379,7 @@ function SeoFormContent() {
         );
       }
     },
-    [updateStep, runAnalysis, setMetaTitle, setMetaDescription, setFocusKeyword],
+    [updateStep, setMetaTitle, setMetaDescription, setFocusKeyword],
   );
 
   useEffect(() => {
@@ -698,17 +687,8 @@ function SeoFormContent() {
           </div>
         </div>
 
-        {/* Prawa kolumna: Analiza AI + checklist regułowy + publikacja */}
+        {/* Prawa kolumna: checklist regułowy + publikacja */}
         <div className="xl:sticky xl:top-6 h-fit flex flex-col gap-4">
-          <SeoAiAnalysisCard
-            analysis={analysis}
-            isLoading={analysisLoading}
-            error={analysisError}
-            onRefresh={() => runAnalysis()}
-            onFix={applyFixes}
-            isFixing={isFixing}
-            contentLabel="artykułu"
-          />
           <SeoChecklist checks={seoChecks} />
 
           {postId && (
@@ -724,32 +704,48 @@ function SeoFormContent() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-gray-100">
+      <div className="flex flex-col-reverse gap-3 pt-6 mt-6 border-t border-gray-100 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <Link
           href={`/admin/blog/dodaj/edytor-tresci${postId ? `?id=${postId}` : ""}`}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-[12px] text-[13px] font-bold font-montserrat bg-gray-100 text-gray-600 hover:bg-gray-200 transition sm:w-auto"
         >
-          <CaretLeft size={18} weight="bold" />
+          <CaretLeft size={16} weight="bold" />
           Wstecz
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => saveSeo(false)}
             disabled={isSaving || isAutoRunning}
-            className="px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className={cn(
+              "inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-[12px] text-[13px] font-bold font-montserrat transition sm:w-auto",
+              isSaving || isAutoRunning
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
+                : "bg-[#0B3B4C] text-white hover:bg-brand-primary shadow-[0_10px_24px_-12px_rgba(11,59,76,0.55)]",
+            )}
           >
+            <FloppyDisk size={16} weight="fill" />
             Zapisz bez wychodzenia
           </button>
-          <Button
+          <button
+            type="button"
             onClick={() => saveSeo(true)}
-            isLoading={isSaving}
             disabled={isSaving || isAutoRunning}
-            rightIcon={<CaretRight size={18} weight="bold" />}
+            className={cn(
+              "inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-[12px] text-[13px] font-bold font-montserrat transition sm:w-auto",
+              isSaving || isAutoRunning
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
+                : "bg-brand-primary text-white hover:bg-[#1E6068] shadow-[0_10px_24px_-12px_rgba(40,125,136,0.55)]",
+            )}
           >
+            {isSaving ? (
+              <CircleNotch size={16} weight="bold" className="animate-spin" />
+            ) : (
+              <CaretRight size={16} weight="bold" />
+            )}
             Zapisz i wróć do listy
-          </Button>
+          </button>
         </div>
       </div>
     </div>

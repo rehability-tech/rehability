@@ -57,6 +57,14 @@ export function useBlogContent(postId: string | null) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "content", content: contentData.blocks }),
         });
+        // Post zniknął z bazy (usunięty / reset bazy). Ostrzeż ZAWSZE — także przy
+        // autosave — żeby użytkownik nie edytował „w próżnię" i nie tracił zmian.
+        if (res.status === 404) {
+          toast.error(
+            "Ten artykuł już nie istnieje w bazie (mógł zostać usunięty lub baza została zresetowana). Zapis jest niemożliwy.",
+          );
+          return;
+        }
         if (!res.ok) throw new Error();
         if (source === "auto" || source === "toolbar") {
           setShowAutosaveTooltip(true);

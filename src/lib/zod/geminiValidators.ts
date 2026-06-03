@@ -11,6 +11,7 @@ export const geminiRequestSchema = z.object({
     "generateBlog",
     "generateBlogBasicData",
     "generateBlogBlueprint",
+    "generateBlogSingleBlock", // <-- Copywriter BLOGOWY (persona zdrowotna + SEO)
     "generateBlogContent",
     "generateBlogSeo",
     "generateCampSeo",
@@ -24,4 +25,6 @@ export const geminiRequestSchema = z.object({
   blockType: z.string().optional(),
   topic: z.string().optional(),
   overallContext: z.string().optional(),
+  // Główna fraza kluczowa (focus keyword) z harmonogramu — wplatana w treść pod SEO.
+  focusKeyword: z.string().optional(),
 });

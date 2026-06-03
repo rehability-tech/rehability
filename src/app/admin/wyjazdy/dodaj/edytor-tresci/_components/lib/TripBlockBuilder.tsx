@@ -6,6 +6,7 @@ import { Reorder } from "framer-motion";
 import BlockEditorCard from "./BlockEditorCard";
 import BlockAdder from "./BlockAdder";
 import { BlockType, TripBlock } from "../hooks/useTripAiGenerator";
+import { safeUuid } from "@/lib/utils";
 
 interface TripBlocksBuilderProps {
   blocks: TripBlock[];
@@ -46,17 +47,17 @@ export default function TripBlocksBuilder({
       case "bulletList":
         defaultContent = {
           items: [
-            { id: crypto.randomUUID(), text: "<p>Nowy punkt na liście...</p>" },
+            { id: safeUuid(), text: "<p>Nowy punkt na liście...</p>" },
           ],
         };
       case "faq":
         defaultContent = {
-          items: [{ id: crypto.randomUUID(), question: "", answer: "" }],
+          items: [{ id: safeUuid(), question: "", answer: "" }],
         };
         break;
     }
     const newBlock: TripBlock = {
-      id: crypto.randomUUID(),
+      id: safeUuid(),
       type,
       content: defaultContent,
     };

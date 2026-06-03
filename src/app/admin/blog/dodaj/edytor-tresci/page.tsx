@@ -17,7 +17,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { cn, safeUuid, isUsableImageUrl } from "@/lib/utils";
 
 import EditorToolbar from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/EditorToolbar";
 import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
@@ -27,6 +27,8 @@ import {
   useBlogAiGenerator,
   type BlogBlock,
 } from "./_components/hooks/useBlogAiGenerator";
+import { useInlineImagePicker } from "./_components/hooks/useInlineImagePicker";
+import BlogCoverPicker from "../_components/BlogCoverPicker";
 import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
 import NeonAiPanel, {
   type NeonStep,
@@ -48,6 +50,11 @@ const AUTO_STEPS_DEF: NeonStep[] = [
     id: "blocks",
     label: "Pisanie treści blok po bloku",
     detail: "AI wypełnia każdy blok osobno...",
+  },
+  {
+    id: "images",
+    label: "Dobór zdjęć",
+    detail: "Wybierz zdjęcia do bloków graficznych...",
   },
   {
     id: "save",
@@ -78,6 +85,10 @@ function BlogContentEditorContent() {
     handleSaveAndNext,
   } = useBlogContent(postId);
 
+  // Pół-automatyczny dobór zdjęć (kolejka pickerów Pexels) — współdzielony przez
+  // generację ręczną (modal AI) i automatyczną (z harmonogramu).
+  const imgPicker = useInlineImagePicker();
+
   const {
     isAiModalOpen,
     setIsAiModalOpen,
@@ -85,7 +96,7 @@ function BlogContentEditorContent() {
     setAiPrompt,
     aiProgress,
     handleGenerateBlogContent,
-  } = useBlogAiGenerator(updateField);
+  } = useBlogAiGenerator(updateField, imgPicker.pickImagesFor);
 
   const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
 
@@ -94,6 +105,37 @@ function BlogContentEditorContent() {
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [autoLiveMsg, setAutoLiveMsg] = useState<string | undefined>();
   const autoStarted = useRef(false);
+
+  // ── sterowanie agentem: pauza / wznowienie / zamknięcie ──
+  const [isPaused, setIsPaused] = useState(false);
+  const pausedRef = useRef(false); // odczytywane w pętli (bez re-renderu)
+  const cancelledRef = useRef(false); // ustawiane przy zamknięciu agenta
+
+  // Bramka: blokuje pętlę dopóki wstrzymana (lub do zamknięcia agenta).
+  const waitWhilePaused = useCallback(async () => {
+    while (pausedRef.current && !cancelledRef.current) {
+      await sleep(200);
+    }
+  }, []);
+
+  const handlePause = useCallback(() => {
+    pausedRef.current = true;
+    setIsPaused(true);
+    setAutoLiveMsg("Wstrzymano. Wznów, aby kontynuować, lub zamknij agenta.");
+  }, []);
+
+  const handleResume = useCallback(() => {
+    pausedRef.current = false;
+    setIsPaused(false);
+    setAutoLiveMsg("Wznawiam pracę...");
+  }, []);
+
+  const handleCloseAgent = useCallback(() => {
+    cancelledRef.current = true;
+    pausedRef.current = false; // odblokuj bramkę, by pętla mogła wyjść
+    setIsPaused(false);
+    setIsAutoRunning(false);
+  }, []);
 
   const updateStep = useCallback(
     (id: string, status: StepStatus, detail?: string) => {
@@ -129,12 +171,17 @@ function BlogContentEditorContent() {
         const post = await postRes.json();
         const entry = await scheduleRes.json();
 
+        // keywords[0] z harmonogramu to nasza GŁÓWNA fraza kluczowa (focus keyword).
+        const keywords = (entry.keywords as string[] | undefined) ?? [];
+        const focusKeyword = keywords[0] || "";
+
         const overallContext = [
           `Tytuł: ${post.title || ""}`,
           `Kategoria: ${post.category || entry.category || ""}`,
           `Opis: ${post.excerpt || ""}`,
           `Temat: ${entry.topic || ""}`,
-          `Słowa kluczowe: ${(entry.keywords as string[] | undefined)?.join(", ") || ""}`,
+          `Główna fraza kluczowa (focus): ${focusKeyword}`,
+          `Pozostałe słowa kluczowe: ${keywords.slice(1).join(", ")}`,
         ].join("\n");
         updateStep("context", "done");
 
@@ -162,6 +209,7 @@ function BlogContentEditorContent() {
             body: JSON.stringify({
               prompt: overallContext,
               action: "generateBlogBlueprint",
+              focusKeyword,
             }),
           },
           {
@@ -169,8 +217,12 @@ function BlogContentEditorContent() {
           },
         );
         if (!bpRes.ok) throw new Error("Błąd planowania struktury artykułu.");
-        const { blueprint } = await bpRes.json();
-        if (!Array.isArray(blueprint) || blueprint.length === 0) {
+        const { blueprint: rawBlueprint } = await bpRes.json();
+        // Odfiltruj bloki wideo — AI nie ma generować osadzonych filmów.
+        const blueprint = (
+          Array.isArray(rawBlueprint) ? rawBlueprint : []
+        ).filter((step: { type?: string }) => step?.type !== "videoEmbed");
+        if (blueprint.length === 0) {
           throw new Error("AI nie zwróciło planu artykułu.");
         }
         updateStep("blueprint", "done");
@@ -180,13 +232,17 @@ function BlogContentEditorContent() {
         let currentBlocks: BlogBlock[] = [];
 
         for (let i = 0; i < blueprint.length; i++) {
+          // Uszanuj pauzę i ewentualne zamknięcie agenta na granicy każdego bloku.
+          await waitWhilePaused();
+          if (cancelledRef.current) return;
+
           const step = blueprint[i];
           setAutoLiveMsg(
             `Blok ${i + 1} / ${blueprint.length} · ${step.type} – ${step.topic ?? ""}`,
           );
 
           // add a pending block to the list (visible with neon shimmer)
-          const newBlockId = crypto.randomUUID();
+          const newBlockId = safeUuid();
           currentBlocks = [
             ...currentBlocks,
             {
@@ -209,11 +265,12 @@ function BlogContentEditorContent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  action: "generateSingleBlock",
+                  action: "generateBlogSingleBlock",
                   prompt: overallContext,
                   overallContext,
                   blockType: step.type,
                   topic: step.topic,
+                  focusKeyword,
                 }),
               },
               { onStatus: blueprintStatus(blockResumeMsg) },
@@ -247,6 +304,14 @@ function BlogContentEditorContent() {
                 blockContent.text =
                   "Treść się nie wygenerowała. Usuń i spróbuj ponownie.";
             }
+            // AI NIGDY nie podaje realnego zdjęcia — prawdziwy url pochodzi WYŁĄCZNIE
+            // z pickera (Pexels/własny upload → nasz blob). Czyścimy cokolwiek AI
+            // wpisało (placeholdery, zmyślone domeny typu przyklad.pl), żeby kreator
+            // zawsze zatrzymał się i poprosił o wybór grafiki.
+            if (step.type === "inlineImage") {
+              blockContent.url = "";
+              if (typeof blockContent.alt !== "string") blockContent.alt = "";
+            }
 
             currentBlocks = currentBlocks.map((b) =>
               b.id === newBlockId
@@ -269,10 +334,32 @@ function BlogContentEditorContent() {
             updateField("blocks", currentBlocks);
           }
 
+          // Pauza INLINE na bloku zdjęcia: gdy AI nie dało realnego url, otwórz
+          // picker OD RAZU (z opisem `alt` jako podpowiedzią, co zdjęcie ma
+          // przedstawiać) i wznów pisanie dopiero po wyborze/pominięciu.
+          if (
+            step.type === "inlineImage" &&
+            !isUsableImageUrl(
+              currentBlocks.find((b) => b.id === newBlockId)?.content?.url,
+            )
+          ) {
+            updateStep("images", "active");
+            setAutoLiveMsg("Czekam, aż wybierzesz zdjęcie do tego miejsca...");
+            currentBlocks = await imgPicker.pickImagesFor(
+              currentBlocks,
+              (bs) => updateField("blocks", bs),
+              newBlockId,
+            );
+            setAutoLiveMsg("Zdjęcie dodane — wznawiam pisanie...");
+          }
+
           // small breather between blocks so the UI feels paced, not rushed
           await sleep(250);
         }
         updateStep("blocks", "done");
+        updateStep("images", "done");
+
+        if (cancelledRef.current) return;
 
         // 4 – save and forward to SEO
         updateStep("save", "active");
@@ -300,7 +387,7 @@ function BlogContentEditorContent() {
         );
       }
     },
-    [router, updateField, updateStep],
+    [router, updateField, updateStep, imgPicker.pickImagesFor, waitWhilePaused],
   );
 
   // ── detect autogenerate param after content is fetched ──
@@ -314,6 +401,10 @@ function BlogContentEditorContent() {
     autoStarted.current = true;
     // strip query so a refresh doesn't replay the flow
     router.replace(`/admin/blog/dodaj/edytor-tresci?id=${postId}`);
+    // świeży stan sterowania agentem dla nowego przebiegu
+    cancelledRef.current = false;
+    pausedRef.current = false;
+    setIsPaused(false);
     setAutoSteps(makeSteps());
     setIsAutoRunning(true);
     runAutoGenerate(scheduleId, postId);
@@ -348,6 +439,10 @@ function BlogContentEditorContent() {
             steps={autoSteps}
             liveMessage={autoLiveMsg}
             onAbort={() => router.push("/admin/blog")}
+            isPaused={isPaused}
+            onPause={handlePause}
+            onResume={handleResume}
+            onClose={handleCloseAgent}
           />
         )}
       </AnimatePresence>
@@ -362,6 +457,24 @@ function BlogContentEditorContent() {
         placeholder="np. Artykuł o ćwiczeniach na kręgosłup dla kobiet pracujących przy biurku..."
       />
 
+      {/* Pół-automatyczny dobór zdjęć — kolejka pickerów po generacji treści.
+          `key` wymusza świeże wyszukiwanie dla każdego kolejnego zdjęcia. */}
+      <BlogCoverPicker
+        key={imgPicker.pickerKey}
+        isOpen={imgPicker.state.isOpen}
+        mandatory
+        onSkip={imgPicker.handleSkip}
+        onClose={imgPicker.handleSkip}
+        onSelect={imgPicker.handleSelect}
+        defaultQuery={imgPicker.state.query}
+        heading={`Dobierz zdjęcie do treści (${imgPicker.state.index}/${imgPicker.state.total})`}
+        subheading={
+          imgPicker.state.query
+            ? `AI proponuje, by zdjęcie przedstawiało: „${imgPicker.state.query}". Wybierz pasujące z Pexels lub wgraj własne — albo pomiń i dodaj później.`
+            : "Wybierz pasujące zdjęcie z Pexels lub wgraj własne — albo pomiń i dodaj później."
+        }
+      />
+
       {/* Pływający pasek postępu (manual AI z modala) */}
       <AnimatePresence>
         {aiProgress.isVisible && (
@@ -369,7 +482,7 @@ function BlogContentEditorContent() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-full shadow-[0_10px_40px_rgba(40,125,136,0.2)] border border-gray-100 px-6 py-3 flex items-center gap-4 min-w-[320px]"
+            className="fixed top-[72px] sm:top-auto sm:bottom-10 left-1/2 -translate-x-1/2 z-[90] bg-white rounded-full shadow-[0_10px_40px_rgba(40,125,136,0.2)] border border-gray-100 px-5 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 w-[calc(100vw-1.5rem)] max-w-[360px] sm:w-auto sm:min-w-[320px]"
           >
             {aiProgress.phase === "error" ? (
               <div className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full font-bold">
@@ -430,12 +543,12 @@ function BlogContentEditorContent() {
         )}
       </AnimatePresence>
 
-      <div className="flex justify-between">
-        <div className="mb-6">
-          <h2 className="text-[22px] md:text-[26px] font-jakarta font-bold text-[#0B3B4C]">
+      <div className="flex flex-col items-start gap-3 mb-4 sm:mb-6">
+        <div className="min-w-0">
+          <h2 className="text-[20px] sm:text-[22px] md:text-[26px] font-jakarta font-bold text-[#0B3B4C] leading-tight">
             Edytor treści artykułu
           </h2>
-          <p className="text-[14px] text-gray-500 font-montserrat mt-1">
+          <p className="text-[13px] sm:text-[14px] text-gray-500 font-montserrat mt-1">
             Krok 2/3 ·{" "}
             {postTitle && (
               <span className="font-semibold text-[#0B3B4C]">{postTitle}</span>
@@ -443,18 +556,21 @@ function BlogContentEditorContent() {
             {!postTitle && "Buduj artykuł z gotowych modułów."}
           </p>
         </div>
-        <EditorToolbar
-          onSave={() => performSave("toolbar")}
-          isSaving={savingSource !== null}
-          showAutosaveTooltip={showAutosaveTooltip}
-          onAiClick={() => setIsAiModalOpen(true)}
-          onPreviewClick={() => {}}
-          orientation="horizontal"
-        />
+        {/* Wrapper niweluje self-center toolbara → przybornik pod tytułem, wyrównany do prawej */}
+        <div className="self-end">
+          <EditorToolbar
+            onSave={() => performSave("toolbar")}
+            isSaving={savingSource !== null}
+            showAutosaveTooltip={showAutosaveTooltip}
+            onAiClick={() => setIsAiModalOpen(true)}
+            onPreviewClick={() => {}}
+            orientation="horizontal"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-8 relative z-0">
-        <div className="relative bg-white rounded-[32px] p-2 md:p-4 min-h-[500px]">
+        <div className="relative bg-white rounded-2xl sm:rounded-[32px] p-3 md:p-4 min-h-[500px]">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{

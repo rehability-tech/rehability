@@ -2,9 +2,16 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowUpRight, CalendarBlank, Clock, Tag } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  CalendarBlank,
+  Clock,
+  Tag,
+} from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
 import { BlogBlockRenderer } from "./_components/BlogBlockRenderer";
+import { Reveal } from "./_components/Reveal";
 
 type Props = { params: Promise<{ blogSlug: string }> };
 
@@ -63,7 +70,10 @@ function formatDate(date: Date) {
 }
 
 function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function estimateReadTime(blocks: unknown[]): number {
@@ -124,7 +134,9 @@ export default async function BlogPostPage({ params }: Props) {
   const post = await getPost(blogSlug);
   if (!post) notFound();
 
-  const blocks: unknown[] = Array.isArray(post.content) ? (post.content as unknown[]) : [];
+  const blocks: unknown[] = Array.isArray(post.content)
+    ? (post.content as unknown[])
+    : [];
   const publishDate = post.publishedAt ?? post.updatedAt;
   const readTime = post.readTime ?? estimateReadTime(blocks);
 
@@ -158,7 +170,12 @@ export default async function BlogPostPage({ params }: Props) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Start", item: `${SITE_URL}/` },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: `${SITE_URL}/blog`,
+      },
       { "@type": "ListItem", position: 3, name: post.title, item: canonical },
     ],
   };
@@ -176,41 +193,69 @@ export default async function BlogPostPage({ params }: Props) {
 
       <main className="bg-white">
         {/* Hero */}
-        <section className="relative bg-gradient-to-b from-[#071f28] to-[#0B3B4C] pt-32 pb-16 px-4">
-          <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(circle_at_30%_20%,#7be6f0_0%,transparent_50%),radial-gradient(circle_at_70%_80%,#287D88_0%,transparent_50%)]" />
+        <section className="relative bg-gradient-to-br from-brand-secondary via-brand-primary to-brand-secondary pt-32 pb-16 px-4">
+          <div className="absolute inset-0 opacity-[0.12] pointer-events-none bg-[radial-gradient(circle_at_30%_20%,#f2d967_0%,transparent_50%),radial-gradient(circle_at_70%_80%,#287D88_0%,transparent_50%)]" />
           <div className="relative max-w-3xl mx-auto">
-            <nav
-              aria-label="Okruszki"
+            <Reveal
+              as="div"
+              immediate
+              y={12}
               className="mb-6 text-[12px] font-montserrat text-white/50 flex items-center gap-2"
             >
-              <Link href="/" className="hover:text-white/80 transition-colors">
-                Start
-              </Link>
-              <span aria-hidden>›</span>
-              <Link href="/blog" className="hover:text-white/80 transition-colors">
-                Blog
-              </Link>
-              <span aria-hidden>›</span>
-              <span className="text-white/30 truncate max-w-[40ch]">{post.title}</span>
-            </nav>
+              <nav aria-label="Okruszki" className="flex items-center gap-2">
+                <Link href="/" className="hover:text-white/80 transition-colors">
+                  Start
+                </Link>
+                <span aria-hidden>›</span>
+                <Link
+                  href="/blog"
+                  className="hover:text-white/80 transition-colors"
+                >
+                  Blog
+                </Link>
+                <span aria-hidden>›</span>
+                <span className="text-white/30 truncate max-w-[40ch]">
+                  {post.title}
+                </span>
+              </nav>
+            </Reveal>
 
-            <span className="inline-block mb-4 px-3 py-1 rounded-full text-[11px] font-montserrat font-semibold bg-brand-primary/20 text-brand-primary tracking-wider uppercase">
-              {post.category}
-            </span>
+            <Reveal as="div" immediate delay={0.08} y={14}>
+              <span className="inline-block mb-4 px-3 py-1 rounded-full text-[11px] font-montserrat font-semibold bg-brand-yellow/15 text-brand-yellow border border-brand-yellow/25 tracking-wider uppercase backdrop-blur-md">
+                {post.category}
+              </span>
+            </Reveal>
 
-            <h1 className="font-jakarta font-bold text-white text-[28px] sm:text-[36px] md:text-[44px] leading-[1.15] mb-6">
+            <Reveal
+              as="h1"
+              immediate
+              delay={0.16}
+              className="font-jakarta font-bold text-white text-[28px] sm:text-[36px] md:text-[44px] leading-[1.15] mb-6"
+            >
               {post.title}
-            </h1>
+            </Reveal>
 
             {post.excerpt && (
-              <p className="font-montserrat text-white/70 text-[15px] sm:text-[16px] leading-relaxed mb-8 max-w-2xl">
+              <Reveal
+                as="p"
+                immediate
+                delay={0.24}
+                className="font-montserrat text-white/70 text-[15px] sm:text-[16px] leading-relaxed mb-8 max-w-2xl"
+              >
                 {post.excerpt}
-              </p>
+              </Reveal>
             )}
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-white/60 text-[13px] font-montserrat">
+            <Reveal
+              as="div"
+              immediate
+              delay={0.32}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 text-white/60 text-[13px] font-montserrat"
+            >
               <span className="font-semibold text-white/85">{post.author}</span>
-              <span className="text-white/25" aria-hidden>·</span>
+              <span className="text-white/25" aria-hidden>
+                ·
+              </span>
               <time
                 dateTime={publishDate.toISOString()}
                 className="flex items-center gap-1.5"
@@ -218,18 +263,26 @@ export default async function BlogPostPage({ params }: Props) {
                 <CalendarBlank size={14} weight="bold" />
                 {formatDate(publishDate)}
               </time>
-              <span className="text-white/25" aria-hidden>·</span>
+              <span className="text-white/25" aria-hidden>
+                ·
+              </span>
               <span className="flex items-center gap-1.5">
                 <Clock size={14} weight="bold" />
                 {readTime} min czytania
               </span>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* Cover image */}
         {post.coverImage && (
-          <div className="max-w-3xl mx-auto px-4 -mt-10 sm:-mt-12 relative z-10">
+          <Reveal
+            as="div"
+            immediate
+            delay={0.4}
+            y={24}
+            className="max-w-[800px] mx-auto px-4 -mt-10 sm:-mt-12 relative z-10"
+          >
             <div className="relative w-full h-[220px] sm:h-[340px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_60px_-20px_rgba(11,59,76,0.45)] bg-gray-100">
               <Image
                 src={post.coverImage}
@@ -240,12 +293,18 @@ export default async function BlogPostPage({ params }: Props) {
                 className="object-cover"
               />
             </div>
-          </div>
+          </Reveal>
         )}
 
         {/* Article body */}
-        <article className="max-w-3xl mx-auto px-4 pt-12 pb-16">
-          <BlogBlockRenderer blocks={blocks as Parameters<typeof BlogBlockRenderer>[0]["blocks"]} />
+        <article className="max-w-[800px] mx-auto px-4 pt-12 pb-16">
+          <Reveal as="div" y={16}>
+            <BlogBlockRenderer
+              blocks={
+                blocks as Parameters<typeof BlogBlockRenderer>[0]["blocks"]
+              }
+            />
+          </Reveal>
 
           {post.tags.length > 0 && (
             <div className="mt-12 pt-8 border-t border-gray-100">
@@ -281,7 +340,7 @@ export default async function BlogPostPage({ params }: Props) {
             className="bg-[#f7fbfc] border-t border-gray-100 py-16 px-4"
           >
             <div className="max-w-5xl mx-auto">
-              <div className="flex items-end justify-between mb-8">
+              <Reveal as="div" className="flex items-end justify-between mb-8">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-brand-primary mb-2">
                     Czytaj dalej
@@ -300,16 +359,22 @@ export default async function BlogPostPage({ params }: Props) {
                   Wszystkie
                   <ArrowUpRight size={14} weight="bold" />
                 </Link>
-              </div>
+              </Reveal>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {related.map((r) => {
+                {related.map((r, i) => {
                   const rDate = (r.publishedAt ?? r.updatedAt) as Date;
                   return (
-                    <Link
+                    <Reveal
                       key={r.id}
+                      as="div"
+                      y={24}
+                      delay={i * 0.1}
+                      className="h-full"
+                    >
+                    <Link
                       href={`/blog/${r.slug}`}
-                      className="group flex flex-col bg-white rounded-[20px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(40,125,136,0.15)] hover:border-brand-primary/20 transition-all duration-300 overflow-hidden"
+                      className="group h-full flex flex-col bg-white rounded-[20px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(40,125,136,0.15)] hover:border-brand-primary/20 transition-all duration-300 overflow-hidden"
                     >
                       <div className="relative w-full h-[160px] bg-gray-100 overflow-hidden">
                         <Image
@@ -336,7 +401,10 @@ export default async function BlogPostPage({ params }: Props) {
                           </p>
                         )}
                         <div className="flex items-center justify-between text-gray-400 text-[12px] font-montserrat pt-3 border-t border-gray-100">
-                          <time dateTime={rDate.toISOString()} className="flex items-center gap-1">
+                          <time
+                            dateTime={rDate.toISOString()}
+                            className="flex items-center gap-1"
+                          >
                             <CalendarBlank size={12} />
                             {formatDate(rDate)}
                           </time>
@@ -349,6 +417,7 @@ export default async function BlogPostPage({ params }: Props) {
                         </div>
                       </div>
                     </Link>
+                    </Reveal>
                   );
                 })}
               </div>

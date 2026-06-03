@@ -229,6 +229,71 @@ body {
     transform: translateY(0%);
   }
 }
+
+/* --- ANIMACJE WEJŚCIA HERO (czysty CSS, startują przy pierwszym paint) --- */
+/* Świadomie NIE animujemy opacity na obrazku LCP (.hero-img-in) — dzięki
+   temu przeglądarka maluje go natychmiast, bez czekania na hydrację JS.
+   To naprawia "element render delay" ~2.2 s widoczny w Lighthouse. */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroImgIn {
+  from {
+    transform: scale(0.96);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes heroFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .hero-fade-up {
+    opacity: 0;
+    animation: heroFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: var(--hero-delay, 0s);
+    will-change: transform, opacity;
+  }
+  /* LCP-safe: brak animacji opacity, obraz widoczny od pierwszej klatki */
+  .hero-img-in {
+    animation: heroImgIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--hero-delay, 0s);
+    will-change: transform;
+  }
+  /* Tylko opacity — nie nadpisuje transformów Tailwinda (scale/origin) na pigułkach */
+  .hero-fade {
+    opacity: 0;
+    animation: heroFade 0.6s ease-out forwards;
+    animation-delay: var(--hero-delay, 0s);
+    will-change: opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-fade-up,
+  .hero-img-in,
+  .hero-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 button {
   cursor: pointer;
 }
@@ -242,6 +307,17 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield !important;
   appearance: textfield !important;
+}
+
+/* Kafelki na ciemnym (morskim) tle: AI wyróżnia frazy przez
+   <span style="color:#287D88"> — na morskim tle byłyby niewidoczne.
+   Nadpisujemy je na białe + pogrubione (inline style bijemy !important). */
+.on-dark-card span[style],
+.on-dark-card strong,
+.on-dark-card b,
+.on-dark-card em {
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 /* --- DELIKATNY SCROLLBAR (GLOBALNY) --- */

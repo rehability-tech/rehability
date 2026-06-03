@@ -127,9 +127,9 @@ function StepperContent() {
                 )}
               </button>
 
-              {/* Tytuły kroków */}
+              {/* Tytuły kroków — tylko desktop (na mobile nachodziłyby na siebie) */}
               <span
-                className={`font-montserrat text-xs md:text-sm font-semibold absolute top-[56px] whitespace-nowrap transition-colors duration-300 ${
+                className={`hidden sm:block font-montserrat text-xs md:text-sm font-semibold absolute top-[56px] whitespace-nowrap transition-colors duration-300 ${
                   isCurrent
                     ? "text-brand-primary"
                     : isCompleted
@@ -146,8 +146,18 @@ function StepperContent() {
         })}
       </div>
 
-      {/* Pusty div robiący fizyczne miejsce w DOM na teksty pod kółkami */}
-      <div className="h-10"></div>
+      {/* Desktop: miejsce w DOM na absolutne etykiety */}
+      <div className="hidden sm:block h-10"></div>
+
+      {/* Mobile: etykieta tylko aktywnego kroku (zero nachodzenia) */}
+      <div className="sm:hidden mt-5 text-center">
+        <span className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-brand-primary/60">
+          Krok {currentStepIndex + 1} z {steps.length}
+        </span>
+        <p className="font-jakarta text-[15px] font-bold text-brand-secondary mt-0.5">
+          {steps[currentStepIndex].name}
+        </p>
+      </div>
     </div>
   );
 }

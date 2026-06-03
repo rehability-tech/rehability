@@ -3,7 +3,7 @@ import React from "react";
 
 export default function BlogCreatorLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-5xl mx-auto animate-in fade-in duration-500 pb-12 p-6">
+    <div className="w-full max-w-5xl mx-auto animate-in fade-in duration-500 pb-12 px-3 py-5 sm:p-6">
       <div className="my-8 mt-2 text-center">
         <h1 className="text-[24px] md:text-[28px] font-jakarta font-bold text-[#0B3B4C]">
           Kreator artykułu

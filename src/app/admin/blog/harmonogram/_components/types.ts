@@ -61,3 +61,16 @@ export function formatDisplayDate(isoString: string): string {
 export function getDayOfMonth(isoString: string): number {
   return parseInt(isoString.split("T")[0].split("-")[2], 10);
 }
+
+/** Rozbija ISO na części potrzebne do mobilnej agendy (dzień, skrót dnia tygodnia). */
+export function getDateParts(isoString: string): {
+  day: number;
+  weekday: string;
+} {
+  const [y, m, d] = isoString.split("T")[0].split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return {
+    day: d,
+    weekday: date.toLocaleDateString("pl-PL", { weekday: "short" }),
+  };
+}
