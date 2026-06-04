@@ -39,9 +39,9 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    // Tree-shake'uje barrel exports zamiast ładować cały pakiet.
-    // Phosphor/framer mają setki modułów i bez tego pakują dużo dead code.
     optimizePackageImports: ["@phosphor-icons/react", "framer-motion"],
+    // Inline critical CSS (above-the-fold) i defer resztę — eliminuje render-blocking CSS.
+    optimizeCss: true,
   },
   async redirects() {
     // 301 ze starych ścieżek /campy/* → /wyjazdy/* po refactorze nazewnictwa.
