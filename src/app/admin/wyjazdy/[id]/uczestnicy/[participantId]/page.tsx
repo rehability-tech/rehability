@@ -53,11 +53,14 @@ export default function ParticipantDetailPage() {
         const data = await res.json();
         setParticipant(data.participant);
       } catch (err: any) {
-        if (err.name !== "AbortError") {
-          setError(err.message || "Wystąpił nieoczekiwany błąd.");
-        }
+        if (err.name === "AbortError") return;
+        setError(err.message || "Wystąpił nieoczekiwany błąd.");
       } finally {
-        setIsLoading(false);
+        // Nie resetujemy loadingu jeśli fetch został przerwany (np. Strict Mode
+        // double-invoke) — żeby nie mignął ekran błędu przed ponownym strzałem.
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 

@@ -25,27 +25,8 @@ const itemVariants: Variants = {
   },
 };
 
-// TODO: pozycje testowe — do usunięcia po podpięciu realnych danych.
-const TEST_ORDERS = [
-  {
-    id: "test-spa-1",
-    status: "PAID",
-    price: 220,
-    startTime: "2026-05-21T11:00:00.000Z",
-    service: { name: "Masaż gorącymi kamieniami (test)" },
-  },
-  {
-    id: "test-spa-2",
-    status: "PENDING",
-    price: 140,
-    startTime: "2026-05-22T09:30:00.000Z",
-    service: { name: "Zabieg na twarz (test)" },
-  },
-];
-
 export const SpaOrdersCard = ({ orders }: { orders: any[] }) => {
-  // Łączymy realne zamówienia z pozycjami testowymi
-  const allOrders = useMemo(() => [...orders, ...TEST_ORDERS], [orders]);
+  const allOrders = useMemo(() => orders, [orders]);
 
   // Paginacja — max 3 karty na stronę
   const PAGE_SIZE = 3;

@@ -51,6 +51,20 @@
     "tailwind-merge": "^3.5.0",
     "zod": "^4.4.3"
   },
+  "browserslist": {
+    "production": [
+      ">1%",
+      "last 2 versions",
+      "not dead",
+      "not ie <= 11",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",

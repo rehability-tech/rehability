@@ -80,7 +80,7 @@ const RelaxBlock = () => (
         alt="Strefa relaksu"
         fill
         loading="eager"
-        sizes="(max-width: 1024px) 45vw, 20vw"
+        sizes="(max-width: 675px) 320px, 250px"
         className="object-cover transition-transform hover:scale-105 duration-700"
       />
     </div>
@@ -104,7 +104,8 @@ const CampyBlock = () => (
         alt="Wyjazdy i wyjazdy"
         fill
         loading="eager"
-        sizes="(max-width: 1024px) 45vw, 25vw"
+        sizes="(max-width: 675px) 320px, (max-width: 1024px) 45vw, 350px"
+        quality={80}
         className="object-cover transition-transform hover:scale-105 duration-700"
       />
     </div>

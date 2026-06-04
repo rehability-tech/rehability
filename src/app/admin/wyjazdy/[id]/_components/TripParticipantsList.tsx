@@ -14,6 +14,7 @@ import {
   CaretLeft,
   CaretRight,
   UsersThree,
+  SealCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -27,10 +28,11 @@ interface Participant {
   email: string;
   amountPaid: number;
   status: string; // PENDING | DEPOSIT_PAID | FULLY_PAID | PENDING_INVITATION
+  isCheckedIn?: boolean;
   user?: {
     name?: string | null;
     email?: string | null;
-    image?: string | null; // <--- DODALIŚMY POLE ZDJĘCIA
+    image?: string | null;
     healthProfile?: any | null;
   } | null;
   serviceOrders?: any[];
@@ -171,6 +173,15 @@ function ParticipantStatusIcons({ p }: { p: Participant }) {
           className={hasExtraServices ? "text-purple-500" : "text-gray-400"}
         />
       </div>
+
+      {p.isCheckedIn && (
+        <div
+          title="Odprawiona (check-in)"
+          className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border shrink-0 bg-emerald-50 border-emerald-200/60 shadow-[0_2px_10px_-4px_rgba(16,185,129,0.4)]"
+        >
+          <SealCheck size={18} weight="fill" className="text-emerald-500" />
+        </div>
+      )}
     </div>
   );
 }

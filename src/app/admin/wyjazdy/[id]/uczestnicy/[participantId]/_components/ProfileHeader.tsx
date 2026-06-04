@@ -2,7 +2,12 @@
 
 import React, { useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
-import { IdentificationCard } from "@phosphor-icons/react/dist/ssr";
+import {
+  IdentificationCard,
+  SealCheck,
+  Clock,
+} from "@phosphor-icons/react/dist/ssr";
+import type { ParticipantData } from "@/types/participant";
 
 const getHighResImageUrl = (url?: string | null): string | null => {
   if (!url) return null;
@@ -25,7 +30,11 @@ const itemVariants: Variants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
 };
 
-export const ProfileHeader = ({ participant }: { participant: any }) => {
+export const ProfileHeader = ({
+  participant,
+}: {
+  participant: ParticipantData;
+}) => {
   const name = participant?.name || participant?.user?.name || "Brak danych";
   const shortId = participant?.id?.slice(-6).toUpperCase() || "BRAK";
 
@@ -47,12 +56,18 @@ export const ProfileHeader = ({ participant }: { participant: any }) => {
     [participant?.user?.image],
   );
 
+  // Tag check-in pokazujemy tylko gdy wyjazd już trwa (dziś >= startDate)
+  const tripStartDate = participant?.trip?.startDate;
+  const isOngoing = tripStartDate
+    ? new Date() >= new Date(tripStartDate)
+    : false;
+  const isCheckedIn = participant?.isCheckedIn === true;
+
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      // Zmniejszono min-h ponieważ nie ma tu już tagów kontaktowych
       className="relative w-full max-w-[500px] min-h-[160px] sm:min-h-[180px] rounded-[32px] overflow-hidden flex flex-col p-6 sm:p-7 shadow-[0_12px_40px_-15px_rgba(3,63,99,0.25)] border border-white/20"
     >
       {/* TŁO: ZDJĘCIE */}
@@ -78,14 +93,34 @@ export const ProfileHeader = ({ participant }: { participant: any }) => {
       {/* BRAND YELLOW GLOW */}
       <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-brand-yellow/50 blur-[70px] pointer-events-none z-[2] rounded-full" />
 
-      {/* ID (Prawy górny róg) */}
-      <motion.div
-        variants={itemVariants}
-        className="absolute top-5 right-5 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 text-white text-[10px] font-bold uppercase tracking-widest shadow-sm"
-      >
-        <IdentificationCard size={15} weight="duotone" />
-        ID: {shortId}
-      </motion.div>
+      {/* TAGI: ID + opcjonalny check-in (prawy górny róg) */}
+      <div className="absolute top-5 right-5 z-10 flex flex-col items-end gap-1.5">
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 text-white text-[10px] font-bold uppercase tracking-widest shadow-sm"
+        >
+          <IdentificationCard size={15} weight="duotone" />
+          ID: {shortId}
+        </motion.div>
+
+        {isOngoing && (
+          <motion.div
+            variants={itemVariants}
+            className={
+              isCheckedIn
+                ? "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/25 backdrop-blur-2xl border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase tracking-widest shadow-sm"
+                : "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 text-white/60 text-[10px] font-bold uppercase tracking-widest shadow-sm"
+            }
+          >
+            {isCheckedIn ? (
+              <SealCheck size={13} weight="fill" />
+            ) : (
+              <Clock size={13} weight="duotone" />
+            )}
+            {isCheckedIn ? "Odprawiona" : "Nie odprawiona"}
+          </motion.div>
+        )}
+      </div>
 
       {/* IMIĘ (Wyrównane do dołu) */}
       <div className="relative z-10 mt-auto flex flex-col items-start pt-12">

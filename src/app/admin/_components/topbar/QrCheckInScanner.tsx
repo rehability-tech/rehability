@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  QrCode,
+  QrCodeIcon,
   X,
   CheckCircle,
   WarningCircle,
@@ -14,6 +14,7 @@ import {
   ArrowsClockwise,
   CircleNotch,
   UserCircle,
+  CameraIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Html5Qrcode } from "html5-qrcode";
 
@@ -26,23 +27,24 @@ type ScanResult =
   | { status: "already"; participant: Participant }
   | { status: "error"; message: string };
 
+type Phase = "scanning" | "processing" | "done" | "fallback";
+
 /**
  * Skaner QR odprawy (check-in) — dostępny TYLKO na mobile (przycisk md:hidden).
- * Po zeskanowaniu biletu uczestniczki woła API odprawy, oznacza obecność,
- * a uczestniczka dostaje powiadomienie. Pokazuje imię + akcje:
- * „Przejdź do profilu", „Skanuj dalej", „Zakończ skanowanie".
+ * Na iOS PWA gdzie getUserMedia jest niedostępne, automatycznie przełącza się
+ * na tryb zdjęciowy (input[capture=environment]).
  */
 export function QrCheckInScanner({ tripId }: { tripId: string }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [phase, setPhase] = useState<"scanning" | "processing" | "done">(
-    "scanning",
-  );
+  const [phase, setPhase] = useState<Phase>("scanning");
   const [result, setResult] = useState<ScanResult | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const lockRef = useRef(false); // chroni przed podwójnym strzałem po dekodzie
+  const lockRef = useRef(false);
+  const cameraUnsupportedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -53,7 +55,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
     try {
       await scanner.stop();
     } catch {
-      /* już zatrzymany — ignorujemy */
+      /* już zatrzymany */
     }
     try {
       scanner.clear();
@@ -100,20 +102,56 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
     [tripId, stopScanner],
   );
 
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
+
+      lockRef.current = false;
+      setPhase("processing");
+
+      // Tymczasowy element potrzebny przez Html5Qrcode — usuwamy po skanowaniu
+      const tempId = "__qr-file-scanner__";
+      const tempDiv = document.createElement("div");
+      tempDiv.id = tempId;
+      tempDiv.style.display = "none";
+      document.body.appendChild(tempDiv);
+
+      try {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        const scanner = new Html5Qrcode(tempId, false);
+        const text = await scanner.scanFile(file, false);
+        void handleDecoded(text);
+      } catch (err) {
+        console.error("[QR] file scan error", err);
+        setResult({
+          status: "error",
+          message:
+            "Nie udało się odczytać kodu QR. Upewnij się, że kod jest wyraźny i spróbuj ponownie.",
+        });
+        setPhase("done");
+      } finally {
+        document.body.removeChild(tempDiv);
+      }
+    },
+    [handleDecoded],
+  );
+
   const startScanner = useCallback(async () => {
     lockRef.current = false;
 
-    // Czekamy aż element readera pojawi się w DOM — portal + AnimatePresence
-    // mogą go wyrenderować z opóźnieniem. Brak elementu spowodowałby rzut błędu
-    // przez Html5Qrcode jeszcze przed wywołaniem getUserMedia, więc prompt
-    // o kamerę nigdy by się nie pojawił.
+    // Czekamy aż element readera pojawi się w DOM (portal + AnimatePresence)
     let attempts = 0;
     while (!document.getElementById(READER_ID) && attempts < 20) {
       await new Promise<void>((r) => setTimeout(r, 50));
       attempts++;
     }
     if (!document.getElementById(READER_ID)) {
-      setResult({ status: "error", message: "Nie udało się uruchomić skanera." });
+      setResult({
+        status: "error",
+        message: "Nie udało się uruchomić skanera.",
+      });
       setPhase("done");
       return;
     }
@@ -123,9 +161,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
       const scanner = new Html5Qrcode(READER_ID, false);
       scannerRef.current = scanner;
       await scanner.start(
-        // `ideal` zamiast ścisłego stringa — iOS rzuca błąd przy exact constraint
-        // gdy tylna kamera nie jest natychmiast dostępna, co blokuje prompt uprawnień.
-        { facingMode: { ideal: "environment" } },
+        { facingMode: "environment" },
         { fps: 10, qrbox: { width: 230, height: 230 } },
         (decodedText) => {
           void handleDecoded(decodedText);
@@ -137,6 +173,17 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
     } catch (err) {
       console.error("[QR] start error", err);
       scannerRef.current = null;
+
+      // iOS PWA: getUserMedia niedostępne — fallback na zdjęcie
+      if (
+        err instanceof Error &&
+        err.message.toLowerCase().includes("camera streaming not supported")
+      ) {
+        cameraUnsupportedRef.current = true;
+        setPhase("fallback");
+        return;
+      }
+
       setResult({
         status: "error",
         message:
@@ -156,7 +203,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
 
   const openScanner = () => {
     setResult(null);
-    setPhase("scanning");
+    setPhase(cameraUnsupportedRef.current ? "fallback" : "scanning");
     setOpen(true);
   };
 
@@ -169,7 +216,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
 
   const scanNext = () => {
     setResult(null);
-    setPhase("scanning");
+    setPhase(cameraUnsupportedRef.current ? "fallback" : "scanning");
   };
 
   const goToProfile = async () => {
@@ -189,7 +236,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
         aria-label="Skanuj kod QR uczestniczki"
         className="md:hidden flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
       >
-        <QrCode size={22} weight="bold" />
+        <QrCodeIcon size={22} weight="bold" />
       </button>
 
       {mounted &&
@@ -232,7 +279,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
                       <div className="relative">
                         <div
                           id={READER_ID}
-                          className="w-[260px] h-[260px] overflow-hidden rounded-[28px] bg-black/40 [&_video]:object-cover [&_video]:rounded-[28px] [&_#qr-shaded-region]:!hidden"
+                          className="w-[260px] h-[260px] overflow-hidden rounded-[28px] bg-black/40 [&_video]:w-[260px] [&_video]:h-[260px] [&_video]:object-cover [&_video]:rounded-[28px] [&_#qr-shaded-region]:!hidden"
                         />
                         {/* Delikatna poświata */}
                         <div className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[0_0_0_4px_rgba(242,217,103,0.15)]" />
@@ -246,6 +293,41 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
                         Skieruj aparat na kod QR z biletu uczestniczki, aby
                         potwierdzić jej obecność.
                       </p>
+                    </div>
+                  )}
+
+                  {/* FALLBACK — iOS PWA (brak getUserMedia) */}
+                  {phase === "fallback" && (
+                    <div className="w-full flex flex-col items-center">
+                      <div className="w-[260px] h-[260px] rounded-[28px] bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
+                        {/* Narożniki */}
+                        <div className="pointer-events-none absolute top-0 left-0 w-10 h-10 border-t-[3px] border-l-[3px] border-brand-yellow rounded-tl-[28px]" />
+                        <div className="pointer-events-none absolute top-0 right-0 w-10 h-10 border-t-[3px] border-r-[3px] border-brand-yellow rounded-tr-[28px]" />
+                        <div className="pointer-events-none absolute bottom-0 left-0 w-10 h-10 border-b-[3px] border-l-[3px] border-brand-yellow rounded-bl-[28px]" />
+                        <div className="pointer-events-none absolute bottom-0 right-0 w-10 h-10 border-b-[3px] border-r-[3px] border-brand-yellow rounded-br-[28px]" />
+                        <QrCodeIcon size={52} weight="thin" className="text-white/25" />
+                      </div>
+                      <p className="text-white/70 text-[13px] font-montserrat text-center mt-6 max-w-[260px] leading-relaxed">
+                        Twoja przeglądarka nie obsługuje skanowania na żywo.
+                        Zrób zdjęcie kodu QR, aby go odczytać.
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="relative mt-6 h-14 px-8 flex items-center gap-3 rounded-2xl bg-brand-primary text-white font-bold text-[15px] shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] border border-brand-yellow/30 overflow-hidden active:scale-[0.98] transition-transform"
+                      >
+                        <span className="absolute bottom-1 right-3 w-8 h-8 bg-brand-yellow/50 blur-[10px] rounded-full pointer-events-none" />
+                        <CameraIcon size={22} weight="bold" className="relative z-10" />
+                        <span className="relative z-10">Zrób zdjęcie kodu QR</span>
+                      </button>
                     </div>
                   )}
 
@@ -372,8 +454,8 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
                   )}
                 </div>
 
-                {/* STOPKA — „Zakończ" widoczny podczas samego skanowania */}
-                {phase === "scanning" && (
+                {/* STOPKA — „Zakończ" widoczny podczas skanowania i fallbacku */}
+                {(phase === "scanning" || phase === "fallback") && (
                   <div className="px-6 pb-8 shrink-0">
                     <button
                       type="button"

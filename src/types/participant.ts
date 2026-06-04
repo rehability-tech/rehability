@@ -49,9 +49,16 @@ export interface ParticipantData {
   status?: string | null;
   amountPaid?: number | null;
   amountTotal?: number | null;
+  isCheckedIn?: boolean;
+  checkedInAt?: string | null;
   createdAt?: string | null;
   depositPaidAt?: string | null;
   remainderPaidAt?: string | null;
+  trip?: {
+    id?: string;
+    title?: string | null;
+    startDate?: string | null;
+  } | null;
   user?: ParticipantUserData | null;
   serviceOrders?: ServiceOrderData[] | null;
   packagePartner?: PackagePartnerData | null;

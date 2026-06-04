@@ -98,28 +98,6 @@ function buildTransactions(participant: ParticipantData): Transaction[] {
     });
   }
 
-  // TODO: pozycje testowe — do usunięcia po podpięciu realnych danych.
-  txs.push(
-    {
-      id: "test-1",
-      label: "Masaż relaksacyjny (test)",
-      date: "2026-05-20T10:30:00.000Z",
-      amountZl: 180,
-      isPaid: true,
-      statusLabel: "Opłacone",
-      kind: "service",
-    },
-    {
-      id: "test-2",
-      label: "Dopłata do pokoju premium (test)",
-      date: "2026-05-18T14:00:00.000Z",
-      amountZl: 350,
-      isPaid: false,
-      statusLabel: "Oczekuje",
-      kind: "camp",
-    },
-  );
-
   // Najnowsze na górze
   return txs.sort((a, b) => {
     const ta = a.date ? new Date(a.date).getTime() : 0;
