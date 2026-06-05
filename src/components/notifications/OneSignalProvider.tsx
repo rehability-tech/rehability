@@ -77,7 +77,7 @@ export default function OneSignalProvider({ userId }: Props) {
     initAndSync();
   }, [userId]);
 
-  if (!APP_ID) return null;
+  if (!APP_ID || IS_DEV) return null;
 
   return (
     <Script

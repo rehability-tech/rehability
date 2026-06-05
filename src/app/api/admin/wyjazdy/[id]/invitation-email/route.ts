@@ -40,6 +40,7 @@ export async function PATCH(
       invitationEmailHeroImage,
       invitationEmailHighlights,
       invitationEmailGallery,
+      invitationEmailSections,
     } = validatedBody.data;
 
     const updatedTrip = await prisma.trip.update({
@@ -52,6 +53,8 @@ export async function PATCH(
         invitationEmailHeroImage,
         invitationEmailHighlights: invitationEmailHighlights ?? undefined,
         invitationEmailGallery: invitationEmailGallery ?? [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        invitationEmailSections: (invitationEmailSections ?? undefined) as any,
         lastStage: "zaproszenia",
       },
     });

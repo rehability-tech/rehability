@@ -211,7 +211,7 @@ export function BlogPostCard({ post, onChangeStatus, onDelete }: Props) {
         <div className="hidden sm:flex items-center justify-center w-[84px] min-w-[84px] h-[84px] shrink-0 rounded-2xl rounded-tr-none border border-white/60 overflow-hidden shadow-[0_6px_18px_-8px_rgba(3,63,99,0.25)]">
           {post.coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
+            <img src={post.coverImage} alt={post.title} width={84} height={84} className="w-full h-full object-cover" />
           ) : (
             <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-primary to-brand-secondary text-white/90 overflow-hidden">
               <div className="absolute -bottom-3 -right-2 w-12 h-12 bg-brand-yellow/40 rounded-full blur-lg pointer-events-none" />

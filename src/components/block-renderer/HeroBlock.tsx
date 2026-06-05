@@ -41,6 +41,8 @@ export default function HeroBlock({
         {heroImage && (
           <img
             src={heroImage}
+            width={1920}
+            height={1080}
             className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 hover:scale-105"
             alt={title || "Tło wyjazdu"}
           />

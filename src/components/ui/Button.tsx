@@ -7,7 +7,7 @@ import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion";
 import Link from "next/link";
 
 // Tworzymy animowaną wersję Next.js Link
-const MotionLink = motion(Link);
+const MotionLink = motion.create(Link);
 
 // Nadpisujemy typ "children", aby uniknąć konfliktu z MotionValue
 export interface ButtonProps extends Omit<

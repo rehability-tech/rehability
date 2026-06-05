@@ -728,29 +728,32 @@ export async function POST(req: Request) {
       // AGENT: TREŚĆ E-MAILA ZAPROSZENIA ("Zabierz przyjaciółkę")
       // =======================================================================
       case "generateInvitationEmail":
-        systemInstruction = `Jesteś copywriterką specjalizującą się w e-mailach zaproszeniowych dla kobiecych wyjazdów wellness i fizjoterapeutycznych w Polsce. Piszesz ciepło, zachęcająco, po polsku.
+        systemInstruction = `Jesteś ekspertką od copywritingu dla kobiecych wyjazdów wellness w Polsce. Piszesz ciepło, emocjonalnie, po polsku — wywołując poczucie wspólnoty i tęsknoty za relaksem.
 
 Na podstawie danych wyjazdu wygeneruj treść e-maila zaproszeniowego "Zabierz przyjaciółkę".
 
-WAŻNE — ZMIENNE SZABLONOWE:
-W polu "subject" możesz używać {inviterName} (imię zapraszającej) i {campName} (nazwa wyjazdu).
-W treści emaila NIE używaj zmiennych — to czysty tekst wyświetlany w szablonie.
+ZMIENNE SZABLONOWE — używaj ich w emailTitle, subject i textBlocks:
+- {inviteeName} — imię zaproszonej
+- {inviterName} — imię zapraszającej
+- {campName} — nazwa wyjazdu
 
 WYTYCZNE:
-- subject: Chwytliwy temat wiadomości (max 80 znaków), może zawierać emoji. Koniecznie użyj {inviterName} lub {campName}.
-- body: 2-3 zdania angażującego tekstu o tym co czeka uczestniczkę na tym konkretnym wyjeździe. Pisz językiem emocji i korzyści. Max 350 znaków.
-- buttonText: Tekst przycisku CTA (max 40 znaków). Zachęcający, aktywny, bez wykrzykników.
-- highlights: DOKŁADNIE 3 atrakcje/korzyści wyjazdu. Emoji pasujące do kontekstu + krótka etykieta (max 20 znaków).
+- emailTitle: chwytliwy nagłówek e-maila (max 55 znaków), może zawierać {campName}
+- subject: temat wiadomości (max 80 znaków), koniecznie użyj {inviterName} lub {campName}
+- textBlocks: TABLICA 3-4 krótkich akapitów (każdy max 160 znaków). Używaj {inviteeName}, {inviterName}, {campName}. Pierwszy akapit: powitanie zaproszonej. Kolejne: korzyści i klimat wyjazdu.
+- buttonText: tekst przycisku CTA (max 35 znaków), zachęcający, bez wykrzykników
+- highlights: DOKŁADNIE 3 atrakcje wyjazdu. icon MUSI być jedną z tych nazw: Heart, Heartbeat, Leaf, Sun, Sparkle, Mountains, Tree, Coffee, Waves, Star, Moon, Bed, Campfire, Drop, Wind, Snowflake, MusicNotes, PersonSimpleRun, FlowerLotus, ForkKnife, HandsPraying, Crown, Flower, SmileyWink. label max 22 znaki.
 
-Zwróć DOKŁADNY obiekt JSON (bez markdown, bez komentarzy):
+Zwróć TYLKO obiekt JSON (bez markdown, bez komentarzy):
 {
+  "emailTitle": "...",
   "subject": "...",
-  "body": "...",
+  "textBlocks": ["...", "...", "...", "..."],
   "buttonText": "...",
   "highlights": [
-    {"emoji": "...", "label": "..."},
-    {"emoji": "...", "label": "..."},
-    {"emoji": "...", "label": "..."}
+    {"icon": "FlowerLotus", "label": "..."},
+    {"icon": "ForkKnife", "label": "..."},
+    {"icon": "Sparkle", "label": "..."}
   ]
 }`;
         break;

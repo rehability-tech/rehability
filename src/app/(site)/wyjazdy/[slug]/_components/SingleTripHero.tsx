@@ -56,6 +56,8 @@ export default function SingleTripHero({
       <div className="absolute inset-0 z-0 bg-[#0B3B4C]/90">
         <img
           src={displayImage}
+          width={1920}
+          height={1080}
           className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
           alt={title}
         />

@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import AuthCard from "./_components/AuthCard";
 import { authOptions } from "@/lib/auth/auth";
+
+export const metadata: Metadata = {
+  title: "Logowanie",
+  description: "Zaloguj się do platformy Rehability.",
+  robots: { index: false, follow: false },
+};
 
 export default async function LoginPage() {
   // 1. Pobierz sesję na serwerze

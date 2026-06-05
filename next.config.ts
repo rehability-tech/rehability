@@ -56,6 +56,21 @@ const nextConfig: NextConfig = {
             value: "camera=(), microphone=(), geolocation=()",
           },
           { key: "X-DNS-Prefetch-Control", value: "on" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://onesignal.com https://js.stripe.com https://checkout.stripe.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "img-src 'self' blob: data: https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com https://*.googleusercontent.com https://images.unsplash.com https://img.youtube.com",
+              "connect-src 'self' https://api.stripe.com https://onesignal.com https://*.onesignal.com https://rehabilityprudnik.pl",
+              "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube.com https://youtube.com",
+              "media-src 'self' https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com blob:",
+              "worker-src 'self' blob: https://cdn.onesignal.com",
+              "manifest-src 'self'",
+            ].join("; "),
+          },
         ],
       },
     ];

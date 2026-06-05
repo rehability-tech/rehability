@@ -93,6 +93,8 @@ export default function AuthCard() {
           src="/logotypy/logo-sygnet.svg"
           alt=""
           aria-hidden="true"
+          width={340}
+          height={340}
           className="md:hidden absolute inset-0 m-auto w-[340px] h-[340px] opacity-30 pointer-events-none z-0"
         />
 
@@ -101,6 +103,8 @@ export default function AuthCard() {
           src="/logotypy/logo-sygnet.svg"
           alt=""
           aria-hidden="true"
+          width={400}
+          height={450}
           className="hidden md:block absolute -bottom-42 -left-18 w-[400px] h-[450px] pointer-events-none z-0"
         />
 
@@ -109,6 +113,8 @@ export default function AuthCard() {
           src="/logotypy/logo-sygnet.svg"
           alt=""
           aria-hidden="true"
+          width={400}
+          height={450}
           className="hidden md:block absolute -bottom-42 -right-18 w-[400px] h-[450px] pointer-events-none z-0"
         />
 
