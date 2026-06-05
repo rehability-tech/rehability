@@ -23,6 +23,7 @@ interface TripRaw {
   ogImage?: string | null;
   canonicalUrl?: string | null;
   noIndex?: boolean | null;
+  allowBringFriend?: boolean | null;
 }
 
 function buildTripSummary(trip: TripRaw): string {
@@ -123,6 +124,7 @@ export function useTripSeoForm(tripId: string | null) {
   const [tripTitle, setTripTitle] = useState("");
   const [campDescription, setCampDescription] = useState("");
   const [campRaw, setCampRaw] = useState<TripRaw | null>(null);
+  const [allowBringFriend, setAllowBringFriend] = useState(false);
 
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
@@ -159,6 +161,7 @@ export function useTripSeoForm(tripId: string | null) {
         setCampRaw(data);
         setTripTitle(data.title || "");
         setCampDescription(data.description || "");
+        setAllowBringFriend(!!data.allowBringFriend);
 
         setMetaTitle(data.metaTitle ?? truncateSmart(data.title, 60));
         setMetaDescription(
@@ -555,6 +558,7 @@ export function useTripSeoForm(tripId: string | null) {
     tripTitle,
     campDescription,
     campRaw,
+    allowBringFriend,
 
     metaTitle,
     setMetaTitle,

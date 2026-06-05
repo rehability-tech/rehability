@@ -43,6 +43,23 @@ const nextConfig: NextConfig = {
     // Inline critical CSS (above-the-fold) i defer resztę — eliminuje render-blocking CSS.
     optimizeCss: true,
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     // 301 ze starych ścieżek /campy/* → /wyjazdy/* po refactorze nazewnictwa.
     // Potrzebne dla SEO i dla Stripe Checkout sesji w locie wystawionych przed deployem.

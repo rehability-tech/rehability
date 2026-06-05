@@ -1,10 +1,16 @@
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Wrench } from "@phosphor-icons/react/dist/ssr";
 import { getServerSession } from "next-auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { authOptions } from "@/lib/auth/auth";
+
+export const metadata: Metadata = {
+  title: "W budowie",
+  robots: { index: false, follow: false },
+};
 
 export default async function UnderConstructionPage() {
   const session = await getServerSession(authOptions);

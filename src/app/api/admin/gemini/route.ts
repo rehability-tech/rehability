@@ -724,6 +724,37 @@ export async function POST(req: Request) {
         Dla pola "tags" generuj 4-6 krótkich słów kluczowych po polsku, małymi literami, bez spacji (używaj myślnika zamiast spacji).`;
         break;
 
+      // =======================================================================
+      // AGENT: TREŚĆ E-MAILA ZAPROSZENIA ("Zabierz przyjaciółkę")
+      // =======================================================================
+      case "generateInvitationEmail":
+        systemInstruction = `Jesteś copywriterką specjalizującą się w e-mailach zaproszeniowych dla kobiecych wyjazdów wellness i fizjoterapeutycznych w Polsce. Piszesz ciepło, zachęcająco, po polsku.
+
+Na podstawie danych wyjazdu wygeneruj treść e-maila zaproszeniowego "Zabierz przyjaciółkę".
+
+WAŻNE — ZMIENNE SZABLONOWE:
+W polu "subject" możesz używać {inviterName} (imię zapraszającej) i {campName} (nazwa wyjazdu).
+W treści emaila NIE używaj zmiennych — to czysty tekst wyświetlany w szablonie.
+
+WYTYCZNE:
+- subject: Chwytliwy temat wiadomości (max 80 znaków), może zawierać emoji. Koniecznie użyj {inviterName} lub {campName}.
+- body: 2-3 zdania angażującego tekstu o tym co czeka uczestniczkę na tym konkretnym wyjeździe. Pisz językiem emocji i korzyści. Max 350 znaków.
+- buttonText: Tekst przycisku CTA (max 40 znaków). Zachęcający, aktywny, bez wykrzykników.
+- highlights: DOKŁADNIE 3 atrakcje/korzyści wyjazdu. Emoji pasujące do kontekstu + krótka etykieta (max 20 znaków).
+
+Zwróć DOKŁADNY obiekt JSON (bez markdown, bez komentarzy):
+{
+  "subject": "...",
+  "body": "...",
+  "buttonText": "...",
+  "highlights": [
+    {"emoji": "...", "label": "..."},
+    {"emoji": "...", "label": "..."},
+    {"emoji": "...", "label": "..."}
+  ]
+}`;
+        break;
+
       default:
         return NextResponse.json(
           { error: "Nieznana akcja AI" },

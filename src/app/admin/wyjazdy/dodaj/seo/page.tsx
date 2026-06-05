@@ -31,6 +31,7 @@ function SeoFormContent() {
     tripTitle,
     campDescription,
     campRaw,
+    allowBringFriend,
 
     metaTitle,
     setMetaTitle,
@@ -284,9 +285,11 @@ function SeoFormContent() {
 
       <div className="flex items-center justify-between pt-6 mt-6 border-t border-gray-100">
         <Link
-          href={`/admin/wyjazdy/dodaj/edytor-tresci${
-            tripId ? `?id=${tripId}` : ""
-          }`}
+          href={
+            allowBringFriend
+              ? `/admin/wyjazdy/dodaj/zaproszenia${tripId ? `?id=${tripId}` : ""}`
+              : `/admin/wyjazdy/dodaj/edytor-tresci${tripId ? `?id=${tripId}` : ""}`
+          }
           className="flex items-center gap-2 px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors"
         >
           <CaretLeft size={18} weight="bold" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
@@ -8,36 +8,54 @@ import {
   Image as ImageIcon,
   Article,
   MagnifyingGlass,
+  Envelope,
 } from "@phosphor-icons/react/dist/ssr";
 
-const steps = [
+const BASE_STEPS = [
   {
     id: 1,
     name: "Dane podstawowe",
     path: "/admin/wyjazdy/dodaj/dane-podstawowe",
+    pathKey: "dane-podstawowe",
     icon: ListNumbers,
-    requiresId: false, // Można tu wejść zawsze
+    requiresId: false,
+    conditional: false,
   },
   {
     id: 2,
     name: "Edytor treści",
     path: "/admin/wyjazdy/dodaj/edytor-tresci",
+    pathKey: "edytor-tresci",
     icon: ImageIcon,
-    requiresId: true, // Wymaga ID do edycji
+    requiresId: true,
+    conditional: false,
   },
   {
     id: 3,
-    name: "SEO",
-    path: "/admin/wyjazdy/dodaj/seo",
-    icon: MagnifyingGlass,
+    name: "Zaproszenia",
+    path: "/admin/wyjazdy/dodaj/zaproszenia",
+    pathKey: "zaproszenia",
+    icon: Envelope,
     requiresId: true,
+    conditional: true, // widoczny tylko gdy allowBringFriend === true
   },
   {
     id: 4,
+    name: "SEO",
+    path: "/admin/wyjazdy/dodaj/seo",
+    pathKey: "seo",
+    icon: MagnifyingGlass,
+    requiresId: true,
+    conditional: false,
+  },
+  {
+    id: 5,
     name: "Podsumowanie",
     path: "/admin/wyjazdy/dodaj/podsumowanie",
+    pathKey: "podsumowanie",
     icon: Article,
-    requiresId: true, // Wymaga ID do edycji
+    requiresId: true,
+    conditional: false,
   },
 ];
 
@@ -47,28 +65,38 @@ function StepperContent() {
   const router = useRouter();
   const tripId = searchParams.get("id");
 
-  // Sprawdzamy na którym kroku jesteśmy (Domyślnie 0 - Dane podstawowe)
-  let currentStepIndex = 0;
-  if (pathname.includes("/edytor-tresci")) {
-    currentStepIndex = 1;
-  } else if (pathname.includes("/seo")) {
-    currentStepIndex = 2;
-  } else if (pathname.includes("/podsumowanie")) {
-    currentStepIndex = 3;
-  }
+  const [allowBringFriend, setAllowBringFriend] = useState(false);
+
+  // Pobierz allowBringFriend gdy mamy ID wyjazdu
+  useEffect(() => {
+    if (!tripId) {
+      setAllowBringFriend(false);
+      return;
+    }
+    fetch(`/api/admin/wyjazdy/${tripId}`)
+      .then((r) => r.json())
+      .then((data) => setAllowBringFriend(!!data.allowBringFriend))
+      .catch(() => setAllowBringFriend(false));
+  }, [tripId]);
+
+  // Filtrujemy kroki: krok "Zaproszenia" jest widoczny tylko gdy allowBringFriend
+  const steps = BASE_STEPS.filter(
+    (s) => !s.conditional || allowBringFriend,
+  );
+
+  // Wyznaczamy aktywny krok na podstawie pathname
+  const currentStepIndex = steps.findIndex((s) =>
+    pathname.includes(`/${s.pathKey}`),
+  );
+  const activeIndex = currentStepIndex === -1 ? 0 : currentStepIndex;
 
   const handleStepClick = (
     stepIndex: number,
     stepPath: string,
     requiresId: boolean,
   ) => {
-    // 1. Zabezpieczenie: Jeśli krok wymaga ID, a my go nie mamy (ktoś nie zapisał kroku 1)
     if (requiresId && !tripId) return;
-
-    // 2. Budowanie docelowego URL
     const targetUrl = tripId ? `${stepPath}?id=${tripId}` : stepPath;
-
-    // 3. Nawigacja
     router.push(targetUrl);
   };
 
@@ -82,16 +110,14 @@ function StepperContent() {
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-[3px] bg-brand-primary rounded-full z-0 transition-all duration-500 ease-in-out"
           style={{
-            width: `${(currentStepIndex / (steps.length - 1)) * 100}%`,
+            width: `${(activeIndex / (steps.length - 1)) * 100}%`,
           }}
         ></div>
 
         {/* Kółka poszczególnych kroków */}
         {steps.map((step, index) => {
-          const isCompleted = index < currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-
-          // Zablokowany, gdy nie mamy zapisanego Wyjazdu (brak ID), a krok tego wymaga
+          const isCompleted = index < activeIndex;
+          const isCurrent = index === activeIndex;
           const isLocked = step.requiresId && !tripId;
           const Icon = step.icon;
 
@@ -107,12 +133,12 @@ function StepperContent() {
                 disabled={isLocked || isCurrent}
                 className={`w-12 h-12 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 shadow-sm ${
                   isLocked
-                    ? "bg-gray-50 border-gray-100 text-gray-200 cursor-not-allowed opacity-60" // Wygląd zablokowanego
+                    ? "bg-gray-50 border-gray-100 text-gray-200 cursor-not-allowed opacity-60"
                     : isCompleted
                       ? "bg-brand-primary border-brand-primary text-white hover:scale-105 cursor-pointer"
                       : isCurrent
                         ? "bg-white border-brand-primary text-brand-primary scale-110 cursor-default"
-                        : "bg-white border-gray-200 text-gray-300 hover:border-brand-primary/40 hover:text-brand-primary/50 cursor-pointer" // Wygląd dostępnego do kliknięcia w przyszłości
+                        : "bg-white border-gray-200 text-gray-300 hover:border-brand-primary/40 hover:text-brand-primary/50 cursor-pointer"
                 }`}
                 title={
                   isLocked
@@ -127,7 +153,7 @@ function StepperContent() {
                 )}
               </button>
 
-              {/* Tytuły kroków — tylko desktop (na mobile nachodziłyby na siebie) */}
+              {/* Tytuły kroków — tylko desktop */}
               <span
                 className={`hidden sm:block font-montserrat text-xs md:text-sm font-semibold absolute top-[56px] whitespace-nowrap transition-colors duration-300 ${
                   isCurrent
@@ -149,20 +175,19 @@ function StepperContent() {
       {/* Desktop: miejsce w DOM na absolutne etykiety */}
       <div className="hidden sm:block h-10"></div>
 
-      {/* Mobile: etykieta tylko aktywnego kroku (zero nachodzenia) */}
+      {/* Mobile: etykieta tylko aktywnego kroku */}
       <div className="sm:hidden mt-5 text-center">
         <span className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-brand-primary/60">
-          Krok {currentStepIndex + 1} z {steps.length}
+          Krok {activeIndex + 1} z {steps.length}
         </span>
         <p className="font-jakarta text-[15px] font-bold text-brand-secondary mt-0.5">
-          {steps[currentStepIndex].name}
+          {steps[activeIndex]?.name}
         </p>
       </div>
     </div>
   );
 }
 
-// Główny eksport z wymaganym Suspense
 export default function TripCreatorStepper() {
   return (
     <Suspense fallback={<div className="w-full h-24" />}>

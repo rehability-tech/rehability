@@ -114,6 +114,13 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
           location: true,
           startDate: true,
           endDate: true,
+          invitationEmailTitle: true,
+          invitationEmailSubject: true,
+          invitationEmailBody: true,
+          invitationEmailButtonText: true,
+          invitationEmailHeroImage: true,
+          invitationEmailHighlights: true,
+          invitationEmailGallery: true,
         },
       },
     },
@@ -233,6 +240,13 @@ async function maybeSendFriendInvitation(
     location: string;
     startDate: Date;
     endDate: Date;
+    invitationEmailTitle?: string | null;
+    invitationEmailSubject?: string | null;
+    invitationEmailBody?: string | null;
+    invitationEmailButtonText?: string | null;
+    invitationEmailHeroImage?: string | null;
+    invitationEmailHighlights?: unknown;
+    invitationEmailGallery?: string[];
   } | null,
 ): Promise<void> {
   if (!trip) return;
@@ -326,6 +340,15 @@ async function maybeSendFriendInvitation(
       campEnd: trip.endDate,
       campLocation: trip.location,
       token: guest.invitationToken,
+      emailTitle: trip.invitationEmailTitle,
+      emailSubject: trip.invitationEmailSubject,
+      emailBody: trip.invitationEmailBody,
+      emailButtonText: trip.invitationEmailButtonText,
+      emailHeroImage: trip.invitationEmailHeroImage,
+      emailHighlights: Array.isArray(trip.invitationEmailHighlights)
+        ? (trip.invitationEmailHighlights as Array<{ emoji: string; label: string }>)
+        : null,
+      emailGallery: trip.invitationEmailGallery,
     });
   }
 }

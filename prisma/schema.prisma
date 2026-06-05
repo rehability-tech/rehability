@@ -81,6 +81,16 @@ isSchedulePublished Boolean @default(false)
 
   lastAiPrompt String?  @db.Text
   lastStage    String   @default("dane-podstawowe")
+
+  // ── E-MAIL ZAPROSZENIA (allowBringFriend) ─────────────────────
+  invitationEmailTitle      String?
+  invitationEmailSubject    String?
+  invitationEmailBody       String?  @db.Text
+  invitationEmailButtonText String?
+  invitationEmailHeroImage  String?
+  invitationEmailHighlights Json?
+  invitationEmailGallery    String[]
+  // ──────────────────────────────────────────────────────────────
   isFeatured   Boolean  @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   views        Int      @default(0)

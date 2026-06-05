@@ -54,6 +54,27 @@ export const tripSchema = z.object({
 });
 
 // ==========================================
+// SCHEMAT E-MAILA ZAPROSZENIA
+// ==========================================
+export const tripInvitationEmailHighlightSchema = z.object({
+  emoji: z.string().max(10),
+  label: z.string().max(60),
+});
+
+export const tripInvitationEmailSchema = z.object({
+  invitationEmailTitle: z.string().max(120).optional(),
+  invitationEmailSubject: z.string().max(200).optional(),
+  invitationEmailBody: z.string().max(2000).optional(),
+  invitationEmailButtonText: z.string().max(80).optional(),
+  invitationEmailHeroImage: z.string().optional(),
+  invitationEmailHighlights: z
+    .array(tripInvitationEmailHighlightSchema)
+    .max(3)
+    .optional(),
+  invitationEmailGallery: z.array(z.string()).max(3).optional(),
+});
+
+// ==========================================
 // SCHEMAT SEO (mirror blogSeoSchema)
 // ==========================================
 export const tripSeoSchema = z.object({

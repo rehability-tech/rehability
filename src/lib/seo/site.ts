@@ -77,7 +77,6 @@ export const ROBOTS_DISALLOWED_PATHS = [
   "/api",
   "/api/",
   "/logowanie",
-  "/w-budowie",
 ] as const;
 
 // Buduje absolutny URL z bazy SITE_URL. Używaj zamiast string concatenation,

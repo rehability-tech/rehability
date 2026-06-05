@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Zaproszenie na wyjazd</title>
+
+    <!-- ŁADOWANIE CZCIONKI MONTSERRAT (ukryte przed Outlookiem, który by się zakrztusił) -->
+    <!--[if !mso]><!-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!--<![endif]-->
+
+    <style>
+      /* Import jako druga warstwa zabezpieczenia (Apple Mail itp.) */
+      @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap");
+
+      /* Reset stylów dla klientów pocztowych */
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+        display: block;
+      }
+
+      /* Style responsywne */
+      @media screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+        }
+        .content-box {
+          padding: 32px 24px !important;
+        }
+        .hero-img {
+          height: 180px !important;
+        }
+        .btn {
+          display: block !important;
+          width: 100% !important;
+          text-align: center !important;
+          box-sizing: border-box !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #eef4f5;
+      background-image:
+        radial-gradient(
+          circle at 0% 0%,
+          rgba(40, 125, 136, 0.22) 0%,
+          transparent 45%
+        ),
+        radial-gradient(
+          circle at 100% 32%,
+          rgba(242, 217, 103, 0.28) 0%,
+          transparent 48%
+        ),
+        radial-gradient(
+          circle at 50% 100%,
+          rgba(40, 125, 136, 0.12) 0%,
+          transparent 55%
+        );
+      font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    "
+  >
+    <!-- Preheader (ukryty podgląd w skrzynce) -->
+    <div
+      style="
+        display: none;
+        max-height: 0px;
+        overflow: hidden;
+        opacity: 0;
+        font-size: 1px;
+        line-height: 1px;
+        color: #eef4f5;
+      "
+    >
+      Masz wyjątkowe zaproszenie od {{inviterName}}! Sprawdź szczegóły
+      wyjazdu...
+    </div>
+
+    <!-- Główna tabela z powtórzonym tłem (te same "bloby" co w sidebarze) -->
+    <table
+      role="presentation"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="
+        background-color: #eef4f5;
+        background-image:
+          radial-gradient(
+            circle at 0% 0%,
+            rgba(40, 125, 136, 0.22) 0%,
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 100% 32%,
+            rgba(242, 217, 103, 0.28) 0%,
+            transparent 48%
+          ),
+          radial-gradient(
+            circle at 50% 100%,
+            rgba(40, 125, 136, 0.12) 0%,
+            transparent 55%
+          );
+        padding: 40px 0;
+      "
+    >
+      <tr>
+        <td align="center" style="padding: 0 16px">
+          <table
+            class="container"
+            role="presentation"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+            style="max-width: 600px; width: 100%"
+          >
+            <!-- LOGO -->
+            <tr>
+              <td align="center" style="padding-bottom: 28px">
+                <img
+                  src="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com/logotypes/logo-email.png"
+                  alt="Rehability"
+                  width="160"
+                  style="
+                    width: 160px;
+                    max-width: 160px;
+                    height: auto;
+                    margin: 0 auto;
+                  "
+                />
+              </td>
+            </tr>
+
+            <!-- KARTA (kształt kropli: rounded-tr-none) -->
+            <tr>
+              <td>
+                <table
+                  role="presentation"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  width="100%"
+                  style="
+                    background-color: #ffffff;
+                    border-radius: 24px 0 24px 24px;
+                    box-shadow: 0 18px 40px -16px rgba(3, 63, 99, 0.18);
+                  "
+                >
+                  <!-- ZDJĘCIE WYJAZDU (góra karty, narożnik top-left zaokrąglony) -->
+                  <tr>
+                    <td style="line-height: 0; font-size: 0">
+                      <img
+                        class="hero-img"
+                        src="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com/aktywny-weekend-gorski-hero-wRkJRTkzsndIXrqdcYlB58KtBdDQ53.png"
+                        alt="Wyjazd Rehability"
+                        width="600"
+                        style="
+                          width: 100%;
+                          max-width: 600px;
+                          height: 240px;
+                          object-fit: cover;
+                          border-radius: 24px 0 0 0;
+                        "
+                      />
+                    </td>
+                  </tr>
+
+                  <!-- TREŚĆ -->
+                  <tr>
+                    <td class="content-box" style="padding: 44px 48px">
+                      <h1
+                        style="
+                          margin: 0 0 24px 0;
+                          color: #033f63;
+                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                          font-size: 26px;
+                          font-weight: 800;
+                          text-align: center;
+                          line-height: 1.25;
+                          letter-spacing: -0.01em;
+                        "
+                      >
+                        Pakuj walizki!
+                      </h1>
+
+                      <p
+                        style="
+                          margin: 0 0 16px 0;
+                          color: #475569;
+                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                          font-size: 16px;
+                          line-height: 1.6;
+                        "
+                      >
+                        Cześć
+                        <strong style="color: #033f63">{{inviteeName}}</strong>,
+                      </p>
+                      <p
+                        style="
+                          margin: 0 0 28px 0;
+                          color: #475569;
+                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                          font-size: 16px;
+                          line-height: 1.6;
+                        "
+                      >
+                        Twoja znajoma
+                        <strong style="color: #287d88">{{inviterName}}</strong>
+                        serdecznie zaprasza Cię do wspólnego udziału w wyjeździe
+                        <strong style="color: #287d88">{{campName}}</strong>.
+                        Czeka na Was wspaniały czas, relaks, świetne jedzenie i
+                        niezapomniane wspomnienia!
+                      </p>
+
+                      <!-- OSOBISTA WIADOMOŚĆ OD ZAPRASZAJĄCEJ -->
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="100%"
+                        style="margin-bottom: 28px"
+                      >
+                        <tr>
+                          <td
+                            style="
+                              background-color: #ffffff;
+                              border: 1px solid #e2ecee;
+                              border-radius: 16px 0 16px 16px;
+                              padding: 20px 22px;
+                              box-shadow: 0 8px 24px -14px rgba(3, 63, 99, 0.22);
+                            "
+                          >
+                            <table
+                              role="presentation"
+                              border="0"
+                              cellpadding="0"
+                              cellspacing="0"
+                              width="100%"
+                            >
+                              <tr>
+                                <!-- AVATAR (inicjały – działa bez hostowania zdjęcia) -->
+                                <td valign="top" width="52" style="width: 52px">
+                                  <table
+                                    role="presentation"
+                                    border="0"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                  >
+                                    <tr>
+                                      <td
+                                        align="center"
+                                        valign="middle"
+                                        width="48"
+                                        height="48"
+                                        style="
+                                          width: 48px;
+                                          height: 48px;
+                                          background-color: #287d88;
+                                          border-radius: 24px;
+                                          color: #ffffff;
+                                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                          font-size: 17px;
+                                          font-weight: 700;
+                                          text-align: center;
+                                        "
+                                      >
+                                        {{inviterInitials}}
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                                <!-- TREŚĆ WIADOMOŚCI -->
+                                <td valign="top" style="padding-left: 14px">
+                                  <p
+                                    style="
+                                      margin: 0 0 8px 0;
+                                      color: #033f63;
+                                      font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                      font-size: 15px;
+                                      font-style: italic;
+                                      line-height: 1.55;
+                                    "
+                                  >
+                                    &bdquo;{{personalMessage}}&rdquo;
+                                  </p>
+                                  <p
+                                    style="
+                                      margin: 0;
+                                      color: #287d88;
+                                      font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                      font-size: 13px;
+                                      font-weight: 700;
+                                    "
+                                  >
+                                    &mdash; {{inviterName}}
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- BOKS SZCZEGÓŁÓW (kropla + morski akcent z lewej) -->
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="100%"
+                        style="
+                          background-color: #f3f8f9;
+                          border-left: 4px solid #287d88;
+                          border-radius: 16px 0 16px 16px;
+                          margin-bottom: 32px;
+                        "
+                      >
+                        <tr>
+                          <td style="padding: 22px 24px">
+                            <p
+                              style="
+                                margin: 0 0 6px 0;
+                                color: #287d88;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 12px;
+                                font-weight: 700;
+                                letter-spacing: 0.06em;
+                                text-transform: uppercase;
+                              "
+                            >
+                              Kiedy
+                            </p>
+                            <p
+                              style="
+                                margin: 0 0 18px 0;
+                                color: #033f63;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 16px;
+                                font-weight: 600;
+                              "
+                            >
+                              {{campDate}}
+                            </p>
+
+                            <p
+                              style="
+                                margin: 0 0 6px 0;
+                                color: #287d88;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 12px;
+                                font-weight: 700;
+                                letter-spacing: 0.06em;
+                                text-transform: uppercase;
+                              "
+                            >
+                              Gdzie
+                            </p>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #033f63;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 16px;
+                                font-weight: 600;
+                              "
+                            >
+                              {{campLocation}}
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- CO CIĘ CZEKA (highlighty) -->
+                      <p
+                        style="
+                          margin: 0 0 16px 0;
+                          color: #287d88;
+                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                          font-size: 12px;
+                          font-weight: 700;
+                          letter-spacing: 0.06em;
+                          text-transform: uppercase;
+                          text-align: center;
+                        "
+                      >
+                        Co Cię czeka
+                      </p>
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="100%"
+                        style="margin-bottom: 32px"
+                      >
+                        <tr>
+                          <td width="33.33%" align="center" valign="top" style="padding: 0 6px">
+                            <div style="font-size: 30px; line-height: 1; margin-bottom: 8px">
+                              🧖‍♀️
+                            </div>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #033f63;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 13px;
+                                font-weight: 600;
+                                line-height: 1.4;
+                              "
+                            >
+                              Relaks i SPA
+                            </p>
+                          </td>
+                          <td width="33.33%" align="center" valign="top" style="padding: 0 6px">
+                            <div style="font-size: 30px; line-height: 1; margin-bottom: 8px">
+                              🍽️
+                            </div>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #033f63;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 13px;
+                                font-weight: 600;
+                                line-height: 1.4;
+                              "
+                            >
+                              Pyszne jedzenie
+                            </p>
+                          </td>
+                          <td width="33.33%" align="center" valign="top" style="padding: 0 6px">
+                            <div style="font-size: 30px; line-height: 1; margin-bottom: 8px">
+                              ✨
+                            </div>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #033f63;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                font-size: 13px;
+                                font-weight: 600;
+                                line-height: 1.4;
+                              "
+                            >
+                              Wspólne chwile
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- GALERIA (PLACEHOLDERY – podmień na zdjęcia z wyjazdu) -->
+                      <p
+                        style="
+                          margin: 0 0 12px 0;
+                          color: #287d88;
+                          font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                          font-size: 12px;
+                          font-weight: 700;
+                          letter-spacing: 0.06em;
+                          text-transform: uppercase;
+                          text-align: center;
+                        "
+                      >
+                        Klimat wyjazdu
+                      </p>
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="100%"
+                        style="margin-bottom: 32px"
+                      >
+                        <tr>
+                          <td width="33.33%" valign="top" style="padding-right: 8px">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                              <tr>
+                                <td
+                                  align="center"
+                                  valign="middle"
+                                  height="84"
+                                  style="
+                                    height: 84px;
+                                    background-color: #eef4f5;
+                                    border: 1px dashed #b9ccce;
+                                    border-radius: 12px 0 12px 12px;
+                                    color: #8aa0a6;
+                                    font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                    font-size: 11px;
+                                  "
+                                >
+                                  Zdjęcie
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                          <td width="33.33%" valign="top" style="padding: 0 4px">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                              <tr>
+                                <td
+                                  align="center"
+                                  valign="middle"
+                                  height="84"
+                                  style="
+                                    height: 84px;
+                                    background-color: #eef4f5;
+                                    border: 1px dashed #b9ccce;
+                                    border-radius: 12px 0 12px 12px;
+                                    color: #8aa0a6;
+                                    font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                    font-size: 11px;
+                                  "
+                                >
+                                  Zdjęcie
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                          <td width="33.33%" valign="top" style="padding-left: 8px">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                              <tr>
+                                <td
+                                  align="center"
+                                  valign="middle"
+                                  height="84"
+                                  style="
+                                    height: 84px;
+                                    background-color: #eef4f5;
+                                    border: 1px dashed #b9ccce;
+                                    border-radius: 12px 0 12px 12px;
+                                    color: #8aa0a6;
+                                    font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                    font-size: 11px;
+                                  "
+                                >
+                                  Zdjęcie
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- PRZYCISK (morskie tło + biały tekst + żółta poświata) -->
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="100%"
+                      >
+                        <tr>
+                          <td align="center">
+                            
+                              href="{{invitationLink}}"
+                              class="btn"
+                              style="
+                                display: inline-block;
+                                background-color: #287d88;
+                                color: #ffffff;
+                                font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                                text-decoration: none;
+                                font-size: 16px;
+                                font-weight: 700;
+                                padding: 17px 38px;
+                                border-radius: 14px 0 14px 14px;
+                                border: 1px solid rgba(242, 217, 103, 0.4);
+                                box-shadow: 0 6px 18px 0
+                                  rgba(242, 217, 103, 0.45);
+                              "
+                            >
+                              Zobacz szczegóły i dołącz
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- STOPKA -->
+            <tr>
+              <td align="center" style="padding-top: 32px">
+                <p
+                  style="
+                    margin: 0 0 8px 0;
+                    color: #8aa0a6;
+                    font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 13px;
+                    line-height: 1.5;
+                  "
+                >
+                  Otrzymujesz tę wiadomość, ponieważ {{inviterName}} wpisała
+                  Twój adres e-mail w naszym panelu zaproszeń.
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    color: #8aa0a6;
+                    font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 13px;
+                  "
+                >
+                  &copy; {{currentYear}} Rehability. Wszystkie prawa
+                  zastrzeżone.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import {
   Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
+import { SITE_NAME, absoluteUrl } from "@/lib/seo/site";
 import { BlogBlockRenderer } from "./_components/BlogBlockRenderer";
 import { Reveal } from "./_components/Reveal";
 
@@ -29,8 +30,6 @@ export async function generateStaticParams() {
     return [];
   }
 }
-
-const SITE_URL = "https://rehability.pl";
 
 async function getPost(slug: string) {
   return prisma.post.findFirst({
@@ -97,7 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = post.metaTitle || post.title;
   const description = post.metaDescription || post.excerpt || "";
   const image = post.ogImage || post.coverImage || undefined;
-  const canonical = post.canonicalUrl || `${SITE_URL}/blog/${post.slug}`;
+  const canonical = post.canonicalUrl || absoluteUrl(`/blog/${post.slug}`);
 
   return {
     title,
@@ -106,13 +105,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     robots: post.noIndex
       ? { index: false, follow: false }
       : { index: true, follow: true },
-    alternates: { canonical },
+    ...(post.noIndex ? {} : { alternates: { canonical } }),
     openGraph: {
       type: "article",
       title,
       description,
       url: canonical,
-      siteName: "Rehability",
+      siteName: SITE_NAME,
       images: image ? [{ url: image, alt: post.title }] : [],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt.toISOString(),
@@ -142,7 +141,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   const related = await getRelatedPosts(post.slug, post.category);
 
-  const canonical = post.canonicalUrl || `${SITE_URL}/blog/${post.slug}`;
+  const canonical = post.canonicalUrl || absoluteUrl(`/blog/${post.slug}`);
   const heroImage = post.ogImage || post.coverImage || undefined;
 
   const articleJsonLd = {
@@ -154,8 +153,8 @@ export default async function BlogPostPage({ params }: Props) {
     author: { "@type": "Person", name: post.author },
     publisher: {
       "@type": "Organization",
-      name: "Rehability",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+      name: SITE_NAME,
+      logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png") },
     },
     datePublished: publishDate.toISOString(),
     dateModified: post.updatedAt.toISOString(),
@@ -169,12 +168,12 @@ export default async function BlogPostPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Start", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 1, name: "Start", item: absoluteUrl("/") },
       {
         "@type": "ListItem",
         position: 2,
         name: "Blog",
-        item: `${SITE_URL}/blog`,
+        item: absoluteUrl("/blog"),
       },
       { "@type": "ListItem", position: 3, name: post.title, item: canonical },
     ],
