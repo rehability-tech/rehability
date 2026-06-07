@@ -37,6 +37,12 @@ interface ChatRoomProps {
   variant?: "panel" | "admin";
   title?: string;
   subtitle?: string;
+  /**
+   * Deep-link tego czatu (np. "/panel/wyjazdy/{bookingId}/chat"). Po wejściu na
+   * ekran oznaczamy powiadomienia o nowych wiadomościach jako przeczytane, żeby
+   * zgasić pulsujący wskaźnik w nawigacji.
+   */
+  chatLink?: string;
 }
 
 const fetcher = async (url: string): Promise<ChatResponse> => {
@@ -84,8 +90,21 @@ export default function ChatRoom({
   variant = "panel",
   title = "Czat wyjazdowy",
   subtitle = "Bądź na bieżąco z organizatorem i grupą",
+  chatLink,
 }: ChatRoomProps) {
   const router = useRouter();
+
+  // Wejście na czat gasi wskaźnik nowej wiadomości — oznaczamy powiadomienia
+  // tego deep-linku jako przeczytane (fire & forget).
+  useEffect(() => {
+    if (!chatLink) return;
+    fetch("/api/notifications/chat-unread", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ link: chatLink }),
+    }).catch(() => {});
+  }, [chatLink]);
+
   const { data, error, isLoading, mutate } = useSWR<ChatResponse>(
     `/api/wyjazdy/${tripId}/chat`,
     fetcher,

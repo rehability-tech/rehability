@@ -4,6 +4,36 @@ import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { tripInvitationEmailSchema } from "@/lib/zod/tripsValidators";
 import { z } from "zod";
 
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { isAuthorized, response } = await requireAdmin();
+    if (!isAuthorized) return response as NextResponse;
+    const { id } = await params;
+    await prisma.trip.update({
+      where: { id },
+      data: {
+        invitationEmailTitle:      null,
+        invitationEmailSubject:    null,
+        invitationEmailBody:       null,
+        invitationEmailButtonText: null,
+        invitationEmailHeroImage:  null,
+        invitationEmailGallery:    [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        invitationEmailHighlights: null as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        invitationEmailSections:   null as any,
+        lastStage: "dane-podstawowe",
+      },
+    });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Błąd podczas czyszczenia e-maila" }, { status: 500 });
+  }
+}
+
 const paramsSchema = z.object({ id: z.string().min(1, "Brak ID Wyjazdu") });
 
 export async function PATCH(

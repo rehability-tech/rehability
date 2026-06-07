@@ -183,8 +183,33 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       }
     : null;
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Start", item: absoluteUrl("/") },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Wyjazdy",
+        item: absoluteUrl("/wyjazdy"),
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: trip.title,
+        item: absoluteUrl(`/wyjazdy/${trip.id}`),
+      },
+    ],
+  };
+
   return (
-    <TripPageClient
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <TripPageClient
       tripId={trip.id}
       title={trip.title}
       subtitle={trip.subtitle || "Zanurz się w holistycznym świecie odpoczynku"}
@@ -201,6 +226,7 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       currentUser={currentUser}
       initialVariant={initialVariant}
       initialStep={initialStep}
-    />
+      />
+    </>
   );
 }

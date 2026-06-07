@@ -77,20 +77,6 @@ export async function POST(req: Request) {
   // ========================================================
   // 3. LOGIKA WYLICZANIA KWOT (BARDZO WAŻNA KONTROLA)
   // ========================================================
-  console.log(
-    `\n--- [RESUME PAYMENT API] START dla Booking ID: ${booking.id} ---`,
-  );
-  console.log(`[API] Status rezerwacji: ${booking.status}`);
-  console.log(
-    `[API] Kwota całkowita rezerwacji (z bazy, w groszach): ${booking.amountTotal}`,
-  );
-  console.log(
-    `[API] Kwota opłacona (z bazy, w groszach): ${booking.amountPaid}`,
-  );
-  console.log(
-    `[API] Wartość zdefiniowana jako zadatek w modelu Trip (w zł/Decimal): ${booking.trip.deposit}`,
-  );
-
   // UWAGA: amountToPay tutaj jest OBLICZANA W ZŁOTÓWKACH na potrzeby naszego kodu poniżej.
   let amountToPayPLN = 0;
 
@@ -101,16 +87,10 @@ export async function POST(req: Request) {
     const amountTotalPLN = Number(booking.amountTotal) / 100;
     const amountPaidPLN = Number(booking.amountPaid) / 100;
     amountToPayPLN = amountTotalPLN - amountPaidPLN;
-    console.log(`[API] Tryb: DOPŁATA RESZTY.`);
-    console.log(
-      `[API] Matematyka: Całość ${amountTotalPLN} zł - Wpłacone ${amountPaidPLN} zł = Do dopłaty: ${amountToPayPLN} zł`,
-    );
   } else {
     // PŁACI ZADATEK
     // booking.trip.deposit w bazie (zazwyczaj) trzymany jest w ZŁOTÓWKACH, bo to pole Decimal.
     amountToPayPLN = Number(booking.trip.deposit);
-    console.log(`[API] Tryb: ZADATEK.`);
-    console.log(`[API] Do wpłaty: ${amountToPayPLN} zł`);
   }
 
   const paymentType = isDepositPaid ? "remainder" : "deposit";
@@ -119,9 +99,6 @@ export async function POST(req: Request) {
   // 4. GENEROWANIE STRIPE PAYMENT INTENT (ZAMIANA NA GROSZE)
   // ========================================================
   const amountGrosze = Math.round(amountToPayPLN * 100);
-  console.log(
-    `[API] Kwota docelowa wysyłana do Stripe API: ${amountGrosze} (groszy)`,
-  );
 
   const stripe = getStripe();
   let clientSecret = "";
@@ -139,9 +116,6 @@ export async function POST(req: Request) {
         pi.metadata.paymentType === paymentType
       ) {
         clientSecret = pi.client_secret!;
-        console.log(
-          `[API] Zrecyklingowano istniejący PaymentIntent: ${booking.stripePaymentIntentId}`,
-        );
       }
     } catch (e) {
       console.warn(
@@ -152,9 +126,6 @@ export async function POST(req: Request) {
 
   // Jeśli nie mamy ważnego secretu, tworzymy nowy PaymentIntent na odpowiednią kwotę w GROSZACH
   if (!clientSecret) {
-    console.log(
-      `[API] Tworzę całkowicie nowy Payment Intent dla kwoty: ${amountGrosze} groszy.`,
-    );
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountGrosze, // STRIPE ZAWSZE WYMAGA GROSZY/CENTÓW!
       currency: "pln",
@@ -174,8 +145,6 @@ export async function POST(req: Request) {
       data: { stripePaymentIntentId: paymentIntent.id },
     });
   }
-
-  console.log(`--- [RESUME PAYMENT API] KONIEC ---\n`);
 
   return NextResponse.json({
     clientSecret,

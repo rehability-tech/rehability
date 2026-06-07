@@ -1,62 +1,51 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCron } from "@/lib/auth/requireCron";
+import { runCron } from "@/lib/cron/runCron";
 
-// POST /api/cron/blog/publish
+// GET/POST /api/cron/blog/publish
 //
-// Promotes every `Post` whose status is "SCHEDULED" and whose `publishedAt`
-// has already passed to status "PUBLISHED". Also syncs the linked
-// `BlogScheduleEntry` (if any) to status "PUBLISHED".
-//
-// Auth: see `requireCron`. Call from any cron service (Vercel Cron, GitHub
-// Actions, EasyCron, …) — the runtime never backdates: an entry can only go
-// from SCHEDULED to PUBLISHED *at or after* its target moment.
+// Promuje każdy `Post` o statusie "SCHEDULED", którego `publishedAt` już minął,
+// do statusu "PUBLISHED". Synchronizuje też powiązany `BlogScheduleEntry`.
+// Runtime nigdy nie cofa czasu: wpis przechodzi SCHEDULED → PUBLISHED tylko
+// w chwili docelowej lub po niej.
 
 export async function POST(req: Request) {
-  const auth = requireCron(req);
-  if (!auth.ok) return auth.response!;
-
-  const now = new Date();
-  const dueScheduled = await prisma.post.findMany({
-    where: {
-      status: "SCHEDULED",
-      publishedAt: { lte: now },
-    },
-    select: { id: true, slug: true, title: true },
-  });
-
-  if (dueScheduled.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      checkedAt: now.toISOString(),
-      promoted: 0,
-      posts: [],
+  return runCron(req, "blog/publish", async () => {
+    const now = new Date();
+    const dueScheduled = await prisma.post.findMany({
+      where: {
+        status: "SCHEDULED",
+        publishedAt: { lte: now },
+      },
+      select: { id: true, slug: true, title: true },
     });
-  }
 
-  const promoted: Array<{ id: string; slug: string; title: string }> = [];
-
-  await prisma.$transaction(async (tx) => {
-    for (const post of dueScheduled) {
-      await tx.post.update({
-        where: { id: post.id },
-        data: { status: "PUBLISHED" },
-      });
-
-      await tx.blogScheduleEntry.updateMany({
-        where: { postId: post.id },
-        data: { status: "PUBLISHED" },
-      });
-
-      promoted.push(post);
+    if (dueScheduled.length === 0) {
+      return { checkedAt: now.toISOString(), promoted: 0, posts: [] };
     }
-  });
 
-  return NextResponse.json({
-    ok: true,
-    checkedAt: now.toISOString(),
-    promoted: promoted.length,
-    posts: promoted,
+    const promoted: Array<{ id: string; slug: string; title: string }> = [];
+
+    await prisma.$transaction(async (tx) => {
+      for (const post of dueScheduled) {
+        await tx.post.update({
+          where: { id: post.id },
+          data: { status: "PUBLISHED" },
+        });
+
+        await tx.blogScheduleEntry.updateMany({
+          where: { postId: post.id },
+          data: { status: "PUBLISHED" },
+        });
+
+        promoted.push(post);
+      }
+    });
+
+    return {
+      checkedAt: now.toISOString(),
+      promoted: promoted.length,
+      posts: promoted,
+    };
   });
 }
 

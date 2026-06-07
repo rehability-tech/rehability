@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
+import { FEATURES } from "@/lib/featureFlags";
 import { signOut } from "next-auth/react";
 import {
   SquaresFour,
@@ -21,6 +22,7 @@ import {
   CalendarBlank,
   Sparkle,
   ChatCircleDots,
+  Envelope,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +55,27 @@ export default function AdminSidebar() {
   const isManagingCamp =
     !!actualTripId && isInsideCampContext && !isCreatingCamp;
   const isCreatingPost = pathname.startsWith("/admin/blog/dodaj");
+  const isInCrmSection = pathname.startsWith("/admin/klienci");
+
+  // 3b. CRM sub-tabs (szablony maili ukryte do czasu wdrożenia feature'u)
+  const crmTabs = [
+    {
+      name: "Baza Klientów",
+      href: "/admin/klienci",
+      icon: <Users size={16} />,
+      exact: true,
+    },
+    ...(FEATURES.emailTemplates
+      ? [
+          {
+            name: "Szablony Maili",
+            href: "/admin/klienci/szablony-maili",
+            icon: <Envelope size={16} />,
+            exact: false,
+          },
+        ]
+      : []),
+  ];
 
   // 3. DEFINICJE MENU
   const createPostSteps = [
@@ -90,13 +113,19 @@ export default function AdminSidebar() {
       requiresId: true,
     },
     {
-      name: "3. SEO",
+      name: "3. E-mail",
+      href: "/admin/wyjazdy/dodaj/zaproszenia",
+      icon: <Envelope size={16} />,
+      requiresId: true,
+    },
+    {
+      name: "4. SEO",
       href: "/admin/wyjazdy/dodaj/seo",
       icon: <MagnifyingGlass size={16} />,
       requiresId: true,
     },
     {
-      name: "4. Podsumowanie",
+      name: "5. Podsumowanie",
       href: "/admin/wyjazdy/dodaj/podsumowanie",
       icon: <Article size={16} />,
       requiresId: true,
@@ -232,67 +261,45 @@ export default function AdminSidebar() {
               <span className="px-2 py-1.5 text-[10px] font-medium text-brand-primary uppercase tracking-wider mb-1">
                 Kreator wyjazdów
               </span>
-              <div className="flex flex-col relative">
-                {createCampSteps.map((step, idx) => {
+              <div className="flex flex-col gap-0.5">
+                {createCampSteps.map((step) => {
                   const isSubActive = pathname === step.href;
                   const isDisabled = step.requiresId && !actualTripId;
                   const targetHref = actualTripId
                     ? `${step.href}?id=${actualTripId}`
                     : step.href;
-                  const isLast = idx === createCampSteps.length - 1;
+
+                  if (isDisabled) {
+                    return (
+                      <div key={step.name} className="flex items-center gap-2.5 px-3 py-2 rounded-[14px] opacity-40 cursor-not-allowed">
+                        <div className="text-brand-secondary/40 shrink-0">{step.icon}</div>
+                        <span className="text-[12.5px] font-medium tracking-wide text-brand-secondary/60">{step.name}</span>
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div
-                      key={step.name}
-                      className="relative flex items-stretch"
-                    >
-                      {!isLast && (
-                        <div className="absolute left-[15px] top-[24px] bottom-[-8px] w-[2px] bg-brand-primary/10 z-0" />
-                      )}
-
-                      {isDisabled ? (
-                        <div className="flex items-center gap-3 w-full py-1.5 pl-2 pr-3 opacity-40 cursor-not-allowed z-10">
-                          <div className="w-7 h-7 rounded-full bg-white/60 border-2 border-brand-secondary/10 flex items-center justify-center shrink-0">
-                            <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary/20" />
-                          </div>
-                          <span className="text-[12px] font-medium text-brand-secondary/60">
-                            {step.name}
-                          </span>
+                    <Link key={step.name} href={targetHref}>
+                      <div className={cn(
+                        "flex items-center gap-2.5 px-3 py-2 rounded-[14px] transition-all duration-300 group relative overflow-hidden",
+                        isSubActive
+                          ? "bg-brand-primary text-white shadow-[0_4px_10px_-2px_rgba(40,125,136,0.25)]"
+                          : "text-brand-secondary/60 hover:text-brand-secondary hover:bg-white/50",
+                      )}>
+                        {isSubActive && (
+                          <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
+                        )}
+                        <div className={cn(
+                          "relative z-10 shrink-0 transition-colors",
+                          isSubActive ? "text-white" : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
+                        )}>
+                          {step.icon}
                         </div>
-                      ) : (
-                        <Link href={targetHref} className="flex-1 z-10">
-                          <div className="flex items-center gap-3 w-full py-1.5 pl-2 pr-3 group">
-                            <div
-                              className={cn(
-                                "w-7 h-7 rounded-full bg-white border-2 flex items-center justify-center shrink-0 transition-colors",
-                                isSubActive
-                                  ? "border-brand-primary shadow-sm"
-                                  : "border-brand-primary/20 group-hover:border-brand-primary/40",
-                              )}
-                            >
-                              <div
-                                className={cn(
-                                  "w-1.5 h-1.5 rounded-full transition-colors",
-                                  isSubActive
-                                    ? "bg-brand-primary"
-                                    : "bg-transparent group-hover:bg-brand-primary/40",
-                                )}
-                              />
-                            </div>
-                            <span
-                              className={cn(
-                                "text-[12px] transition-colors",
-                                isSubActive
-                                  ? "font-medium text-brand-secondary"
-                                  : "font-medium text-brand-secondary/60 group-hover:text-brand-secondary",
-                              )}
-                            >
-                              {step.name}
-                            </span>
-                          </div>
-                        </Link>
-                      )}
-                    </div>
+                        <span className="relative z-10 text-[12.5px] font-medium tracking-wide">
+                          {step.name}
+                        </span>
+                      </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -351,7 +358,8 @@ export default function AdminSidebar() {
           )}
         </div>
 
-        {/* RELACJE */}
+        {/* CRM — ukryte do czasu wdrożenia bazy klientów */}
+        {FEATURES.customerBase && (
         <div className="flex flex-col mt-6">
           <span className="px-4 text-[10px] uppercase tracking-[0.2em] text-brand-secondary/40 font-medium mb-2">
             CRM
@@ -360,32 +368,74 @@ export default function AdminSidebar() {
             <div
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
-                pathname.startsWith("/admin/klienci")
+                isInCrmSection
                   ? "bg-brand-primary text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.25)]"
                   : "text-brand-secondary/60 hover:bg-white/40 hover:text-brand-secondary",
               )}
             >
-              {pathname.startsWith("/admin/klienci") && (
+              {isInCrmSection && (
                 <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/30 rounded-full blur-lg pointer-events-none" />
               )}
               <Users
                 size={20}
-                weight={
-                  pathname.startsWith("/admin/klienci") ? "fill" : "duotone"
-                }
+                weight={isInCrmSection ? "fill" : "duotone"}
                 className={cn(
                   "relative z-10 transition-colors",
-                  pathname.startsWith("/admin/klienci")
+                  isInCrmSection
                     ? "text-white"
                     : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
                 )}
               />
               <span className="font-montserrat text-[13px] font-medium tracking-wide relative z-10">
-                Baza Klientów
+                CRM
               </span>
             </div>
           </Link>
+
+          {/* CRM sub-tabs */}
+          {isInCrmSection && (
+            <div className="mt-2 flex flex-col animate-in slide-in-from-top-2 duration-300 bg-brand-primary/5 rounded-2xl p-2 mx-1 border border-brand-primary/10">
+              <div className="flex flex-col gap-0.5">
+                {crmTabs.map((tab) => {
+                  const isSubActive = tab.exact
+                    ? pathname === tab.href
+                    : pathname.startsWith(tab.href);
+
+                  return (
+                    <Link key={tab.name} href={tab.href}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2.5 px-3 py-2 rounded-[14px] transition-all duration-300 group relative overflow-hidden",
+                          isSubActive
+                            ? "bg-brand-primary text-white shadow-[0_4px_10px_-2px_rgba(40,125,136,0.25)]"
+                            : "text-brand-secondary/60 hover:text-brand-secondary hover:bg-white/50",
+                        )}
+                      >
+                        {isSubActive && (
+                          <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
+                        )}
+                        <div
+                          className={cn(
+                            "relative z-10 shrink-0 transition-colors",
+                            isSubActive
+                              ? "text-white"
+                              : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
+                          )}
+                        >
+                          {tab.icon}
+                        </div>
+                        <span className="relative z-10 text-[12.5px] font-medium tracking-wide">
+                          {tab.name}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+        )}
 
         {/* TREŚCI (BLOG) */}
         <div className="flex flex-col mt-6">
@@ -431,55 +481,45 @@ export default function AdminSidebar() {
               <span className="px-2 py-1.5 text-[10px] font-medium text-brand-primary uppercase tracking-wider mb-1">
                 Kreator artykułu
               </span>
-              <div className="flex flex-col relative">
-                {createPostSteps.map((step, idx) => {
+              <div className="flex flex-col gap-0.5">
+                {createPostSteps.map((step) => {
                   const isSubActive = pathname === step.href;
+                  const isDisabled = step.requiresId && !queryId;
                   const targetHref = queryId
                     ? `${step.href}?id=${queryId}`
                     : step.href;
-                  const isLast = idx === createPostSteps.length - 1;
+
+                  if (isDisabled) {
+                    return (
+                      <div key={step.name} className="flex items-center gap-2.5 px-3 py-2 rounded-[14px] opacity-40 cursor-not-allowed">
+                        <div className="text-brand-secondary/40 shrink-0">{step.icon}</div>
+                        <span className="text-[12.5px] font-medium tracking-wide text-brand-secondary/60">{step.name}</span>
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div
-                      key={step.name}
-                      className="relative flex items-stretch"
-                    >
-                      {!isLast && (
-                        <div className="absolute left-[15px] top-[24px] bottom-[-8px] w-[2px] bg-brand-primary/10 z-0" />
-                      )}
-
-                      <Link href={targetHref} className="flex-1 z-10">
-                        <div className="flex items-center gap-3 w-full py-1.5 pl-2 pr-3 group">
-                          <div
-                            className={cn(
-                              "w-7 h-7 rounded-full bg-white border-2 flex items-center justify-center shrink-0 transition-colors",
-                              isSubActive
-                                ? "border-brand-primary shadow-sm"
-                                : "border-brand-primary/20 group-hover:border-brand-primary/40",
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "w-1.5 h-1.5 rounded-full transition-colors",
-                                isSubActive
-                                  ? "bg-brand-primary"
-                                  : "bg-transparent group-hover:bg-brand-primary/40",
-                              )}
-                            />
-                          </div>
-                          <span
-                            className={cn(
-                              "text-[12px] transition-colors",
-                              isSubActive
-                                ? "font-medium text-brand-secondary"
-                                : "font-medium text-brand-secondary/60 group-hover:text-brand-secondary",
-                            )}
-                          >
-                            {step.name}
-                          </span>
+                    <Link key={step.name} href={targetHref}>
+                      <div className={cn(
+                        "flex items-center gap-2.5 px-3 py-2 rounded-[14px] transition-all duration-300 group relative overflow-hidden",
+                        isSubActive
+                          ? "bg-brand-primary text-white shadow-[0_4px_10px_-2px_rgba(40,125,136,0.25)]"
+                          : "text-brand-secondary/60 hover:text-brand-secondary hover:bg-white/50",
+                      )}>
+                        {isSubActive && (
+                          <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
+                        )}
+                        <div className={cn(
+                          "relative z-10 shrink-0 transition-colors",
+                          isSubActive ? "text-white" : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
+                        )}>
+                          {step.icon}
                         </div>
-                      </Link>
-                    </div>
+                        <span className="relative z-10 text-[12.5px] font-medium tracking-wide">
+                          {step.name}
+                        </span>
+                      </div>
+                    </Link>
                   );
                 })}
               </div>

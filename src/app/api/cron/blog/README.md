@@ -18,7 +18,9 @@ Send it on every call as either:
 | ----------------- | ----------------------------------- |
 | `Authorization`   | `Bearer <CRON_SECRET>`              |
 | `x-cron-secret`   | `<CRON_SECRET>`                     |
-| query string      | `?secret=<CRON_SECRET>`             |
+
+> The query-string form (`?secret=`) is intentionally **not** supported —
+> query strings leak into server/proxy logs.
 
 In **development** (`NODE_ENV !== "production"`) the endpoints will
 log-and-allow if `CRON_SECRET` is missing, so you can `curl` them locally

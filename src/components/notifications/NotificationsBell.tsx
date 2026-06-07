@@ -14,6 +14,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import AttentionDot from "@/components/ui/AttentionDot";
 
 interface Notification {
   id: string;
@@ -341,14 +342,7 @@ export default function NotificationsBell() {
           weight="fill"
           className="transition-transform duration-300 origin-top group-hover:rotate-[15deg]"
         />
-        {unreadCount > 0 && (
-          <span
-            className={cn(
-              "absolute top-2 right-2.5 w-2 h-2 rounded-full bg-brand-yellow border-[1.5px] shadow-[0_0_8px_rgba(242,217,103,0.8)] transition-colors duration-300",
-              open ? "border-brand-primary" : "border-white",
-            )}
-          />
-        )}
+        {unreadCount > 0 && <AttentionDot className="absolute top-1.5 right-2" />}
       </button>
 
       {mounted && createPortal(panel, document.body)}

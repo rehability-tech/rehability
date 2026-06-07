@@ -17,6 +17,12 @@ import {
   SealCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import {
+  groupIntoPackages,
+  isPaidBookingStatus,
+  packageLabel,
+  type PackageUnit,
+} from "@/lib/bookings/groupPackages";
 
 // ==========================================
 // 1. TYPY I MAPOWANIE Z BAZY
@@ -29,6 +35,8 @@ interface Participant {
   amountPaid: number;
   status: string; // PENDING | DEPOSIT_PAID | FULLY_PAID | PENDING_INVITATION
   isCheckedIn?: boolean;
+  // Relacja "zabierz przyjaciółkę": id rezerwacji, która zaprosiła tę osobę.
+  invitedById?: string | null;
   user?: {
     name?: string | null;
     email?: string | null;
@@ -49,6 +57,18 @@ interface TripParticipantsListProps {
 }
 
 const ITEMS_PER_PAGE = 8;
+
+const unitMatchesSearch = (
+  unit: PackageUnit<Participant>,
+  term: string,
+): boolean => {
+  const members = unit.kind === "single" ? [unit.item] : unit.members;
+  return members.some((p) => {
+    const name = (p.name || p.user?.name || "").toLowerCase();
+    const email = (p.email || p.user?.email || "").toLowerCase();
+    return name.includes(term) || email.includes(term);
+  });
+};
 
 // ==========================================
 // 2. KOMPONENTY IKON STATUSU
@@ -187,6 +207,132 @@ function ParticipantStatusIcons({ p }: { p: Participant }) {
 }
 
 // ==========================================
+// 2b. WIERSZ POJEDYNCZEGO UCZESTNIKA
+// ==========================================
+
+function ParticipantRow({
+  participant,
+  tripId,
+}: {
+  participant: Participant;
+  tripId: string;
+}) {
+  const displayName =
+    participant.name || participant.user?.name || "Nieznany uczestnik";
+  const displayEmail =
+    participant.email || participant.user?.email || "Brak e-maila";
+  const avatarUrl = participant.user?.image;
+
+  return (
+    <Link
+      href={`/admin/wyjazdy/${tripId}/uczestnicy/${participant.id}`}
+      className="group block outline-none"
+    >
+      <div className="relative overflow-hidden flex items-center justify-between p-3 sm:p-3.5 rounded-[20px] bg-white/50 border border-white hover:bg-white/90 hover:border-brand-primary/30 transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_-8px_rgba(40,125,136,0.2)] w-full max-w-full">
+        <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-brand-yellow/0 rounded-full blur-xl pointer-events-none group-hover:bg-brand-yellow/20 transition-colors duration-500" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 bg-brand-primary rounded-r-full transition-all duration-300 group-hover:h-3/4 opacity-0 group-hover:opacity-100" />
+
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pl-1 pr-2 z-10">
+          {/* ZDJĘCIE LUB INICJAŁY */}
+          <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-[14px] overflow-hidden bg-gradient-to-br from-brand-primary from-[40%] to-brand-yellow flex items-center justify-center text-white font-bold text-[13px] sm:text-[14px] shrink-0 shadow-[0_2px_10px_-2px_rgba(40,125,136,0.5)] group-hover:scale-105 transition-transform duration-300">
+            {avatarUrl ? (
+              /* Używamy standardowego img dla bezproblemowej obsługi zewnętrznych URLi z Google/Fb */
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>
+                {displayName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="font-bold text-brand-secondary text-[13.5px] sm:text-[14.5px] truncate block w-full group-hover:text-brand-primary transition-colors">
+              {displayName}
+            </span>
+            <span className="text-brand-secondary/50 font-medium text-[11.5px] sm:text-[12px] truncate block w-full mt-0.5">
+              {displayEmail}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-6 shrink-0 z-10">
+          <ParticipantStatusIcons p={participant} />
+
+          <div className="hidden sm:flex flex-col items-end min-w-[70px]">
+            <span className="text-[14.5px] font-bold text-brand-secondary tabular-nums leading-none">
+              {((participant.amountPaid || 0) / 100).toLocaleString("pl-PL")} zł
+            </span>
+            <span className="text-[9px] text-brand-primary font-bold mt-1.5 uppercase tracking-widest">
+              Wpłacono
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ==========================================
+// 2c. KARTA PAKIETU (osoby jadące razem)
+// ==========================================
+
+function PackageCardRow({
+  members,
+  tripId,
+}: {
+  members: Participant[];
+  tripId: string;
+}) {
+  const allPaid = members.every((m) => isPaidBookingStatus(m.status));
+  const label = packageLabel(members.length);
+
+  return (
+    <div className="relative overflow-hidden rounded-[22px] border border-brand-primary/25 bg-gradient-to-br from-brand-primary/[0.12] via-brand-primary/[0.05] to-brand-yellow/[0.10] p-2 sm:p-2.5 shadow-[0_6px_20px_-10px_rgba(40,125,136,0.35)]">
+      {/* Akcent: żółta poświata w prawym dolnym rogu */}
+      <div className="absolute -bottom-8 -right-6 w-28 h-28 bg-brand-yellow/25 rounded-full blur-2xl pointer-events-none" />
+      {/* Akcent: morska poświata w lewym górnym rogu */}
+      <div className="absolute -top-10 -left-8 w-28 h-28 bg-brand-primary/15 rounded-full blur-2xl pointer-events-none" />
+
+      {/* Nagłówek pakietu */}
+      <div className="relative z-10 flex items-center gap-2 px-2 pt-1 pb-2">
+        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-brand-primary to-[#1f646d] shadow-[0_2px_8px_-2px_rgba(40,125,136,0.5)] shrink-0">
+          <UsersThree size={14} weight="fill" className="text-white" />
+        </div>
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand-primary">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm",
+            allPaid
+              ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+              : "bg-amber-50 text-amber-600 border-amber-100",
+          )}
+        >
+          {allPaid ? "Jadą razem" : "Oczekuje"}
+        </span>
+      </div>
+
+      {/* Połączone wiersze uczestników */}
+      <div className="relative z-10 flex flex-col gap-1.5">
+        {members.map((m) => (
+          <ParticipantRow key={m.id} participant={m} tripId={tripId} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 3. GŁÓWNY KOMPONENT
 // ==========================================
 
@@ -197,21 +343,26 @@ export function TripParticipantsList({
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredParticipants = initialParticipants.filter((p) => {
-    const term = searchQuery.toLowerCase();
-    const finalName = (p.name || p.user?.name || "").toLowerCase();
-    const finalEmail = (p.email || p.user?.email || "").toLowerCase();
-    return finalName.includes(term) || finalEmail.includes(term);
-  });
+  // Budujemy jednostki (pojedyncze + pakiety) ze WSZYSTKICH rezerwacji,
+  // a dopiero potem filtrujemy — żeby wyszukiwanie nie rozbijało pakietów.
+  const allUnits = React.useMemo(
+    () => groupIntoPackages(initialParticipants),
+    [initialParticipants],
+  );
+
+  const filteredUnits = React.useMemo(() => {
+    const term = searchQuery.toLowerCase().trim();
+    if (!term) return allUnits;
+    return allUnits.filter((u) => unitMatchesSearch(u, term));
+  }, [allUnits, searchQuery]);
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const totalPages =
-    Math.ceil(filteredParticipants.length / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.ceil(filteredUnits.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentParticipants = filteredParticipants.slice(
+  const currentUnits = filteredUnits.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
@@ -285,6 +436,19 @@ export function TripParticipantsList({
               </div>
               <div className="w-full h-px bg-gray-100 my-1" />
               <div className="flex items-start gap-3">
+                <UsersThree
+                  size={20}
+                  weight="fill"
+                  className="text-brand-primary shrink-0 mt-0.5"
+                />
+                <p className="text-[12.5px] text-brand-secondary/70 leading-relaxed">
+                  <strong className="text-brand-secondary block font-bold">
+                    Pakiet Duo
+                  </strong>{" "}
+                  Osoby jadące razem (zabierz przyjaciółkę).
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
                 <HeartStraight
                   size={20}
                   weight="fill"
@@ -327,7 +491,7 @@ export function TripParticipantsList({
 
       <div className="p-3 sm:p-4 relative z-10 min-h-[300px]">
         <AnimatePresence mode="wait">
-          {filteredParticipants.length === 0 ? (
+          {filteredUnits.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -355,94 +519,21 @@ export function TripParticipantsList({
               transition={{ duration: 0.2 }}
               className="flex flex-col gap-2 w-full max-w-full"
             >
-              {currentParticipants.map((participant) => {
-                const displayName =
-                  participant.name ||
-                  participant.user?.name ||
-                  "Nieznany uczestnik";
-                const displayEmail =
-                  participant.email ||
-                  participant.user?.email ||
-                  "Brak e-maila";
-                const avatarUrl = participant.user?.image; // <--- Pobieramy zdjęcie!
-
-                return (
-                  <Link
-                    key={participant.id}
-                    href={`/admin/wyjazdy/${tripId}/uczestnicy/${participant.id}`}
-                    className="group block outline-none"
-                  >
-                    <div className="relative overflow-hidden flex items-center justify-between p-3 sm:p-3.5 rounded-[20px] bg-white/50 border border-white hover:bg-white/90 hover:border-brand-primary/30 transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_-8px_rgba(40,125,136,0.2)] w-full max-w-full">
-                      <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-brand-yellow/0 rounded-full blur-xl pointer-events-none group-hover:bg-brand-yellow/20 transition-colors duration-500" />
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 bg-brand-primary rounded-r-full transition-all duration-300 group-hover:h-3/4 opacity-0 group-hover:opacity-100" />
-
-                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 pl-1 pr-2 z-10">
-                        {/* ZDJĘCIE LUB INICJAŁY */}
-                        <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-[14px] overflow-hidden bg-gradient-to-br from-brand-primary from-[40%] to-brand-yellow flex items-center justify-center text-white font-bold text-[13px] sm:text-[14px] shrink-0 shadow-[0_2px_10px_-2px_rgba(40,125,136,0.5)] group-hover:scale-105 transition-transform duration-300">
-                          {avatarUrl ? (
-                            /* Używamy standardowego img dla bezproblemowej obsługi zewnętrznych URLi z Google/Fb */
-                            <img
-                              src={avatarUrl}
-                              alt={displayName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span>
-                              {displayName
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .substring(0, 2)
-                                .toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="font-bold text-brand-secondary text-[13.5px] sm:text-[14.5px] truncate block w-full group-hover:text-brand-primary transition-colors">
-                            {displayName}
-                          </span>
-                          <span className="text-brand-secondary/50 font-medium text-[11.5px] sm:text-[12px] truncate block w-full mt-0.5">
-                            {displayEmail}
-                          </span>
-                          {participant.packagePartner && (
-                            <span
-                              title={`W pakiecie z: ${participant.packagePartner.name || "—"}`}
-                              className={cn(
-                                "inline-flex items-center gap-1 mt-1 w-fit max-w-full px-2 py-0.5 rounded-full text-[10px] font-bold truncate",
-                                participant.packagePartner.active
-                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                  : "bg-amber-50 text-amber-600 border border-amber-100",
-                              )}
-                            >
-                              <UsersThree size={12} weight="fill" className="shrink-0" />
-                              <span className="truncate">
-                                {participant.packagePartner.name || "Pakiet"}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 sm:gap-6 shrink-0 z-10">
-                        <ParticipantStatusIcons p={participant} />
-
-                        <div className="hidden sm:flex flex-col items-end min-w-[70px]">
-                          <span className="text-[14.5px] font-bold text-brand-secondary tabular-nums leading-none">
-                            {(
-                              (participant.amountPaid || 0) / 100
-                            ).toLocaleString("pl-PL")}{" "}
-                            zł
-                          </span>
-                          <span className="text-[9px] text-brand-primary font-bold mt-1.5 uppercase tracking-widest">
-                            Wpłacono
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {currentUnits.map((unit) =>
+                unit.kind === "package" ? (
+                  <PackageCardRow
+                    key={`pkg-${unit.members[0].id}`}
+                    members={unit.members}
+                    tripId={tripId}
+                  />
+                ) : (
+                  <ParticipantRow
+                    key={unit.item.id}
+                    participant={unit.item}
+                    tripId={tripId}
+                  />
+                ),
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,8 +1,14 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion, Variants } from "framer-motion";
-import { MapPin, CalendarBlank, Wallet } from "@phosphor-icons/react/dist/ssr";
+import {
+  MapPin,
+  CalendarBlank,
+  Wallet,
+  CaretRight,
+} from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/Button";
 
 interface SingleCampHeroProps {
@@ -72,6 +78,29 @@ export default function SingleTripHero({
         animate="visible"
         variants={staggerContainer}
       >
+        {/* --- OKRUSZKI (nawigacja, lewa strona) --- */}
+        <motion.nav
+          variants={fadeUpVariants}
+          aria-label="Okruszki"
+          className="w-full max-w-[1000px] mb-8 flex items-center gap-2 text-[13px] font-montserrat text-white/80 min-w-0"
+        >
+          <Link
+            href="/"
+            className="hover:text-white transition-colors shrink-0 py-1"
+          >
+            Start
+          </Link>
+          <CaretRight size={12} weight="bold" className="text-white/50 shrink-0" />
+          <Link
+            href="/wyjazdy"
+            className="hover:text-white transition-colors shrink-0 py-1"
+          >
+            Wyjazdy
+          </Link>
+          <CaretRight size={12} weight="bold" className="text-white/50 shrink-0" />
+          <span className="text-white/60 truncate py-1">{title}</span>
+        </motion.nav>
+
         {/* --- PASEK META DANYCH (Lokalizacja, Data, Cena) --- */}
         {(displayLocation !== "Brak lokalizacji" || dateRange || price) && (
           <motion.div

@@ -1071,11 +1071,11 @@ function Consent({ checked, onChange, label, error }: any) {
 
 function SummaryRow({ label, children }: any) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[13px]">
-      <dt className="text-brand-secondary/50 font-medium mb-1 sm:mb-0">
-        {label}
-      </dt>
-      <dd className="font-bold text-brand-secondary text-right">{children}</dd>
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3 text-[13px]">
+      <dt className="text-brand-secondary/50 font-medium shrink-0">{label}</dt>
+      <dd className="font-bold text-brand-secondary text-left sm:text-right break-words min-w-0">
+        {children}
+      </dd>
     </div>
   );
 }

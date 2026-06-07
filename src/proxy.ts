@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { FEATURES } from "@/lib/featureFlags";
 
 // ZMIANA TUTAJ: Zamiast 'export async function middleware', używamy 'export async function proxy'
 export async function proxy(request: NextRequest) {
@@ -33,6 +34,19 @@ export async function proxy(request: NextRequest) {
     // C: User wchodzi na trasę admina -> odsyłamy do /panel
     if (!isAdmin && pathname.startsWith("/admin")) {
       return NextResponse.redirect(new URL("/panel", request.url));
+    }
+
+    // D: Funkcje tymczasowo wyłączone (wlecą w kolejnym patchu).
+    // Strony przekierowujemy na /admin; API odda 503 we własnym handlerze.
+    if (isAdmin && pathname.startsWith("/admin/klienci")) {
+      const onTemplates = pathname.startsWith("/admin/klienci/szablony-maili");
+      // szablony-maili są pod-sekcją bazy klientów → wymagają obu flag.
+      const allowed = onTemplates
+        ? FEATURES.customerBase && FEATURES.emailTemplates
+        : FEATURES.customerBase;
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
     }
   }
 

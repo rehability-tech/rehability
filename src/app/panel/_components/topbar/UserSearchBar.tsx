@@ -9,13 +9,28 @@ import {
   SquaresFour,
   Tent,
   MonitorPlay,
+  Lock,
   User as UserIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
-const mockSearchData = [
+type SearchItem = {
+  id: string;
+  title: string;
+  href: string;
+  icon: typeof SquaresFour;
+  disabled?: boolean;
+};
+
+const mockSearchData: SearchItem[] = [
   { id: "1", title: "Mój Start", href: "/panel", icon: SquaresFour },
   { id: "2", title: "Moje Wyjazdy", href: "/panel/wyjazdy", icon: Tent },
-  { id: "3", title: "Platforma VOD", href: "/panel/vod", icon: MonitorPlay },
+  {
+    id: "3",
+    title: "Platforma VOD",
+    href: "/panel/vod",
+    icon: MonitorPlay,
+    disabled: true, // w budowie — bez nawigacji
+  },
   { id: "4", title: "Mój Profil", href: "/panel/profil", icon: UserIcon },
 ];
 
@@ -93,25 +108,48 @@ export default function UserSearchBar() {
           >
             {filteredResults.length > 0 ? (
               <ul className="py-2">
-                {filteredResults.map((result) => (
-                  <li key={result.id}>
-                    <button
-                      onClick={() => {
-                        router.push(result.href);
-                        setIsFocused(false);
-                        setQuery("");
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-brand-primary/5 transition text-left group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-brand-secondary/5 flex items-center justify-center text-brand-secondary/50 group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-colors shrink-0">
-                        <result.icon size={16} weight="duotone" />
+                {filteredResults.map((result) =>
+                  result.disabled ? (
+                    <li key={result.id}>
+                      <div
+                        aria-disabled="true"
+                        title="Platforma VOD jest w budowie"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left cursor-not-allowed select-none opacity-70"
+                      >
+                        <div className="relative w-8 h-8 rounded-lg bg-brand-secondary/5 flex items-center justify-center text-brand-secondary/40 shrink-0">
+                          <result.icon size={16} weight="duotone" />
+                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-brand-secondary/70 flex items-center justify-center">
+                            <Lock size={8} weight="fill" className="text-white" />
+                          </span>
+                        </div>
+                        <span className="font-montserrat text-[13px] font-medium text-brand-secondary/50 truncate">
+                          {result.title}
+                        </span>
+                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-brand-secondary/40 shrink-0">
+                          W budowie
+                        </span>
                       </div>
-                      <span className="font-montserrat text-[13px] font-medium text-brand-secondary truncate">
-                        {result.title}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                    </li>
+                  ) : (
+                    <li key={result.id}>
+                      <button
+                        onClick={() => {
+                          router.push(result.href);
+                          setIsFocused(false);
+                          setQuery("");
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-brand-primary/5 transition text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-brand-secondary/5 flex items-center justify-center text-brand-secondary/50 group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-colors shrink-0">
+                          <result.icon size={16} weight="duotone" />
+                        </div>
+                        <span className="font-montserrat text-[13px] font-medium text-brand-secondary truncate">
+                          {result.title}
+                        </span>
+                      </button>
+                    </li>
+                  ),
+                )}
               </ul>
             ) : (
               <div className="p-4 text-center">

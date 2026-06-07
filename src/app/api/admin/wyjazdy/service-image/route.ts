@@ -1,6 +1,7 @@
 import { put, del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { validateImageUpload } from "@/lib/uploads/validateImageUpload";
 
 function slugify(text: string) {
   return text
@@ -24,6 +25,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!filename) {
       return NextResponse.json({ error: "Brak nazwy pliku" }, { status: 400 });
     }
+
+    const check = validateImageUpload(request, filename);
+    if (!check.ok) return check.response;
 
     const extension = filename.includes(".")
       ? `.${filename.split(".").pop()}`

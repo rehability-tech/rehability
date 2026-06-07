@@ -144,10 +144,13 @@ const STRIP_ITEM_VARIANTS = {
 
 interface PersonalNotificationsSectionProps {
   notifications: PersonalNotificationItem[];
+  /** Separator na dole pokazujemy tylko, gdy pod spodem są jeszcze aktualności. */
+  showDivider: boolean;
 }
 
 const PersonalNotificationsSection = memo(function PersonalNotificationsSection({
   notifications,
+  showDivider,
 }: PersonalNotificationsSectionProps) {
   if (notifications.length === 0) return null;
 
@@ -156,7 +159,7 @@ const PersonalNotificationsSection = memo(function PersonalNotificationsSection(
       variants={STRIP_CONTAINER_VARIANTS}
       initial="hidden"
       animate="show"
-      className="relative mb-6 pb-6 border-b border-brand-secondary/10"
+      className={`relative ${showDivider ? "mb-6 pb-6 border-b border-brand-secondary/10" : "mb-1"}`}
     >
       <div className="flex items-center gap-2 mb-3">
         <Bell size={14} weight="fill" className="text-brand-primary" />
@@ -276,24 +279,31 @@ export default function DashboardNews({
         </div>
 
         {/* PERSONALNE POWIADOMIENIA — widoczne tylko gdy są */}
-        <PersonalNotificationsSection notifications={visibleNotifications} />
+        <PersonalNotificationsSection
+          notifications={visibleNotifications}
+          showDivider={updates.length > 0}
+        />
 
         {/* LISTA AKTUALNOŚCI LUB PUSTY STAN */}
+        {/* Pusty stan pokazujemy TYLKO gdy nie ma ani aktualności, ani powiadomień —
+            inaczej powstaje sprzeczność: "masz powiadomienie" + "brak wiadomości". */}
         <div className="relative flex flex-col gap-4.5">
           {updates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center bg-white/30 rounded-3xl border border-white/40 border-dashed">
-              <Info
-                size={32}
-                weight="duotone"
-                className="text-brand-secondary/30 mb-2"
-              />
-              <p className="text-[13px] font-bold text-brand-secondary/70">
-                Brak nowych wiadomości
-              </p>
-              <p className="text-[11px] text-brand-secondary/50 mt-1">
-                Gdy tylko pojawi się coś nowego, damy Ci znać!
-              </p>
-            </div>
+            visibleNotifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center bg-white/30 rounded-3xl border border-white/40 border-dashed">
+                <Info
+                  size={32}
+                  weight="duotone"
+                  className="text-brand-secondary/30 mb-2"
+                />
+                <p className="text-[13px] font-bold text-brand-secondary/70">
+                  Brak nowych wiadomości
+                </p>
+                <p className="text-[11px] text-brand-secondary/50 mt-1">
+                  Gdy tylko pojawi się coś nowego, damy Ci znać!
+                </p>
+              </div>
+            ) : null
           ) : (
             updates.map((item) => {
               const style = getUpdateStyling(item.type);

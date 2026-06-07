@@ -18,6 +18,7 @@ import {
   DotsThree,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
 
 type GlobalItem = {
   key: string;
@@ -86,6 +87,31 @@ export default function UserMobileBottomNav() {
     segments.length >= 4;
   const tripId = isTripContext ? segments[3] : null;
 
+  // Karta zdrowia (HealthProfile) jest 1:1 z użytkowniczką — wystarczy jeden
+  // globalny strzał. `null` = jeszcze nie wiemy (nie pokazujemy kropki).
+  // Pobieramy tylko w kontekście wyjazdu, bo tam jest zakładka "Zdrowie".
+  const [healthFilled, setHealthFilled] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isTripContext) return;
+    let active = true;
+    fetch("/api/panel/health-profile", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) setHealthFilled(!!d.profile);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [pathname, isTripContext]);
+
+  // Nieprzeczytane wiadomości czatu → pulsująca kropka na zakładce "Czat".
+  const { links: chatUnreadLinks, refresh: refreshChatUnread } =
+    useChatUnreadLinks();
+  useEffect(() => {
+    refreshChatUnread();
+  }, [pathname, refreshChatUnread]);
+
   // Na chacie chowamy dolny pasek — czat jest pełnoekranowy ze strzałką wstecz.
   const isChatPage = pathname?.includes("/chat");
 
@@ -108,7 +134,8 @@ export default function UserMobileBottomNav() {
       href: `/panel/wyjazdy/${tripId}/karta-zdrowia`,
       label: "Zdrowie",
       icon: Heartbeat,
-      needsAttention: true,
+      // Kropka tylko, gdy karta NIE jest jeszcze uzupełniona.
+      needsAttention: healthFilled === false,
       wideOnly: true,
     },
     {
@@ -116,6 +143,7 @@ export default function UserMobileBottomNav() {
       href: `/panel/wyjazdy/${tripId}/chat`,
       label: "Czat",
       icon: ChatCircle,
+      needsAttention: chatUnreadLinks.has(`/panel/wyjazdy/${tripId}/chat`),
       wideOnly: true,
     },
     {

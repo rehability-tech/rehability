@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { validateImageUpload } from "@/lib/uploads/validateImageUpload";
 
 // ==========================================
 // SCHEMATY WALIDACJI (ZOD)
@@ -80,6 +81,10 @@ export async function POST(
       );
     }
     const originalFilename = validatedQuery.data.filename;
+
+    // 3b. WALIDACJA: typ i rozmiar pliku (bloby są publiczne — bez SVG/HTML/wielkich plików)
+    const check = validateImageUpload(request, originalFilename);
+    if (!check.ok) return check.response;
 
     // 4. Logika biznesowa - pobieranie danych i upload
     const trip = await prisma.trip.findUnique({

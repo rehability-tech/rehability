@@ -19,6 +19,8 @@ import {
   PlusCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
+import AttentionDot from "@/components/ui/AttentionDot";
 
 // Animacje przejść między widokami
 const navVariants: Variants = {
@@ -53,6 +55,7 @@ type TripItem = {
   href: string;
   label: string;
   icon: typeof House;
+  needsAttention?: boolean;
   wideOnly?: boolean;
 };
 
@@ -74,11 +77,24 @@ export default function AdminMobileNavBar() {
   const pathname = usePathname();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
+  // Nieprzeczytane wiadomości czatu → pulsująca kropka na zakładce "Czat".
+  const { links: chatUnreadLinks, refresh: refreshChatUnread } =
+    useChatUnreadLinks();
+  useEffect(() => {
+    refreshChatUnread();
+  }, [pathname, refreshChatUnread]);
+
   // LOGIKA WYKRYWANIA KONTEKSTU WYJAZDU
-  // Sprawdzamy, czy jesteśmy w /admin/wyjazdy/[id] (ale omijamy /admin/wyjazdy/nowy)
+  // Sprawdzamy, czy jesteśmy w /admin/wyjazdy/[id] — ale NIE w kreatorze
+  // (/admin/wyjazdy/dodaj/...) ani w /nowy /edycja. Inaczej regex wyłapałby
+  // "dodaj" jako id i pasek wszedłby w tryb konkretnego wyjazdu z błędnymi
+  // linkami, przez co żaden krok kreatora nie byłby podświetlony.
+  const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
   const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
   const currentCampId =
-    campIdMatch && campIdMatch[1] !== "nowy" ? campIdMatch[1] : null;
+    campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1])
+      ? campIdMatch[1]
+      : null;
   const isTripContext = !!currentCampId;
 
   // KONTEKST BLOGA — analogicznie do kontekstu wyjazdu (sub-menu sekcji bloga).
@@ -137,6 +153,9 @@ export default function AdminMobileNavBar() {
       href: `/admin/wyjazdy/${currentCampId}/chat`,
       label: "Czat",
       icon: ChatCircle,
+      needsAttention: chatUnreadLinks.has(
+        `/admin/wyjazdy/${currentCampId}/chat`,
+      ),
       wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
     },
   ];
@@ -144,6 +163,9 @@ export default function AdminMobileNavBar() {
   const tripMoreItems = tripItems.filter((item) => item.wideOnly);
   const isMoreActive = tripMoreItems.some((item) =>
     pathname?.startsWith(item.href),
+  );
+  const moreNeedsAttention = tripMoreItems.some(
+    (item) => item.needsAttention && !pathname?.startsWith(item.href),
   );
 
   const kebabBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -296,7 +318,14 @@ export default function AdminMobileNavBar() {
                     )}
                   >
                     {tripItems.map(
-                      ({ key, href, label, icon: Icon, wideOnly }) => {
+                      ({
+                        key,
+                        href,
+                        label,
+                        icon: Icon,
+                        needsAttention,
+                        wideOnly,
+                      }) => {
                         const isActive =
                           key === "trip-home"
                             ? pathname === href
@@ -342,6 +371,9 @@ export default function AdminMobileNavBar() {
                                   weight={isActive ? "fill" : "regular"}
                                   className="shrink-0 transition-colors duration-200"
                                 />
+                                {needsAttention && !isActive && (
+                                  <AttentionDot className="absolute -top-1 -right-1.5" />
+                                )}
                               </motion.div>
                               <AnimatePresence initial={false} mode="popLayout">
                                 {isActive && (
@@ -399,6 +431,9 @@ export default function AdminMobileNavBar() {
                             className="shrink-0"
                           />
                         </motion.span>
+                        {moreNeedsAttention && !isMoreActive && !isMoreOpen && (
+                          <AttentionDot className="absolute top-2 right-2 z-20" />
+                        )}
                       </button>
                     </motion.li>
                   </ul>
@@ -538,37 +573,42 @@ export default function AdminMobileNavBar() {
             >
               <div className="pointer-events-none absolute -top-3 -right-3 w-16 h-16 bg-brand-yellow/30 rounded-full blur-2xl" />
 
-              {tripMoreItems.map(({ key, href, label, icon: Icon }) => {
-                const isActive = pathname?.startsWith(href);
-                return (
-                  <Link
-                    key={key}
-                    href={href}
-                    onClick={() => setIsMoreOpen(false)}
-                    role="menuitem"
-                    className={cn(
-                      "relative flex items-center justify-start gap-2.5 h-11 px-4 rounded-full overflow-hidden transition-all duration-300 w-full",
-                      isActive
-                        ? "bg-brand-primary text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)]"
-                        : "text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60",
-                    )}
-                  >
-                    {isActive && (
-                      <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
-                    )}
-                    <div className="relative flex items-center justify-center shrink-0">
-                      <Icon
-                        size={22}
-                        weight={isActive ? "fill" : "regular"}
-                        className="shrink-0 transition-colors duration-200"
-                      />
-                    </div>
-                    <span className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap">
-                      {label}
-                    </span>
-                  </Link>
-                );
-              })}
+              {tripMoreItems.map(
+                ({ key, href, label, icon: Icon, needsAttention }) => {
+                  const isActive = pathname?.startsWith(href);
+                  return (
+                    <Link
+                      key={key}
+                      href={href}
+                      onClick={() => setIsMoreOpen(false)}
+                      role="menuitem"
+                      className={cn(
+                        "relative flex items-center justify-start gap-2.5 h-11 px-4 rounded-full overflow-hidden transition-all duration-300 w-full",
+                        isActive
+                          ? "bg-brand-primary text-white shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)]"
+                          : "text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60",
+                      )}
+                    >
+                      {isActive && (
+                        <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md pointer-events-none" />
+                      )}
+                      <div className="relative flex items-center justify-center shrink-0">
+                        <Icon
+                          size={22}
+                          weight={isActive ? "fill" : "regular"}
+                          className="shrink-0 transition-colors duration-200"
+                        />
+                        {needsAttention && !isActive && (
+                          <AttentionDot className="absolute -top-1 -right-1.5 z-20" />
+                        )}
+                      </div>
+                      <span className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap">
+                        {label}
+                      </span>
+                    </Link>
+                  );
+                },
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { Prisma, PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -7,3 +7,68 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({});
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// Kody błędów Prisma oznaczające PROBLEM Z POŁĄCZENIEM (nie z danymi).
+// To są jedyne sytuacje, w których ponawianie ma sens — np. Neon budzi się
+// ze stanu uśpienia (scale-to-zero) i pierwsze połączenie pada na timeout.
+const TRANSIENT_DB_CODES = new Set([
+  "P1000", // authentication failed (czasem przy budzeniu)
+  "P1001", // can't reach database server
+  "P1002", // server reached but timed out
+  "P1008", // operation timed out
+  "P1017", // server closed the connection
+]);
+
+function isTransientDbError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    return !err.errorCode || TRANSIENT_DB_CODES.has(err.errorCode);
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    return TRANSIENT_DB_CODES.has(err.code);
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return /can't reach database server|connection refused|econnreset|etimedout|terminating connection|connection closed/i.test(
+    msg,
+  );
+}
+
+interface RetryOptions {
+  /** Ile RAZ ponowić po pierwszej nieudanej próbie (domyślnie 2). */
+  retries?: number;
+  /** Bazowe opóźnienie; rośnie wykładniczo: base, base*2, base*4… (ms). */
+  baseDelayMs?: number;
+  /** Etykieta do logów (np. nazwa crona). */
+  label?: string;
+}
+
+/**
+ * Owija operację bazodanową w ponawianie przy błędach POŁĄCZENIA.
+ * Pierwsza próba zwykle "budzi" uśpiony serwer Neon, kolejna już trafia.
+ * Błędy danych (unikalność, walidacja itd.) NIE są ponawiane — lecą od razu w górę.
+ */
+export async function withDbRetry<T>(
+  fn: () => Promise<T>,
+  opts: RetryOptions = {},
+): Promise<T> {
+  const { retries = 2, baseDelayMs = 500, label } = opts;
+  let lastErr: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === retries || !isTransientDbError(err)) throw err;
+
+      const delay = baseDelayMs * 2 ** attempt;
+      console.warn(
+        `[db retry]${label ? ` ${label}:` : ""} błąd połączenia (próba ${
+          attempt + 1
+        }/${retries}), ponawiam za ${delay}ms`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastErr;
+}

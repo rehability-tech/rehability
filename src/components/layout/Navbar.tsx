@@ -15,6 +15,7 @@ import {
   User as UserIcon,
   MonitorPlay, // Nowa ikona dla VOD
   Tent, // Nowa ikona dla Wyjazdów (lub użyj MapTrifold/CalendarBlank)
+  Lock,
 } from "@phosphor-icons/react/dist/ssr";
 
 const NAV_LINKS = [
@@ -240,18 +241,24 @@ export function Navbar({ session }: NavbarProps) {
                       className="h-px bg-gray-100 my-1 mx-3"
                     />
 
-                    {/* Platforma VOD */}
-                    {/* Platforma VOD */}
+                    {/* Platforma VOD — w budowie, zablokowana (brak nawigacji) */}
                     <motion.div variants={itemVariants}>
-                      <Link
-                        // Jeśli admin -> /admin/vod, w przeciwnym razie -> /platforma-vod
-                        href={isAdmin ? "/admin/vod" : "/platforma-vod"}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
+                      <div
+                        aria-disabled="true"
+                        title="Platforma VOD jest w budowie"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-400 cursor-not-allowed select-none"
                       >
-                        <MonitorPlay size={18} />
+                        <span className="relative flex items-center justify-center shrink-0">
+                          <MonitorPlay size={18} />
+                          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-gray-400 flex items-center justify-center">
+                            <Lock size={8} weight="fill" className="text-white" />
+                          </span>
+                        </span>
                         Platforma VOD
-                      </Link>
+                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          W budowie
+                        </span>
+                      </div>
                     </motion.div>
 
                     {/* Wyjazdy */}
@@ -291,8 +298,8 @@ export function Navbar({ session }: NavbarProps) {
             </div>
           ) : (
             // PRZYCISK LOGOWANIA (NIEZALOGOWANY)
-            <Button variant="primary" href="/logowanie">
-              Platforma VOD
+            <Button variant="primary" href="/panel">
+              Twój panel
             </Button>
           )}
         </div>
@@ -428,11 +435,11 @@ export function Navbar({ session }: NavbarProps) {
                   </>
                 ) : (
                   <Link
-                    href="/logowanie"
+                    href="/panel"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center justify-between font-montserrat text-[18px] text-brand-primary py-3 px-4 font-semibold border-2 border-brand-primary/20 bg-brand-primary/5 rounded-xl transition-all hover:bg-brand-primary/10"
                   >
-                    Platforma VOD
+                    Twój panel
                     <div className="flex items-center justify-center rounded-full h-8 w-8 bg-brand-primary shadow-sm">
                       <svg
                         width="20"

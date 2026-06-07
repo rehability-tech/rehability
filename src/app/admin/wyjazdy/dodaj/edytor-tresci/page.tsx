@@ -181,7 +181,7 @@ function ContentEditorFormContent() {
         )}
       </AnimatePresence>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between max-[720px]:flex-col max-[720px]:text-center max-[720px]:mb-6">
         <div className="mb-6">
           <h2 className="text-[22px] md:text-[26px] font-jakarta font-bold text-[#0B3B4C]">
             Kreator: Edytor treści wyjazdu

@@ -13,6 +13,54 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 import { ParticipantCard } from "./_components/ParticipantCard";
+import {
+  groupIntoPackages,
+  isPaidBookingStatus,
+  packageLabel,
+  type PackageUnit,
+} from "@/lib/bookings/groupPackages";
+
+// Karta grupująca osoby jadące razem (zabierz przyjaciółkę).
+function PackageGroupCard({
+  members,
+  tripId,
+}: {
+  members: any[];
+  tripId: string;
+}) {
+  const allPaid = members.every((m) => isPaidBookingStatus(m.status));
+  return (
+    <div className="rounded-[26px] border border-brand-primary/15 bg-brand-primary/[0.04] p-3 sm:p-4">
+      <div className="flex items-center gap-2.5 px-1 pb-3">
+        <div className="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+          <UsersThree size={16} weight="fill" className="text-brand-primary" />
+        </div>
+        <span className="text-[12px] font-bold uppercase tracking-wider text-brand-primary">
+          {packageLabel(members.length)}
+        </span>
+        <span
+          className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+            allPaid
+              ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+              : "bg-amber-50 text-amber-600 border-amber-100"
+          }`}
+        >
+          {allPaid ? "Jadą razem" : "Oczekuje"}
+        </span>
+      </div>
+      <div className="flex flex-col gap-3">
+        {members.map((m, idx) => (
+          <ParticipantCard
+            key={m.id}
+            participant={m}
+            tripId={tripId}
+            index={idx}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type SortOption = "name_asc" | "name_desc" | "spent_desc" | "spent_asc";
 
@@ -192,45 +240,59 @@ export default function ParticipantsListPage() {
       .finally(() => setIsLoading(false));
   }, [tripId]);
 
-  const processedParticipants = useMemo(() => {
-    const filtered = participants.filter((p) => {
-      const term = search.toLowerCase();
+  // Grupujemy w pakiety (osoby jadące razem), potem filtrujemy/sortujemy jednostki —
+  // dzięki temu wyszukiwanie/sort nie rozbija pakietu.
+  const processedUnits = useMemo(() => {
+    const term = search.toLowerCase();
+    const matches = (p: any) => {
       const name = (p.name || p.user?.name || "").toLowerCase();
       const email = (p.email || p.user?.email || "").toLowerCase();
       return name.includes(term) || email.includes(term);
-    });
+    };
+    const spent = (p: any) =>
+      (p.amountPaid || 0) +
+      (p.serviceOrders?.reduce(
+        (sum: number, o: any) => sum + (o.price || 0),
+        0,
+      ) || 0);
+
+    const units = groupIntoPackages(participants);
+    const filtered = units.filter((u) =>
+      (u.kind === "single" ? [u.item] : u.members).some(matches),
+    );
+
+    const rep = (u: PackageUnit<any>) =>
+      u.kind === "single" ? u.item : u.members[0];
 
     return filtered.sort((a, b) => {
-      const nameA = (a.name || a.user?.name || "").toLowerCase();
-      const nameB = (b.name || b.user?.name || "").toLowerCase();
-
-      const spentA =
-        (a.amountPaid || 0) +
-        (a.serviceOrders?.reduce(
-          (sum: number, o: any) => sum + (o.price || 0),
-          0,
-        ) || 0);
-      const spentB =
-        (b.amountPaid || 0) +
-        (b.serviceOrders?.reduce(
-          (sum: number, o: any) => sum + (o.price || 0),
-          0,
-        ) || 0);
-
+      const ra = rep(a);
+      const rb = rep(b);
+      const nameA = (ra.name || ra.user?.name || "").toLowerCase();
+      const nameB = (rb.name || rb.user?.name || "").toLowerCase();
       switch (sortBy) {
         case "name_asc":
           return nameA.localeCompare(nameB);
         case "name_desc":
           return nameB.localeCompare(nameA);
         case "spent_desc":
-          return spentB - spentA;
+          return spent(rb) - spent(ra);
         case "spent_asc":
-          return spentA - spentB;
+          return spent(ra) - spent(rb);
         default:
           return 0;
       }
     });
   }, [participants, search, sortBy]);
+
+  // Liczba OSÓB (a nie jednostek) — do nagłówka/licznika.
+  const visiblePeopleCount = useMemo(
+    () =>
+      processedUnits.reduce(
+        (n, u) => n + (u.kind === "single" ? 1 : u.members.length),
+        0,
+      ),
+    [processedUnits],
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -238,10 +300,10 @@ export default function ParticipantsListPage() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(processedParticipants.length / itemsPerPage),
+    Math.ceil(processedUnits.length / itemsPerPage),
   );
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedParticipants = processedParticipants.slice(
+  const paginatedUnits = processedUnits.slice(
     startIndex,
     startIndex + itemsPerPage,
   );
@@ -285,10 +347,7 @@ export default function ParticipantsListPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200/60">
         {/* Kontener wycentrowany na mobile (items-center text-center) -> sm:items-start sm:text-left */}
         <div className="flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-5 w-full sm:w-auto">
-          <TripHeroPill
-            imageUrl={heroImage}
-            count={processedParticipants.length}
-          />
+          <TripHeroPill imageUrl={heroImage} count={visiblePeopleCount} />
 
           <div className="flex flex-col items-center sm:items-start mt-2 sm:mt-0">
             <h1 className="font-extrabold text-2xl md:text-3xl text-slate-900 tracking-tight mb-1">
@@ -327,21 +386,29 @@ export default function ParticipantsListPage() {
           LISTA KART (Uczestnicy)
           ========================================== */}
       <div className="flex flex-col gap-4 min-h-[400px]">
-        {paginatedParticipants.length === 0 ? (
+        {paginatedUnits.length === 0 ? (
           <div className="bg-white rounded-[24px] border border-slate-200 border-dashed p-12 text-center shadow-sm">
             <p className="text-slate-400 font-medium">
               Brak wyników wyszukiwania dla obecnych filtrów.
             </p>
           </div>
         ) : (
-          paginatedParticipants.map((p: any, i: number) => (
-            <ParticipantCard
-              key={p.id}
-              participant={p}
-              tripId={tripId}
-              index={i}
-            />
-          ))
+          paginatedUnits.map((unit, i: number) =>
+            unit.kind === "package" ? (
+              <PackageGroupCard
+                key={`pkg-${unit.members[0].id}`}
+                members={unit.members}
+                tripId={tripId}
+              />
+            ) : (
+              <ParticipantCard
+                key={unit.item.id}
+                participant={unit.item}
+                tripId={tripId}
+                index={i}
+              />
+            ),
+          )
         )}
       </div>
 

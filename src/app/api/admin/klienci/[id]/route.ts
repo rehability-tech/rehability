@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveLoyalty } from "@/lib/crm/loyalty";
+import { FEATURES } from "@/lib/featureFlags";
 import type {
   ClientBooking,
   ClientProfileData,
@@ -23,6 +24,13 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!FEATURES.customerBase) {
+    return NextResponse.json(
+      { error: "Funkcja „Baza klientów” jest obecnie niedostępna." },
+      { status: 503 },
+    );
+  }
+
   const { id } = await params;
   const session = await getServerSession(authOptions);
 

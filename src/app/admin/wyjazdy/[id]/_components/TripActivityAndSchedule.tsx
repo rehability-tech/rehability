@@ -45,6 +45,8 @@ interface Activity {
   kind: string;
   who: string;
   text: string;
+  // Pełny komunikat (z kwotą wpłaty itp.). Dla starych rekordów bywa = tripId.
+  meta?: string | null;
   createdAt: string;
 }
 
@@ -204,7 +206,7 @@ export function TripRecentActivity({ tripId }: { tripId: string }) {
         </div>
       </div>
 
-      <div className="flex-1 p-4 sm:p-6 relative z-10 overflow-y-auto custom-scrollbar">
+      <div className="h-[420px] shrink-0 p-4 sm:p-6 relative z-10 overflow-y-auto custom-scrollbar">
         {isLoadingActivities ? (
           <div className="flex flex-col items-center justify-center h-full text-brand-primary">
             <CircleNotch size={32} weight="bold" className="animate-spin mb-2" />
@@ -227,6 +229,9 @@ export function TripRecentActivity({ tripId }: { tripId: string }) {
                 addSuffix: true,
                 locale: pl,
               });
+              // `meta` zawiera pełny opis z kwotą; dla starych rekordów bywa = tripId.
+              const detail =
+                act.meta && act.meta !== tripId ? act.meta : act.text;
 
               return (
                 <div key={act.id} className="flex items-start gap-4">
@@ -255,7 +260,7 @@ export function TripRecentActivity({ tripId }: { tripId: string }) {
                       </span>
                     </div>
                     <span className="text-brand-secondary/60 font-medium text-[13px] leading-snug">
-                      {act.text}
+                      {detail}
                     </span>
                   </div>
                 </div>

@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCron } from "@/lib/auth/requireCron";
+import { runCron } from "@/lib/cron/runCron";
 
 // Cron: sprzątanie powiadomień, by tabela nie rosła w nieskończoność.
 //  - przeczytane starsze niż 30 dni → usuwane,
@@ -11,26 +10,21 @@ const HARD_TTL_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: Request) {
-  const auth = requireCron(req);
-  if (!auth.ok) return auth.response!;
+  return runCron(req, "notifications/cleanup", async () => {
+    const now = Date.now();
+    const readCutoff = new Date(now - READ_TTL_DAYS * DAY_MS);
+    const hardCutoff = new Date(now - HARD_TTL_DAYS * DAY_MS);
 
-  const now = Date.now();
-  const readCutoff = new Date(now - READ_TTL_DAYS * DAY_MS);
-  const hardCutoff = new Date(now - HARD_TTL_DAYS * DAY_MS);
+    const result = await prisma.notification.deleteMany({
+      where: {
+        OR: [
+          { isRead: true, createdAt: { lt: readCutoff } },
+          { createdAt: { lt: hardCutoff } },
+        ],
+      },
+    });
 
-  const result = await prisma.notification.deleteMany({
-    where: {
-      OR: [
-        { isRead: true, createdAt: { lt: readCutoff } },
-        { createdAt: { lt: hardCutoff } },
-      ],
-    },
-  });
-
-  return NextResponse.json({
-    ok: true,
-    checkedAt: new Date().toISOString(),
-    deleted: result.count,
+    return { checkedAt: new Date().toISOString(), deleted: result.count };
   });
 }
 

@@ -1,4 +1,6 @@
 import { getResend, EMAIL_FROM, getAppUrl } from "./resend";
+import { generateEmailHtml } from "@/components/email-editor/emailHtmlRenderer";
+import type { EmailSection } from "@/components/email-editor/lib/sections";
 
 export interface FriendInvitationParams {
   to: string;
@@ -17,6 +19,8 @@ export interface FriendInvitationParams {
   emailHeroImage?: string | null;
   emailHighlights?: Array<{ emoji: string; label: string }> | null;
   emailGallery?: string[] | null;
+  // Nowy format: sekcje z edytora (WYSIWYG). Gdy obecne — to ONE są wysyłane.
+  emailSections?: unknown;
 }
 
 // Maps Phosphor icon names (stored in DB) → emoji for email HTML rendering.
@@ -391,25 +395,48 @@ export async function sendFriendInvitationEmail(
     `Zaproszenie na wyjazd "${params.campName}" ✈️`;
   const subject = substituteVars(subjectTemplate, templateVars);
 
+  // ── Wybór renderera ─────────────────────────────────────────────────────────
+  // Jeśli wyjazd ma zapisane sekcje z edytora — renderujemy DOKŁADNIE ten e-mail
+  // (WYSIWYG, 1:1 z podglądem). W przeciwnym razie fallback na stary szablon.
+  const sections = Array.isArray(params.emailSections)
+    ? (params.emailSections as EmailSection[])
+    : [];
+
+  const html =
+    sections.length > 0
+      ? generateEmailHtml(sections, {
+          tripContext: {
+            title: params.campName,
+            description: "",
+            location: campLocation,
+            startDate: params.campStart.toISOString(),
+            endDate: params.campEnd.toISOString(),
+          },
+          inviterName: params.inviterName,
+          inviteeName: params.inviteeName,
+          invitationUrl: invitationLink,
+        })
+      : renderHtml({
+          inviteeName: params.inviteeName,
+          inviterName: params.inviterName,
+          campName: params.campName,
+          campDate,
+          campLocation,
+          invitationLink,
+          currentYear,
+          emailTitle,
+          body: rawBody,
+          buttonText,
+          heroImage,
+          highlights,
+          gallery,
+        });
+
   const { error } = await resend.emails.send({
     from: EMAIL_FROM,
     to: params.to,
     subject,
-    html: renderHtml({
-      inviteeName: params.inviteeName,
-      inviterName: params.inviterName,
-      campName: params.campName,
-      campDate,
-      campLocation,
-      invitationLink,
-      currentYear,
-      emailTitle,
-      body: rawBody,
-      buttonText,
-      heroImage,
-      highlights,
-      gallery,
-    }),
+    html,
     text: renderText({
       inviterName: params.inviterName,
       inviteeName: params.inviteeName,

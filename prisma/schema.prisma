@@ -463,3 +463,15 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  subject   String
+  sections  Json     @default("[]")
+  category  String   @default("general")
+  status    String   @default("DRAFT") // DRAFT | ACTIVE
+}

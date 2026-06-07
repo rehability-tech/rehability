@@ -1,32 +1,37 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { CaretLeft, CaretRight, CircleNotch, Sparkle } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowCounterClockwise,
+  CaretLeft,
+  CaretRight,
+  CircleNotch,
+} from "@phosphor-icons/react/dist/ssr";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
-import BlogCoverPicker from "@/app/admin/blog/dodaj/_components/BlogCoverPicker";
-
-import { useAutoSave } from "./_hooks/useAutoSave";
-import type { TripContext } from "./_lib/types";
-import { TEMPLATE_TAGS } from "./_lib/constants";
-import { pillStyle, templateToHtml, htmlToTemplate, parseLocation } from "./_lib/templateHelpers";
-import type { EmailSection } from "./_lib/sections";
+import EmailEditor, {
+  type EmailEditorHandle,
+} from "@/components/email-editor/EmailEditor";
+import AIChoiceModal from "@/components/email-editor/components/AIChoiceModal";
+import EmailEditorToolbar from "@/components/email-editor/components/EmailEditorToolbar";
+import EmailInboxPreviewModal from "@/components/email-editor/components/EmailInboxPreviewModal";
+import EmailGeneratingAnimation from "@/components/email-editor/components/EmailGeneratingAnimation";
 import {
-  createDefaultSections, migrateToSections, aiToSections, sectionsToLegacy,
-} from "./_lib/sections";
-
-import EmailComposerHeader from "./_components/EmailComposerHeader";
-import TemplateTagsBar from "./_components/TemplateTagsBar";
-import EmailPreview from "./_components/EmailPreview";
-import IconPickerPopover from "./_components/IconPickerPopover";
+  type EmailSection,
+  type TripContext,
+  aiToSections,
+  createDefaultSections,
+  migrateToSections,
+  sectionsToLegacy,
+} from "@/components/email-editor";
+import { parseLocation } from "@/components/email-editor/lib/templateHelpers";
+import { useAutoSave } from "@/components/email-editor/hooks/useAutoSave";
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-type GalleryPickerState = { sectionId: string; slotIdx: number } | null;
-type IconPickerState = { sectionId: string; iconIdx: number; pos: { x: number; y: number } } | null;
 
 function ZaproszeniaContent() {
   const searchParams = useSearchParams();
@@ -37,72 +42,55 @@ function ZaproszeniaContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [previewInviterName, setPreviewInviterName] = useState("Anna Nowak");
-  const [previewInviteeName, setPreviewInviteeName] = useState("Ania Kowalska");
-
-  // Sections = the entire email structure
   const [sections, setSections] = useState<EmailSection[]>([]);
+  const [loadedSubject, setLoadedSubject] = useState(
+    "Zaproszenie na wspólny wyjazd Rehability ✈️",
+  );
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
-  // Email subject (metadata, not a section)
-  const subjectRef = useRef<HTMLDivElement>(null);
-  const lastFocusedEditorRef = useRef<HTMLElement | null>(null);
-
-  const [galleryPicker, setGalleryPicker] = useState<GalleryPickerState>(null);
-  const [iconPicker, setIconPicker] = useState<IconPickerState>(null);
-  const [heroPicker, setHeroPicker] = useState<string | null>(null);
-
+  const editorRef = useRef<EmailEditorHandle>(null);
   const tripContextRef = useRef<TripContext>({
-    title: "", description: "", location: "", startDate: "", endDate: "",
+    title: "",
+    description: "",
+    location: "",
+    startDate: "",
+    endDate: "",
   });
+  const heroImageRef = useRef("");
 
-  const loadedSubjectRef = useRef("Zaproszenie na wspólny wyjazd Rehability ✈️");
-  const heroImageRef = useRef(""); // used for AI generation → new sections
+  // ── AI generation ──────────────────────────────────────────────────────────
 
-  const getPreviewValues = useCallback(
-    (): Record<string, string> => ({
-      inviterName: previewInviterName,
-      campName: tripContextRef.current.title || "Nazwa wyjazdu",
-      inviteeName: previewInviteeName,
-    }),
-    [previewInviterName, previewInviteeName],
+  const runAiGeneration = useCallback(
+    async (tripData: TripContext, heroImage: string) => {
+      setIsGenerating(true);
+      try {
+        const res = await fetch("/api/admin/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generateInvitationEmail",
+            prompt: `Tytuł wyjazdu: ${tripData.title}\nOpis: ${tripData.description || "brak"}\nLokalizacja: ${tripData.location || "brak"}\nDaty: ${tripData.startDate || "do ustalenia"}`,
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Błąd AI");
+        setSections(aiToSections(result, heroImage));
+        if (result.subject) setLoadedSubject(result.subject);
+        toast.success("Treść e-maila wygenerowana przez AI!");
+      } catch {
+        setSections(createDefaultSections());
+        toast.error(
+          "Nie udało się wygenerować treści AI. Załadowano domyślny szablon.",
+        );
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [],
   );
 
-  // ── SECTION UPDATE ─────────────────────────────────────────────────────────
-
-  const updateSection = useCallback((id: string, update: Partial<EmailSection>) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === id ? ({ ...s, ...update } as EmailSection) : s)),
-    );
-  }, []);
-
-  // ── FETCH ──────────────────────────────────────────────────────────────────
-
-  const runAiGeneration = useCallback(async (tripData: TripContext, heroImage: string) => {
-    setIsGenerating(true);
-    try {
-      const res = await fetch("/api/admin/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "generateInvitationEmail",
-          prompt: `Tytuł wyjazdu: ${tripData.title}\nOpis: ${tripData.description || "brak"}\nLokalizacja: ${tripData.location || "brak"}\nDaty: ${tripData.startDate || "do ustalenia"}`,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Błąd AI");
-      setSections(aiToSections(result, heroImage));
-      if (result.subject && subjectRef.current) {
-        subjectRef.current.innerHTML = templateToHtml(result.subject, getPreviewValues());
-      }
-      toast.success("Treść e-maila wygenerowana przez AI!");
-    } catch {
-      // Fallback to defaults on AI error
-      setSections(createDefaultSections());
-      toast.error("Nie udało się wygenerować treści AI. Załadowano domyślny szablon.");
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [getPreviewValues]);
+  // ── Fetch trip data ────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!tripId) {
@@ -125,41 +113,46 @@ function ZaproszeniaContent() {
           endDate: data.endDate ?? "",
         };
 
-        const heroImage: string = data.invitationEmailHeroImage ?? data.heroImage ?? "";
+        const heroImage: string =
+          data.invitationEmailHeroImage ?? data.heroImage ?? "";
         heroImageRef.current = heroImage;
 
-        // 1) Existing sections JSON → use directly
-        if (Array.isArray(data.invitationEmailSections) && data.invitationEmailSections.length > 0) {
+        if (
+          Array.isArray(data.invitationEmailSections) &&
+          data.invitationEmailSections.length > 0
+        ) {
           setSections(data.invitationEmailSections as EmailSection[]);
-
-        // 2) Old flat fields exist → migrate to sections
         } else if (data.invitationEmailBody || data.invitationEmailTitle) {
-          setSections(migrateToSections({
-            invitationEmailTitle: data.invitationEmailTitle,
-            invitationEmailBody: data.invitationEmailBody,
-            invitationEmailButtonText: data.invitationEmailButtonText,
-            invitationEmailHeroImage: heroImage,
-            invitationEmailHighlights: Array.isArray(data.invitationEmailHighlights)
-              ? data.invitationEmailHighlights
-              : null,
-            invitationEmailGallery: Array.isArray(data.invitationEmailGallery)
-              ? data.invitationEmailGallery
-              : null,
-          }));
-
-        // 3) No existing content → auto-generate with Gemini
+          setSections(
+            migrateToSections({
+              invitationEmailTitle: data.invitationEmailTitle,
+              invitationEmailBody: data.invitationEmailBody,
+              invitationEmailButtonText: data.invitationEmailButtonText,
+              invitationEmailHeroImage: heroImage,
+              invitationEmailHighlights: Array.isArray(
+                data.invitationEmailHighlights,
+              )
+                ? data.invitationEmailHighlights
+                : null,
+              invitationEmailGallery: Array.isArray(data.invitationEmailGallery)
+                ? data.invitationEmailGallery
+                : null,
+            }),
+          );
         } else {
-          setIsFetching(false);
-          await runAiGeneration(tripContextRef.current, heroImage);
-          return;
+          // No sections/body — only show the popup if there's truly no trace of a previous visit
+          const firstEverVisit =
+            !data.lastStage && !data.invitationEmailHeroImage;
+          if (firstEverVisit) {
+            setShowAIModal(true);
+          } else {
+            // User was here before but content was cleared / never saved — load defaults silently
+            setSections(createDefaultSections());
+          }
         }
 
-        // Initialize subject contentEditable
-        const subject = data.invitationEmailSubject ?? loadedSubjectRef.current;
-        loadedSubjectRef.current = subject;
-        if (subjectRef.current) {
-          subjectRef.current.innerHTML = templateToHtml(subject, getPreviewValues());
-        }
+        if (data.invitationEmailSubject)
+          setLoadedSubject(data.invitationEmailSubject);
       } catch {
         toast.error("Nie udało się załadować ustawień e-maila.");
         setSections(createDefaultSections());
@@ -167,35 +160,14 @@ function ZaproszeniaContent() {
         setIsFetching(false);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, router]);
 
-  // Subject init after isFetching resolves (subjectRef might not be mounted during fetch)
-  useEffect(() => {
-    if (!isFetching && subjectRef.current && !subjectRef.current.innerHTML) {
-      subjectRef.current.innerHTML = templateToHtml(loadedSubjectRef.current, getPreviewValues());
-    }
-  }, [isFetching, getPreviewValues]);
-
-  // ── PILL SYNC for subject ──────────────────────────────────────────────────
-
-  useEffect(() => {
-    subjectRef.current?.querySelectorAll<HTMLElement>('[data-tag="inviterName"]').forEach((span) => {
-      span.textContent = previewInviterName;
-    });
-  }, [previewInviterName]);
-
-  useEffect(() => {
-    subjectRef.current?.querySelectorAll<HTMLElement>('[data-tag="inviteeName"]').forEach((span) => {
-      span.textContent = previewInviteeName;
-    });
-  }, [previewInviteeName]);
-
-  // ── SAVE (data only, no redirect) ─────────────────────────────────────────
+  // ── Save ───────────────────────────────────────────────────────────────────
 
   const saveData = useCallback(async () => {
     if (!tripId || sections.length === 0) return;
-    const subject = subjectRef.current ? htmlToTemplate(subjectRef.current) : loadedSubjectRef.current;
+    const subject = editorRef.current?.getSubjectTemplate() ?? loadedSubject;
     const payload = sectionsToLegacy(sections, subject);
 
     const res = await fetch(`/api/admin/wyjazdy/${tripId}/invitation-email`, {
@@ -205,9 +177,12 @@ function ZaproszeniaContent() {
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || "Błąd zapisu");
-  }, [tripId, sections]);
+  }, [tripId, sections, loadedSubject]);
 
-  const { schedule: scheduleAutoSave, status: autoSaveStatus } = useAutoSave(saveData);
+  const { schedule: scheduleAutoSave, status: autoSaveStatus } = useAutoSave(
+    saveData,
+    5_000,
+  );
 
   const save = useCallback(async () => {
     if (!tripId) return;
@@ -223,248 +198,191 @@ function ZaproszeniaContent() {
     }
   }, [tripId, saveData, router]);
 
-  // ── MANUAL AI GENERATION ──────────────────────────────────────────────────
+  // Zapis z toolbara — pokazuje loader, ale NIE przechodzi dalej (zostaje w edytorze).
+  const saveInPlace = useCallback(async () => {
+    if (!tripId) return;
+    setIsSaving(true);
+    try {
+      await saveData();
+      toast.success("Zapisano!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Błąd serwera.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [tripId, saveData]);
 
-  const generateWithAI = useCallback(async () => {
-    const { title } = tripContextRef.current;
-    if (!title) {
+  // ── AI modal handlers ──────────────────────────────────────────────────────
+
+  const handleModalAI = useCallback(async () => {
+    if (!tripContextRef.current.title) {
       toast.error("Brak danych wyjazdu. Najpierw zapisz dane podstawowe.");
       return;
     }
+    setShowAIModal(false);
     await runAiGeneration(tripContextRef.current, heroImageRef.current);
   }, [runAiGeneration]);
 
-  // ── TAG INSERTION ─────────────────────────────────────────────────────────
+  const handleModalManual = useCallback(() => {
+    setShowAIModal(false);
+    setSections(createDefaultSections());
+  }, []);
 
-  const insertTag = useCallback(
-    (tagName: string) => {
-      const el = lastFocusedEditorRef.current;
-      if (!el) {
-        toast.info("Kliknij najpierw w pole, do którego chcesz wstawić zmienną.");
-        return;
-      }
-      const tagDef = TEMPLATE_TAGS.find((t) => t.name === tagName);
-      if (!tagDef) return;
+  // ── Reset email in DB ─────────────────────────────────────────────────────
 
-      const values = getPreviewValues();
-      const pill = document.createElement("span");
-      pill.setAttribute("contenteditable", "false");
-      pill.setAttribute("data-tag", tagName);
-      pill.textContent = values[tagName] ?? tagName;
-      pill.style.cssText = pillStyle(tagDef);
+  const resetEmail = useCallback(async () => {
+    if (!tripId) return;
+    try {
+      await fetch(`/api/admin/wyjazdy/${tripId}/invitation-email`, {
+        method: "DELETE",
+      });
+      setSections([]);
+      setShowAIModal(true);
+      toast.success("E-mail zresetowany.");
+    } catch {
+      toast.error("Błąd resetowania.");
+    }
+  }, [tripId]);
 
-      el.focus();
-      const sel = window.getSelection();
-      if (sel?.rangeCount && el.contains(sel.getRangeAt(0).commonAncestorContainer)) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(pill);
-        range.setStartAfter(pill);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      } else {
-        el.appendChild(pill);
-      }
-      scheduleAutoSave();
-    },
-    [getPreviewValues, scheduleAutoSave],
-  );
-
-  // ── PICKER CALLBACKS ──────────────────────────────────────────────────────
-
-  const handleGalleryPickerSelect = useCallback(
-    (url: string) => {
-      if (!galleryPicker) return;
-      const { sectionId, slotIdx } = galleryPicker;
-      const section = sections.find((s) => s.id === sectionId);
-      if (!section || section.type !== "gallery") return;
-      const images = section.images.map((img, i) => (i === slotIdx ? url : img));
-      updateSection(sectionId, { images });
-      setGalleryPicker(null);
-      scheduleAutoSave();
-    },
-    [galleryPicker, sections, updateSection, scheduleAutoSave],
-  );
-
-  const handleHeroPickerSelect = useCallback(
-    (url: string) => {
-      if (!heroPicker) return;
-      updateSection(heroPicker, { image: url });
-      setHeroPicker(null);
-      scheduleAutoSave();
-    },
-    [heroPicker, updateSection, scheduleAutoSave],
-  );
-
-  const handleIconPickerSelect = useCallback(
-    (name: string) => {
-      if (!iconPicker) return;
-      const { sectionId, iconIdx } = iconPicker;
-      const section = sections.find((s) => s.id === sectionId);
-      if (!section || section.type !== "highlights") return;
-      const icons = section.icons.map((icon, i) => (i === iconIdx ? name : icon));
-      updateSection(sectionId, { icons });
-      setIconPicker(null);
-      scheduleAutoSave();
-    },
-    [iconPicker, sections, updateSection, scheduleAutoSave],
-  );
-
-  // ── RENDER ────────────────────────────────────────────────────────────────
+  // ── Loading screens ────────────────────────────────────────────────────────
 
   if (isFetching) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <CircleNotch size={40} weight="bold" className="text-brand-primary animate-spin mb-4" />
-        <p className="text-gray-500 font-montserrat font-medium">Ładowanie szablonu e-maila...</p>
+        <CircleNotch
+          size={40}
+          weight="bold"
+          className="text-brand-primary animate-spin mb-4"
+        />
+        <p className="text-gray-500 font-montserrat font-medium">
+          Ładowanie szablonu e-maila...
+        </p>
       </div>
     );
   }
 
-  if (isGenerating && sections.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Sparkle size={36} weight="fill" className="text-[#287d88] mb-4 animate-pulse" />
-        <p className="text-gray-600 font-montserrat font-semibold">Gemini analizuje wyjazd i generuje treść e-maila...</p>
-        <p className="text-gray-400 font-montserrat text-sm mt-1">Chwila cierpliwości</p>
-      </div>
-    );
-  }
-
-  const currentIconSection = iconPicker
-    ? (sections.find((s) => s.id === iconPicker.sectionId) as Extract<EmailSection, { type: "highlights" }> | undefined)
-    : undefined;
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="relative animate-in fade-in duration-500 pb-4">
+      {/* Portale — poza warstwą blur */}
+      <AIChoiceModal
+        isOpen={showAIModal}
+        onAI={handleModalAI}
+        onManual={handleModalManual}
+        showWarning={sections.length > 0}
+      />
+      <EmailInboxPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        sections={sections}
+        subject={editorRef.current?.getSubjectTemplate() ?? loadedSubject}
+        tripContext={tripContextRef.current}
+        previewInviterName="Anna Nowak"
+        previewInviteeName="Ania Kowalska"
+      />
 
-      {/* ── NAGŁÓWEK ── */}
-      <div className="mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-jakarta font-bold text-[#0B3B4C]">E-mail zaproszenia</h2>
-          <p className="text-sm text-gray-400 font-montserrat mt-1">
-            Kliknij tekst, aby edytować. Przeciągaj sekcje ⠿, dodawaj nowe na dole.
-          </p>
+      {/* ── Warstwa treści — blur podczas generacji ───────────────────────── */}
+      <motion.div
+        animate={{
+          filter:  isGenerating ? "blur(6px)" : "blur(0px)",
+          opacity: isGenerating ? 0.45        : 1,
+        }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        style={{ pointerEvents: isGenerating ? "none" : undefined }}
+      >
+        {/* Mobile sticky toolbar */}
+        <div className="md:hidden sticky top-[64px] z-40">
+          <EmailEditorToolbar
+            onSave={saveInPlace}
+            isSaving={isSaving}
+            autoSaveStatus={autoSaveStatus}
+            onAiClick={() => setShowAIModal(true)}
+            onPreviewClick={() => setShowPreview(true)}
+          />
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          {autoSaveStatus !== "idle" && (
-            <span className="text-[11px] font-montserrat font-semibold text-gray-400 flex items-center gap-1">
-              {autoSaveStatus === "pending" && "⟳ autozapis…"}
-              {autoSaveStatus === "saving" && (
-                <>
-                  <CircleNotch size={11} weight="bold" className="animate-spin" />
-                  Zapisuję…
-                </>
-              )}
-              {autoSaveStatus === "saved" && "✓ Autozapisano"}
-            </span>
-          )}
+        {/* Header */}
+        <div className="mt-3 md:mt-0 mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-jakarta font-bold text-[#0B3B4C]">
+              E-mail zaproszenia
+            </h2>
+            <p className="text-sm text-gray-400 font-montserrat mt-1">
+              Kliknij tekst, aby edytować. Dodawaj i przesuwaj sekcje.
+            </p>
+          </div>
           <button
             type="button"
-            onClick={generateWithAI}
-            disabled={isGenerating}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-[12px] font-semibold text-sm border border-[#287d88]/30 text-[#287d88] bg-[#287d88]/5 hover:bg-[#287d88]/10 transition-colors disabled:opacity-50"
+            onClick={resetEmail}
+            className="self-start flex items-center gap-1.5 text-[11px] font-montserrat font-semibold text-gray-300 hover:text-red-400 transition-colors"
           >
-            {isGenerating
-              ? <CircleNotch size={16} weight="bold" className="animate-spin" />
-              : <Sparkle size={16} weight="fill" />}
-            Generuj treść AI
+            <ArrowCounterClockwise size={13} weight="bold" />
+            Resetuj e-mail
           </button>
         </div>
-      </div>
 
-      {/* ── EMAIL COMPOSER HEADER ── */}
-      <EmailComposerHeader
-        subjectRef={subjectRef}
-        previewInviterName={previewInviterName}
-        setPreviewInviterName={setPreviewInviterName}
-        previewInviteeName={previewInviteeName}
-        setPreviewInviteeName={setPreviewInviteeName}
-        onFocusEditor={(el) => { lastFocusedEditorRef.current = el; }}
-        onInput={scheduleAutoSave}
-      />
+        {/* Email editor + Desktop pill */}
+        <div className="relative">
+          <div className="md:pr-14">
+            <EmailEditor
+              ref={editorRef}
+              sections={sections}
+              onSectionsChange={setSections}
+              initialSubject={loadedSubject}
+              tripContext={tripContextRef.current}
+              onInput={scheduleAutoSave}
+            />
+          </div>
+          <div className="hidden md:block absolute top-0 bottom-0 right-0 w-14 pointer-events-none">
+            <EmailEditorToolbar
+              onSave={saveInPlace}
+              isSaving={isSaving}
+              autoSaveStatus={autoSaveStatus}
+              onAiClick={() => setShowAIModal(true)}
+              onPreviewClick={() => setShowPreview(true)}
+            />
+          </div>
+        </div>
 
-      {/* ── PASEK ZMIENNYCH ── */}
-      <TemplateTagsBar onInsert={insertTag} />
+        {/* Navigation */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gray-100">
+          <Link
+            href={`/admin/wyjazdy/dodaj/edytor-tresci${tripId ? `?id=${tripId}` : ""}`}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto"
+          >
+            <CaretLeft size={18} weight="bold" />
+            Wstecz
+          </Link>
+          <Button
+            onClick={save}
+            isLoading={isSaving}
+            disabled={isSaving}
+            rightIcon={<CaretRight size={18} weight="bold" />}
+            className="w-full sm:w-auto"
+          >
+            Zapisz i przejdź dalej
+          </Button>
+        </div>
+      </motion.div>
 
-      {/* ── EMAIL INLINE PREVIEW / EDITOR ── */}
-      <EmailPreview
-        sections={sections}
-        onSectionsChange={(updated) => { setSections(updated); scheduleAutoSave(); }}
-        tripContext={tripContextRef.current}
-        previewValues={getPreviewValues()}
-        previewInviterName={previewInviterName}
-        onFocusEditor={(el) => { lastFocusedEditorRef.current = el; }}
-        onInput={scheduleAutoSave}
-        onOpenIconPicker={(sectionId, iconIdx, rect) => {
-          setIconPicker({
-            sectionId,
-            iconIdx,
-            pos: {
-              x: Math.max(8, Math.min(rect.left - 60, window.innerWidth - 320)),
-              y: rect.bottom + 8,
-            },
-          });
-        }}
-        onOpenGalleryPicker={(sectionId, slotIdx) => setGalleryPicker({ sectionId, slotIdx })}
-        onOpenHeroPicker={(sectionId) => setHeroPicker(sectionId)}
-      />
-
-      {/* ── NAWIGACJA ── */}
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gray-100">
-        <Link
-          href={`/admin/wyjazdy/dodaj/edytor-tresci${tripId ? `?id=${tripId}` : ""}`}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto"
-        >
-          <CaretLeft size={18} weight="bold" />
-          Wstecz
-        </Link>
-        <Button
-          onClick={save}
-          isLoading={isSaving}
-          disabled={isSaving}
-          rightIcon={<CaretRight size={18} weight="bold" />}
-          className="w-full sm:w-auto"
-        >
-          Zapisz i przejdź dalej
-        </Button>
-      </div>
-
-      {/* ── PICKERS ── */}
-
-      {/* Gallery image picker */}
-      <BlogCoverPicker
-        isOpen={galleryPicker !== null}
-        onClose={() => setGalleryPicker(null)}
-        onSelect={handleGalleryPickerSelect}
-        defaultQuery={tripContextRef.current.title}
-        heading={`Klimat wyjazdu — zdjęcie ${galleryPicker ? galleryPicker.slotIdx + 1 : ""}`}
-        subheading="Zaciągnij zdjęcie z Pexels albo wgraj własne."
-        uploadEndpoint="/api/admin/blog/upload"
-      />
-
-      {/* Hero image picker */}
-      <BlogCoverPicker
-        isOpen={heroPicker !== null}
-        onClose={() => setHeroPicker(null)}
-        onSelect={handleHeroPickerSelect}
-        defaultQuery={tripContextRef.current.title}
-        heading="Zdjęcie hero e-maila"
-        subheading="Zaciągnij zdjęcie z Pexels albo wgraj własne."
-        uploadEndpoint="/api/admin/blog/upload"
-      />
-
-      {/* Icon picker */}
-      {iconPicker !== null && currentIconSection && (
-        <IconPickerPopover
-          selectedIcon={currentIconSection.icons[iconPicker.iconIdx] ?? "Sparkle"}
-          position={iconPicker.pos}
-          onSelect={handleIconPickerSelect}
-          onClose={() => setIconPicker(null)}
-        />
-      )}
+      {/* ── Overlay z animacją generacji ──────────────────────────────────── */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div
+            key="generating-overlay"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="absolute inset-0 z-30 flex items-start md:pr-14"
+          >
+            <div className="w-full">
+              <EmailGeneratingAnimation />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -474,7 +392,11 @@ export default function ZaproszeniaCampPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[400px]">
-          <CircleNotch size={40} weight="bold" className="text-brand-primary animate-spin" />
+          <CircleNotch
+            size={40}
+            weight="bold"
+            className="text-brand-primary animate-spin"
+          />
         </div>
       }
     >

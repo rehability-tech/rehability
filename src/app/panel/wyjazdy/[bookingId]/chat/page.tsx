@@ -42,6 +42,7 @@ export default async function ChatPage({ params }: Props) {
         variant="panel"
         title={`Czat · ${booking.trip.title}`}
         subtitle="Pisz z organizatorem i pozostałymi uczestniczkami"
+        chatLink={`/panel/wyjazdy/${bookingId}/chat`}
       />
     </div>
   );

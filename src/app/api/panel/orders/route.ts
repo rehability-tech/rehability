@@ -164,7 +164,6 @@ export async function POST(req: NextRequest) {
           slotStartMs = blockStartMs;
           slotEndMs = blockEndMs;
         }
-        console.log(service);
 
         const order = await tx.serviceOrder.create({
           data: {
@@ -298,7 +297,7 @@ export async function POST(req: NextRequest) {
       // Nieznany błąd — loguj pełny stack do terminala, żebyśmy widzieli przyczynę.
       console.error("[POST /api/panel/orders] Unhandled error:", e);
       return NextResponse.json(
-        { error: "Nie udało się zarezerwować.", debug: msg },
+        { error: "Nie udało się zarezerwować." },
         { status: 500 },
       );
     }

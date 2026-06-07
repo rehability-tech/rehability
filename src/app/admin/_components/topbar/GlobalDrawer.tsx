@@ -8,6 +8,7 @@ import {
   Article,
   CaretRight,
   House,
+  Lock,
   PlayCircle,
   SignOut,
   SquaresFour,
@@ -36,6 +37,7 @@ const drawerSections = [
     href: "/admin/vod",
     icon: PlayCircle,
     iconBg: "bg-brand-yellow/30 text-brand-secondary",
+    disabled: true, // w budowie — bez nawigacji
   },
   {
     label: "Blog i Treści",
@@ -121,46 +123,69 @@ export default function GlobalDrawer({ open, onClose, user }: Props) {
                       show: { opacity: 1, x: 0 },
                     }}
                   >
-                    <Link
-                      href={item.href}
-                      onClick={onClose}
-                      className={`group flex items-center gap-4 p-3.5 rounded-2xl transition shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] ${
-                        item.highlight
-                          ? `bg-gradient-to-br ${item.accent} text-white hover:shadow-[0_12px_30px_-8px_rgba(40,125,136,0.55)]`
-                          : "bg-white/70 backdrop-blur-md border border-white/40 hover:bg-white"
-                      }`}
-                    >
+                    {item.disabled ? (
                       <div
-                        className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg}`}
+                        aria-disabled="true"
+                        title="Platforma VOD jest w budowie"
+                        className="flex items-center gap-4 p-3.5 rounded-2xl bg-white/40 border border-white/30 opacity-70 cursor-not-allowed select-none"
                       >
-                        <item.icon size={20} weight="duotone" />
-                      </div>
-                      <div className="flex-1">
-                        <p
-                          className={`font-jakarta font-bold text-[14px] ${
-                            item.highlight
-                              ? "text-white"
-                              : "text-brand-secondary"
-                          }`}
-                        >
-                          {item.label}
-                        </p>
-                        {item.highlight && (
-                          <p className="text-[11px] text-white/70 mt-0.5">
-                            Wybierz inny moduł
+                        <div className="relative w-11 h-11 rounded-xl flex items-center justify-center bg-brand-secondary/5 text-brand-secondary/40">
+                          <item.icon size={20} weight="duotone" />
+                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-secondary/70 flex items-center justify-center shadow-[0_2px_6px_0px_rgba(3,63,99,0.3)]">
+                            <Lock size={9} weight="fill" className="text-white" />
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-jakarta font-bold text-[14px] text-brand-secondary/50">
+                            {item.label}
                           </p>
-                        )}
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-brand-secondary/40">
+                          W budowie
+                        </span>
                       </div>
-                      <CaretRight
-                        size={16}
-                        weight="bold"
-                        className={
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={onClose}
+                        className={`group flex items-center gap-4 p-3.5 rounded-2xl transition shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] ${
                           item.highlight
-                            ? "text-white/80"
-                            : "text-brand-secondary/40 group-hover:text-brand-primary"
-                        }
-                      />
-                    </Link>
+                            ? `bg-gradient-to-br ${item.accent} text-white hover:shadow-[0_12px_30px_-8px_rgba(40,125,136,0.55)]`
+                            : "bg-white/70 backdrop-blur-md border border-white/40 hover:bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg}`}
+                        >
+                          <item.icon size={20} weight="duotone" />
+                        </div>
+                        <div className="flex-1">
+                          <p
+                            className={`font-jakarta font-bold text-[14px] ${
+                              item.highlight
+                                ? "text-white"
+                                : "text-brand-secondary"
+                            }`}
+                          >
+                            {item.label}
+                          </p>
+                          {item.highlight && (
+                            <p className="text-[11px] text-white/70 mt-0.5">
+                              Wybierz inny moduł
+                            </p>
+                          )}
+                        </div>
+                        <CaretRight
+                          size={16}
+                          weight="bold"
+                          className={
+                            item.highlight
+                              ? "text-white/80"
+                              : "text-brand-secondary/40 group-hover:text-brand-primary"
+                          }
+                        />
+                      </Link>
+                    )}
                   </motion.li>
                 ))}
               </motion.ul>

@@ -32,7 +32,7 @@ const BASE_STEPS = [
   },
   {
     id: 3,
-    name: "Zaproszenia",
+    name: "E-mail",
     path: "/admin/wyjazdy/dodaj/zaproszenia",
     pathKey: "zaproszenia",
     icon: Envelope,
@@ -66,29 +66,39 @@ function StepperContent() {
   const tripId = searchParams.get("id");
 
   const [allowBringFriend, setAllowBringFriend] = useState(false);
+  const [lastStage, setLastStage] = useState<string | null>(null);
 
-  // Pobierz allowBringFriend gdy mamy ID wyjazdu
   useEffect(() => {
     if (!tripId) {
       setAllowBringFriend(false);
+      setLastStage(null);
       return;
     }
     fetch(`/api/admin/wyjazdy/${tripId}`)
       .then((r) => r.json())
-      .then((data) => setAllowBringFriend(!!data.allowBringFriend))
-      .catch(() => setAllowBringFriend(false));
+      .then((data) => {
+        setAllowBringFriend(!!data.allowBringFriend);
+        setLastStage(data.lastStage ?? null);
+      })
+      .catch(() => { setAllowBringFriend(false); setLastStage(null); });
   }, [tripId]);
 
-  // Filtrujemy kroki: krok "Zaproszenia" jest widoczny tylko gdy allowBringFriend
+  // Filtrujemy kroki: krok "E-mail" widoczny tylko gdy allowBringFriend
   const steps = BASE_STEPS.filter(
     (s) => !s.conditional || allowBringFriend,
   );
 
-  // Wyznaczamy aktywny krok na podstawie pathname
+  // Aktywny krok na podstawie pathname
   const currentStepIndex = steps.findIndex((s) =>
     pathname.includes(`/${s.pathKey}`),
   );
   const activeIndex = currentStepIndex === -1 ? 0 : currentStepIndex;
+
+  // Najwyższy osiągnięty krok — na podstawie lastStage (trwałe, nie gubi się przy cofaniu)
+  const lastStageIndex = lastStage
+    ? steps.findIndex((s) => s.pathKey === lastStage)
+    : -1;
+  const maxReachedIndex = Math.max(activeIndex, lastStageIndex);
 
   const handleStepClick = (
     stepIndex: number,
@@ -116,7 +126,7 @@ function StepperContent() {
 
         {/* Kółka poszczególnych kroków */}
         {steps.map((step, index) => {
-          const isCompleted = index < activeIndex;
+          const isCompleted = index < maxReachedIndex;
           const isCurrent = index === activeIndex;
           const isLocked = step.requiresId && !tripId;
           const Icon = step.icon;

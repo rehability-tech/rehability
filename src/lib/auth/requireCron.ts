@@ -6,7 +6,9 @@ import { devLog } from "@/lib/devLog";
 // Set CRON_SECRET in .env. Cron callers must send it as either:
 //   Authorization: Bearer <token>
 //   x-cron-secret: <token>
-//   ?secret=<token>           (query string)
+//
+// UWAGA: sekret w query stringu (?secret=) jest świadomie NIEobsługiwany —
+// query trafia do logów serwera/proxy/CDN i sekret mógłby wyciec.
 //
 // If CRON_SECRET is unset in development we LOG A WARNING and allow the call
 // so the endpoints stay testable locally. Production deploys MUST set it.
@@ -42,13 +44,12 @@ export function requireCron(req: Request): CronAuthResult {
   const url = new URL(req.url);
   const headerAuth = req.headers.get("authorization") ?? "";
   const headerX = req.headers.get("x-cron-secret") ?? "";
-  const querySecret = url.searchParams.get("secret") ?? "";
 
   const bearer = headerAuth.toLowerCase().startsWith("bearer ")
     ? headerAuth.slice(7).trim()
     : "";
 
-  const provided = bearer || headerX || querySecret;
+  const provided = bearer || headerX;
 
   if (provided && timingSafeEqual(provided, secret)) {
     return { ok: true };
@@ -60,7 +61,7 @@ export function requireCron(req: Request): CronAuthResult {
     devLog.log("PROVIDED", headerAuth);
 
     console.warn(
-      `[cron 401] Odrzucono żądanie do ${url.pathname}: Nie podano hasła CRON_SECRET (brak w nagłówkach i query stringu).`,
+      `[cron 401] Odrzucono żądanie do ${url.pathname}: Nie podano hasła CRON_SECRET (brak w nagłówkach Authorization / x-cron-secret).`,
     );
   } else {
     console.warn(

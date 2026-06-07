@@ -57,7 +57,7 @@ export const tripSchema = z.object({
 // SCHEMAT E-MAILA ZAPROSZENIA
 // ==========================================
 export const tripInvitationEmailHighlightSchema = z.object({
-  emoji: z.string().max(10),
+  emoji: z.string().max(30),
   label: z.string().max(60),
 });
 

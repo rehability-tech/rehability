@@ -191,7 +191,7 @@ function BlockEditorCardBase({
 
       <div
         className={cn(
-          "w-full pr-16 mt-1 transition-opacity duration-500",
+          "w-full lg:pr-16 mt-1 transition-opacity duration-500",
           block.isGenerating && "opacity-40 pointer-events-none",
         )}
       >

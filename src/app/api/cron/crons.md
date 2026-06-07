@@ -5,17 +5,35 @@ Spis wszystkich zadań cyklicznych (`/api/cron/**`) z zalecaną częstotliwości
 ## Autoryzacja (wszystkie endpointy)
 
 Każdy cron chroniony jest przez `requireCron` ([src/lib/auth/requireCron.ts](../../../lib/auth/requireCron.ts)).
-Ustaw `CRON_SECRET` w env i przekazuj go w jeden z trzech sposobów:
+Ustaw `CRON_SECRET` w env i przekazuj go w nagłówku (sekret w query stringu
+NIE jest obsługiwany — trafiałby do logów serwera/proxy):
 
 ```
 Authorization: Bearer <CRON_SECRET>
 x-cron-secret: <CRON_SECRET>
-?secret=<CRON_SECRET>            # w query stringu
 ```
 
 - Brak `CRON_SECRET` na **produkcji** → endpoint zwraca 503 (odmowa).
 - Brak `CRON_SECRET` lokalnie (dev) → przepuszcza z ostrzeżeniem (do testów).
 - Każdy cron obsługuje **GET i POST** (część schedulerów woli GET).
+
+## Odporność na awarie (retry + alert)
+
+Wszystkie endpointy przechodzą przez wspólny wrapper `runCron` ([src/lib/cron/runCron.ts](../../../lib/cron/runCron.ts)):
+
+1. **Retry połączenia** — operacje DB owinięte w `withDbRetry` ([src/lib/prisma.ts](../../../lib/prisma.ts)). Ponawia **tylko** błędy połączenia (P1001/P1002/P1008/P1017 itp.), np. gdy Neon budzi się ze scale-to-zero. Błędy danych nie są ponawiane. Domyślnie 2 ponowienia z backoffem 500/1000 ms.
+2. **Alert do admina** — przy awarii e-mail przez Resend ([src/lib/cron/alertAdmin.ts](../../../lib/cron/alertAdmin.ts)). Kanał celowo **niezależny od bazy** (in-app/push padłyby razem z DB). Throttle 30 min na ten sam cron, żeby nie zalać skrzynki.
+3. Endpoint i tak zwraca **500**, więc scheduler ponowi przy kolejnym uruchomieniu (a wbudowany alert cron-job.org też może zadziałać).
+
+Wymagane env dla alertów: `RESEND_API_KEY`, `EMAIL_FROM` (zweryfikowana domena), `ADMIN_ALERT_EMAIL` (odbiorca alertów). Brak któregokolwiek → alert tylko do logów serwera.
+
+## Strojenie połączenia (Neon)
+
+Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej cold start potrafi rzucić „Can't reach database server":
+
+```
+...neon.tech/neondb?sslmode=require&channel_binding=require&pgbouncer=true&connect_timeout=15&pool_timeout=15
+```
 
 ## Przegląd
 
@@ -57,10 +75,11 @@ Wybierz jedno:
 
 ### B) Zewnętrzny scheduler (cron-job.org / EasyCron / GitHub Actions)
 
-Ustaw wywołanie URL-a z sekretem, np.:
+Ustaw wywołanie URL-a z sekretem przekazanym w nagłówku, np.:
 
 ```
-GET https://rehabilityprudnik.pl/api/cron/bookings/cleanup?secret=<CRON_SECRET>
+GET https://rehabilityprudnik.pl/api/cron/bookings/cleanup
+Authorization: Bearer <CRON_SECRET>
 ```
 
-(lub nagłówek `x-cron-secret`). Częstotliwości jak w tabeli powyżej.
+(lub nagłówek `x-cron-secret: <CRON_SECRET>`). Częstotliwości jak w tabeli powyżej.

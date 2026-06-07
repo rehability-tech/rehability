@@ -738,6 +738,7 @@ ZMIENNE SZABLONOWE — używaj ich w emailTitle, subject i textBlocks:
 - {campName} — nazwa wyjazdu
 
 WYTYCZNE:
+- ABSOLUTNY ZAKAZ EMOJI: nie używaj żadnych emoji ani znaków graficznych (np. ✨🌿☀️💆‍♀️⏳✈️) w ŻADNYM polu (emailTitle, subject, textBlocks, buttonText, label). Tekst ma być czysty — emoji źle wyglądają w naszym mailu.
 - emailTitle: chwytliwy nagłówek e-maila (max 55 znaków), może zawierać {campName}
 - subject: temat wiadomości (max 80 znaków), koniecznie użyj {inviterName} lub {campName}
 - textBlocks: TABLICA 3-4 krótkich akapitów (każdy max 160 znaków). Używaj {inviteeName}, {inviterName}, {campName}. Pierwszy akapit: powitanie zaproszonej. Kolejne: korzyści i klimat wyjazdu.

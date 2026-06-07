@@ -1,15 +1,35 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 
 export const dynamic = "force-dynamic";
 
+const createSchema = z.object({
+  name: z.string().trim().min(1, "Nazwa jest wymagana").max(200),
+  duration: z.coerce.number().int().positive("Czas trwania musi być dodatni"),
+  price: z.coerce.number().nonnegative("Cena nie może być ujemna"),
+  description: z.string().trim().min(1, "Opis usługi jest wymagany").max(2000),
+  image: z
+    .union([z.string().trim().url().max(2000), z.literal(""), z.null()])
+    .optional(),
+});
+
+const updateSchema = createSchema.extend({
+  id: z.string().min(1, "Brak ID usługi"),
+});
+
 export async function GET() {
+  const { isAuthorized, response } = await requireAdmin();
+  if (!isAuthorized) return response as NextResponse;
+
   try {
     const services = await prisma.extraService.findMany({
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(services);
   } catch (error) {
+    console.error("[GET /api/admin/uslugi]", error);
     return NextResponse.json(
       { error: "Błąd pobierania usług" },
       { status: 500 },
@@ -18,73 +38,63 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { name, duration, price, description, image } = body;
+  const { isAuthorized, response } = await requireAdmin();
+  if (!isAuthorized) return response as NextResponse;
 
-    if (!name || !duration || !price) {
+  try {
+    const body = await req.json().catch(() => null);
+    const parsed = createSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Brak wymaganych pól" },
+        { error: parsed.error.issues[0]?.message ?? "Nieprawidłowe dane" },
         { status: 400 },
       );
     }
-    if (!description || !String(description).trim()) {
-      return NextResponse.json(
-        { error: "Opis usługi jest wymagany" },
-        { status: 400 },
-      );
-    }
+    const { name, duration, price, description, image } = parsed.data;
 
     const newService = await prisma.extraService.create({
       data: {
         name,
-        duration: parseInt(duration, 10), // <--- ZMIANA: Zmieniamy tekst z formularza na liczbę
-        price: parseFloat(price),
+        duration,
+        price,
         description,
-        image: typeof image === "string" && image.trim() ? image : null,
+        image: image && image.trim() ? image : null,
       },
     });
 
     return NextResponse.json(newService);
   } catch (error) {
+    console.error("[POST /api/admin/uslugi]", error);
     return NextResponse.json(
       { error: "Błąd podczas zapisu usługi" },
       { status: 500 },
     );
   }
 }
-// ... (istniejący kod GET i POST pozostaje bez zmian)
 
 // EDYCJA ISTNIEJĄCEJ USŁUGI
 export async function PATCH(req: Request) {
-  try {
-    const body = await req.json();
-    const { id, name, duration, price, description, image } = body;
+  const { isAuthorized, response } = await requireAdmin();
+  if (!isAuthorized) return response as NextResponse;
 
-    if (!id || !name || !duration || !price) {
+  try {
+    const body = await req.json().catch(() => null);
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Brakuje wymaganych pól" },
+        { error: parsed.error.issues[0]?.message ?? "Nieprawidłowe dane" },
         { status: 400 },
       );
     }
-    if (!description || !String(description).trim()) {
-      return NextResponse.json(
-        { error: "Opis usługi jest wymagany" },
-        { status: 400 },
-      );
-    }
+    const { id, name, duration, price, description, image } = parsed.data;
 
     const data = {
       name,
-      duration: parseInt(duration, 10),
-      price: parseFloat(price),
+      duration,
+      price,
       description,
-      image:
-        image === null
-          ? null
-          : typeof image === "string" && image.trim()
-            ? image
-            : undefined,
+      // image === null → wyczyść; undefined → nie ruszaj; string → ustaw
+      image: image === null ? null : image && image.trim() ? image : undefined,
     };
 
     // Propagacja: edycja w katalogu globalnym aktualizuje też wszystkie
@@ -96,6 +106,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(updatedService);
   } catch (error) {
+    console.error("[PATCH /api/admin/uslugi]", error);
     return NextResponse.json(
       { error: "Błąd aktualizacji usługi" },
       { status: 500 },

@@ -353,7 +353,7 @@ export default function BlogCoverPicker({
                             src={photo.thumb}
                             alt={photo.alt}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            loading="lazy"
+                            loading="eager"
                           />
                           <div className="absolute inset-0 bg-brand-secondary/0 group-hover:bg-brand-secondary/30 transition-colors" />
                           <div className="absolute bottom-0 inset-x-0 px-2 py-1.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">

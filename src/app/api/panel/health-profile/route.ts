@@ -8,15 +8,15 @@ import { DietType } from "@/generated/prisma";
 
 const healthSchema = z.object({
   dietType: z.nativeEnum(DietType).optional(),
-  foodIntolerances: z.array(z.string()).optional(),
-  foodNotes: z.string().optional(),
-  chronicConditions: z.string().optional(),
-  medications: z.string().optional(),
-  injuries: z.string().optional(),
-  allergies: z.string().optional(),
-  emergencyName: z.string().optional(),
-  emergencyPhone: z.string().optional(),
-  bookingId: z.string().optional(),
+  foodIntolerances: z.array(z.string().max(200)).max(50).optional(),
+  foodNotes: z.string().max(2000).optional(),
+  chronicConditions: z.string().max(2000).optional(),
+  medications: z.string().max(2000).optional(),
+  injuries: z.string().max(2000).optional(),
+  allergies: z.string().max(2000).optional(),
+  emergencyName: z.string().max(200).optional(),
+  emergencyPhone: z.string().max(50).optional(),
+  bookingId: z.string().max(100).optional(),
   isFinal: z.boolean().optional(),
 });
 

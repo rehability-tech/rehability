@@ -39,11 +39,11 @@ export default function DashboardHealthCard({
       )}
 
       {/* HEADER KARTY */}
-      <div className="relative flex items-center justify-between mb-5 z-10">
-        <div className="flex items-center gap-3">
+      <div className="relative flex items-center justify-between gap-3 mb-5 z-10">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
-              "w-11 h-11 rounded-2xl flex items-center justify-center shadow-[inset_0_2px_12px_-2px_rgba(255,255,255,0.8)]",
+              "w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center shadow-[inset_0_2px_12px_-2px_rgba(255,255,255,0.8)]",
               healthFilled
                 ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                 : "bg-rose-50 text-rose-500 border border-rose-100",
@@ -51,11 +51,11 @@ export default function DashboardHealthCard({
           >
             <Heart size={20} weight={healthFilled ? "duotone" : "fill"} />
           </div>
-          <div>
-            <h3 className="font-jakarta font-bold text-[15.5px] text-brand-secondary leading-tight">
+          <div className="min-w-0">
+            <h3 className="font-jakarta font-bold text-[15.5px] text-brand-secondary leading-tight truncate">
               Karta Zdrowia
             </h3>
-            <p className="text-[11px] text-brand-secondary/50 font-medium mt-0.5">
+            <p className="text-[11px] text-brand-secondary/50 font-medium mt-0.5 truncate">
               Diety, alergie, wykluczenia
             </p>
           </div>
@@ -63,12 +63,12 @@ export default function DashboardHealthCard({
 
         {/* STATUS BADGE */}
         {healthFilled ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[10px] font-bold tracking-wider uppercase border border-emerald-100/50 shadow-sm">
-            <CheckCircle size={13} weight="fill" /> Wypełniono
+          <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[10px] font-bold tracking-wider uppercase border border-emerald-100/50 shadow-sm whitespace-nowrap">
+            <CheckCircle size={13} weight="fill" className="shrink-0" /> Wypełniono
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500 text-white text-[10px] font-bold tracking-wider uppercase shadow-[0_4px_12px_rgba(244,63,94,0.3)]">
-            <Warning size={13} weight="bold" /> Wymaga akcji
+          <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500 text-white text-[10px] font-bold tracking-wider uppercase shadow-[0_4px_12px_rgba(244,63,94,0.3)] whitespace-nowrap">
+            <Warning size={13} weight="bold" className="shrink-0" /> Wymaga akcji
           </span>
         )}
       </div>

@@ -36,6 +36,7 @@ export default async function AdminChatPage({ params }: Props) {
         variant="admin"
         title={`Czat · ${trip.title}`}
         subtitle={`Piszesz jako organizator do ${trip._count.bookings} uczestniczek`}
+        chatLink={`/admin/wyjazdy/${id}/chat`}
       />
     </div>
   );

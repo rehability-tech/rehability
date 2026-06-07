@@ -121,6 +121,7 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
           invitationEmailHeroImage: true,
           invitationEmailHighlights: true,
           invitationEmailGallery: true,
+          invitationEmailSections: true,
         },
       },
     },
@@ -247,6 +248,7 @@ async function maybeSendFriendInvitation(
     invitationEmailHeroImage?: string | null;
     invitationEmailHighlights?: unknown;
     invitationEmailGallery?: string[];
+    invitationEmailSections?: unknown;
   } | null,
 ): Promise<void> {
   if (!trip) return;
@@ -349,6 +351,7 @@ async function maybeSendFriendInvitation(
         ? (trip.invitationEmailHighlights as Array<{ emoji: string; label: string }>)
         : null,
       emailGallery: trip.invitationEmailGallery,
+      emailSections: trip.invitationEmailSections,
     });
   }
 }

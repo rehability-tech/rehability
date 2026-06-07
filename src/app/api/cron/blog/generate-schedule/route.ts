@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { requireCron } from "@/lib/auth/requireCron";
+import { runCron } from "@/lib/cron/runCron";
 import { generateTrendSchedule } from "@/lib/blog/generateTrendSchedule";
 import { sendNotificationToAdmins } from "@/lib/notifications/send";
 
@@ -8,37 +7,31 @@ import { sendNotificationToAdmins } from "@/lib/notifications/send";
 // Generuje miesięczny harmonogram wpisów (BlogScheduleEntry) na podstawie
 // REALNYCH, rosnących trendów wyszukiwań w Polsce (geo: PL), z twardym
 // fallbackiem na frazy evergreen, gdy API trendów jest niedostępne / zablokowane.
-// Cała logika (provider trendów, rate-limiting, dedupe, zapis) żyje w warstwie
-// `@/lib/blog/*` — ten route to cienki handler (auth + parsowanie + odpowiedź).
 //
 // Body lub query:
 //   { "year": 2026, "month": 5 }     // month 0-indexed (maj = 4)
 //   "?year=2026&month=4"
 //   "?offset=2"                       // bieżący + N miesięcy
 //
-// Domyślnie generuje dla BIEŻĄCEGO miesiąca (odpalenie 1 czerwca => cały czerwiec).
-// Aby zaplanować z wyprzedzeniem, użyj "?offset=1" (następny miesiąc) itd.
-// Idempotentny: jeśli plan na dany miesiąc istnieje, zwraca { created: 0 }.
+// Domyślnie generuje dla BIEŻĄCEGO miesiąca. Aby zaplanować z wyprzedzeniem,
+// użyj "?offset=1". Idempotentny: jeśli plan istnieje, zwraca { created: 0 }.
 
 export async function POST(req: Request) {
-  const auth = requireCron(req);
-  if (!auth.ok) return auth.response!;
+  return runCron(req, "blog/generate-schedule", async () => {
+    const url = new URL(req.url);
+    const body = await safeJson(req);
+    const now = new Date();
 
-  const url = new URL(req.url);
-  const body = await safeJson(req);
-  const now = new Date();
+    let year = num(body.year ?? url.searchParams.get("year"));
+    let month = num(body.month ?? url.searchParams.get("month"));
+    const offset = num(body.offset ?? url.searchParams.get("offset"));
 
-  let year = num(body.year ?? url.searchParams.get("year"));
-  let month = num(body.month ?? url.searchParams.get("month"));
-  const offset = num(body.offset ?? url.searchParams.get("offset"));
+    if (year === null || month === null) {
+      const base = new Date(now.getFullYear(), now.getMonth() + (offset ?? 0), 1);
+      year = base.getFullYear();
+      month = base.getMonth();
+    }
 
-  if (year === null || month === null) {
-    const base = new Date(now.getFullYear(), now.getMonth() + (offset ?? 0), 1);
-    year = base.getFullYear();
-    month = base.getMonth();
-  }
-
-  try {
     const result = await generateTrendSchedule(year, month);
 
     // Powiadom adminów tylko, gdy faktycznie powstały nowe wpisy
@@ -53,19 +46,8 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ ok: true, ...result });
-  } catch (err) {
-    // Awaria tutaj oznacza problem infrastrukturalny (np. DB) — błędy samego
-    // API trendów są łapane wewnątrz generatora i kończą się fallbackiem.
-    console.error("[cron] schedule generation failed:", err);
-    return NextResponse.json(
-      {
-        error:
-          err instanceof Error ? err.message : "Schedule generation failed",
-      },
-      { status: 500 },
-    );
-  }
+    return { ...result };
+  });
 }
 
 // Część usług cron preferuje GET — to samo zachowanie.
