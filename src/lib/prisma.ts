@@ -20,16 +20,21 @@ const TRANSIENT_DB_CODES = new Set([
 ]);
 
 function isTransientDbError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  // Komunikat ma priorytet — Neon scale-to-zero potrafi przyjść jako
+  // PrismaClientKnownRequestError z "Can't reach database server" (a nie P1001).
+  const messageLooksTransient =
+    /can't reach database server|connection refused|econnreset|etimedout|terminating connection|connection closed|timed out/i.test(
+      msg,
+    );
+
   if (err instanceof Prisma.PrismaClientInitializationError) {
-    return !err.errorCode || TRANSIENT_DB_CODES.has(err.errorCode);
+    return messageLooksTransient || !err.errorCode || TRANSIENT_DB_CODES.has(err.errorCode);
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    return TRANSIENT_DB_CODES.has(err.code);
+    return messageLooksTransient || TRANSIENT_DB_CODES.has(err.code);
   }
-  const msg = err instanceof Error ? err.message : String(err);
-  return /can't reach database server|connection refused|econnreset|etimedout|terminating connection|connection closed/i.test(
-    msg,
-  );
+  return messageLooksTransient;
 }
 
 interface RetryOptions {
