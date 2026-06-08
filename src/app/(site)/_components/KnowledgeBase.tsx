@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import ImageWithLoader from "@/components/ui/ImageWithLoader";
 import {
   ArrowUpRight,
   BookOpenText,
@@ -12,33 +12,17 @@ import {
 import useEmblaCarousel from "embla-carousel-react";
 import { motion, Variants } from "framer-motion";
 
-// === DANE ARTYKUŁÓW ===
-const ARTICLES = [
-  {
-    id: 1,
-    category: "Ergonomia",
-    title: "Zdrowy kręgosłup w biurze",
-    desc: "5 prostych ćwiczeń, które zlikwidują ból karku.",
-    image: "/images/about/szlolenie_dla_fizjoterapeutów.jpg",
-    link: "/blog",
-  },
-  {
-    id: 2,
-    category: "Regeneracja",
-    title: "Czym jest masaż Kobido?",
-    desc: "Poznaj japoński sekret głębokiego relaksu i liftingu.",
-    image: "/images/about/gabinet_fizjoterapii.jpg",
-    link: "/blog",
-  },
-  {
-    id: 3,
-    category: "Terapia",
-    title: "Mity o rwie kulszowej",
-    desc: "Fakty i sprawdzone metody, które przyspieszą Twoje leczenie",
-    image: "/images/about/piotr_siemaszko.png",
-    link: "/blog",
-  },
-];
+// === TYP WPISU (najnowsze artykuły z bazy) ===
+export interface KnowledgePost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  coverImage: string | null;
+  category: string;
+}
+
+const FALLBACK_COVER = "/images/static/camp.png";
 
 // === DEFINICJE ANIMACJI ===
 const containerVariants: Variants = {
@@ -66,7 +50,7 @@ const carouselVariants: Variants = {
   },
 };
 
-export function KnowledgeBase() {
+export function KnowledgeBase({ posts }: { posts: KnowledgePost[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
@@ -113,6 +97,9 @@ export function KnowledgeBase() {
     emblaApi.on("select", onSelect);
     return () => clearTimeout(timeoutId);
   }, [emblaApi, onInit, onSelect]);
+
+  // Brak opublikowanych wpisów — nie pokazujemy pustej sekcji.
+  if (posts.length === 0) return null;
 
   return (
     <section className="overflow-hidden">
@@ -176,13 +163,13 @@ export function KnowledgeBase() {
 
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex touch-pan-y -ml-4 min-[900px]:-ml-6">
-              {ARTICLES.map((article) => (
+              {posts.map((post) => (
                 <div
-                  key={article.id}
+                  key={post.id}
                   className="flex-none min-w-0 pl-4 min-[900px]:pl-6 w-full min-[900px]:w-1/3 flex justify-center"
                 >
                   <Link
-                    href={article.link}
+                    href={`/blog/${post.slug}`}
                     className="group relative h-[250px] w-full max-w-[320px] bg-[#7CAEB2] rounded-[36px] rounded-tr-none p-6 flex flex-col justify-end overflow-hidden hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl"
                   >
                     <div className="absolute -bottom-30 -right-40 w-[300px] h-[300px] rounded-full border-60 border-brand-primary/50 z-0 transition-transform duration-500 group-hover:scale-110" />
@@ -190,24 +177,26 @@ export function KnowledgeBase() {
                       <ArrowUpRight size={20} weight="bold" />
                     </div>
                     <div className="absolute top-3 right-3 z-10 w-[172px] h-[125px] rounded-[65px] rounded-tr-none overflow-hidden shadow-md">
-                      <Image
-                        src={article.image}
+                      <ImageWithLoader
+                        src={post.coverImage || FALLBACK_COVER}
                         fill
-                        alt={article.title}
+                        alt={post.title}
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                         sizes="(max-width: 768px) 172px, 172px"
                       />
                     </div>
                     <div className="relative z-10 mt-32 flex flex-col items-start">
                       <span className="bg-white text-brand-primary font-montserrat font-medium text-[11px] px-2 py-0.5 rounded-full mb-4 shadow-sm">
-                        {article.category}
+                        {post.category}
                       </span>
-                      <h4 className="font-montserrat font-bold text-white text-[16px] leading-[120%] -mt-2">
-                        {article.title}
+                      <h4 className="font-montserrat font-bold text-white text-[16px] leading-[120%] -mt-2 line-clamp-2">
+                        {post.title}
                       </h4>
-                      <p className="font-montserrat text-white/90 text-[13px] leading-[150%] mt-1">
-                        {article.desc}
-                      </p>
+                      {post.excerpt && (
+                        <p className="font-montserrat text-white/90 text-[13px] leading-[150%] mt-1 line-clamp-2">
+                          {post.excerpt}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 </div>

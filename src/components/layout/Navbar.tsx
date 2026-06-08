@@ -16,6 +16,7 @@ import {
   MonitorPlay, // Nowa ikona dla VOD
   Tent, // Nowa ikona dla Wyjazdów (lub użyj MapTrifold/CalendarBlank)
   Lock,
+  CircleNotch,
 } from "@phosphor-icons/react/dist/ssr";
 
 const NAV_LINKS = [
@@ -71,9 +72,24 @@ const itemVariants: Variants = {
 export function Navbar({ session }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const path = usePathname();
+
+  // Sticky navbar: przezroczysty na górze → szklany pasek po przewinięciu.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut({ callbackUrl: "/" });
+  };
 
   // Blokowanie scrolla przy otwartym menu mobilnym
   useEffect(() => {
@@ -115,12 +131,21 @@ export function Navbar({ session }: NavbarProps) {
 
   return (
     <header
-      className={` top-0 left-0 right-0 z-50 w-full py-4 ${isLogowanie ? "block" : "absolute"}`}
+      className={`top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+        isLogowanie
+          ? "block py-4"
+          : `fixed ${
+              scrolled
+                ? "py-2.5 bg-white/80 backdrop-blur-2xl border-b border-white/40 shadow-[0_4px_24px_rgba(3,63,99,0.08)]"
+                : "py-4 bg-transparent"
+            }`
+      }`}
     >
       <div
         className={`container flex items-center justify-between ${
-          isGabinetRoute &&
-          "bg-white/70 py-3 px-6 rounded-full backdrop-blur-2xl shadow-sm"
+          isGabinetRoute && !scrolled
+            ? "bg-white/70 py-3 px-6 rounded-full backdrop-blur-2xl shadow-sm"
+            : ""
         } `}
       >
         <Link
@@ -282,14 +307,21 @@ export function Navbar({ session }: NavbarProps) {
                     {/* Wyloguj */}
                     <motion.div variants={itemVariants}>
                       <button
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          signOut({ callbackUrl: "/" });
-                        }}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left mt-1"
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left mt-1 disabled:opacity-70 disabled:cursor-wait"
                       >
-                        <SignOut size={18} />
-                        Wyloguj się
+                        {isLoggingOut ? (
+                          <>
+                            <CircleNotch size={18} className="animate-spin" />
+                            Wylogowywanie…
+                          </>
+                        ) : (
+                          <>
+                            <SignOut size={18} />
+                            Wyloguj się
+                          </>
+                        )}
                       </button>
                     </motion.div>
                   </motion.div>
@@ -423,14 +455,21 @@ export function Navbar({ session }: NavbarProps) {
                     </Link>
 
                     <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        signOut({ callbackUrl: "/" });
-                      }}
-                      className="flex items-center justify-center gap-2 font-montserrat text-[16px] bg-brand-primary/20 text-brand-primary py-3.5 px-4 font-bold rounded-xl transition-all hover:bg-red-100"
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="flex items-center justify-center gap-2 font-montserrat text-[16px] bg-brand-primary/20 text-brand-primary py-3.5 px-4 font-bold rounded-xl transition-all hover:bg-red-100 disabled:opacity-70 disabled:cursor-wait"
                     >
-                      <SignOut size={20} />
-                      Wyloguj się
+                      {isLoggingOut ? (
+                        <>
+                          <CircleNotch size={20} className="animate-spin" />
+                          Wylogowywanie…
+                        </>
+                      ) : (
+                        <>
+                          <SignOut size={20} />
+                          Wyloguj się
+                        </>
+                      )}
                     </button>
                   </>
                 ) : (

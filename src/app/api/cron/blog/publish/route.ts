@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { runCron } from "@/lib/cron/runCron";
+import { sendNotificationToAdmins } from "@/lib/notifications/send";
 
 // GET/POST /api/cron/blog/publish
 //
@@ -41,6 +42,20 @@ export async function POST(req: Request) {
       }
     });
 
+    // Powiadom adminów, że zaplanowany wpis własnie poszedł na żywo.
+    const isSingle = promoted.length === 1;
+    await sendNotificationToAdmins({
+      title: isSingle
+        ? "📝 Opublikowano wpis na blogu"
+        : `📝 Opublikowano ${promoted.length} ${pluralizeWpis(promoted.length)} na blogu`,
+      message: isSingle
+        ? `„${promoted[0].title}" jest już dostępny na blogu.`
+        : promoted.map((p) => `• ${p.title}`).join("\n"),
+      link: isSingle ? `/blog/${promoted[0].slug}` : "/admin/blog",
+      type: "SYSTEM",
+      push: true,
+    });
+
     return {
       checkedAt: now.toISOString(),
       promoted: promoted.length,
@@ -52,4 +67,12 @@ export async function POST(req: Request) {
 // GET works too — some cron services prefer GET. Same behavior.
 export async function GET(req: Request) {
   return POST(req);
+}
+
+function pluralizeWpis(n: number): string {
+  if (n === 1) return "wpis";
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "wpisy";
+  return "wpisów";
 }

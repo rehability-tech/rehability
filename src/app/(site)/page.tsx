@@ -66,6 +66,26 @@ const Footer = dynamic(() =>
 
 export const revalidate = 600;
 
+async function getLatestPosts() {
+  try {
+    return await prisma.post.findMany({
+      where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      orderBy: { publishedAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        coverImage: true,
+        category: true,
+      },
+    });
+  } catch {
+    return [];
+  }
+}
+
 async function getFeaturedTrip() {
   try {
     const campRaw = await prisma.trip.findFirst({
@@ -96,7 +116,10 @@ async function getFeaturedTrip() {
 }
 
 export default async function HomePage() {
-  const featuredTrip = await getFeaturedTrip();
+  const [featuredTrip, latestPosts] = await Promise.all([
+    getFeaturedTrip(),
+    getLatestPosts(),
+  ]);
   const session = await getServerSession(authOptions); // <--- POBRANIE SESJI NA SERWERZE
 
   // Jeśli używasz specyficznej konfiguracji autoryzacji (authOptions),
@@ -113,7 +136,7 @@ export default async function HomePage() {
         <AppPresentation />
         <PopularCourses />
         {featuredTrip && <UpcomingTrips featuredTrip={featuredTrip} />}
-        <KnowledgeBase />
+        <KnowledgeBase posts={latestPosts} />
         <FAQSection />
         <ContactSection />
         <Footer />

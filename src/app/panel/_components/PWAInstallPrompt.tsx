@@ -5,11 +5,31 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   DownloadSimple,
   X,
-  Export,
-  PlusSquare,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { isStandalone, isIOS, isMobileDevice } from "@/lib/pwa/clientEnv";
 import { PWA_INSTALL_EVENT } from "@/lib/pwa/triggers";
+
+// Walkthrough instalacji na iOS (Safari nie ma natywnego prompta).
+const IOS_STEPS = [
+  {
+    image: "/images/ios-instalation/ios_instalation_step_1.png",
+    caption: "Dotknij ikony Udostępnij na dolnym pasku Safari.",
+  },
+  {
+    image: "/images/ios-instalation/ios_instalation_step_2.png",
+    caption: "Wybierz „Do ekranu początkowego”.",
+  },
+  {
+    image: "/images/ios-instalation/ios_instalation_step_3.png",
+    caption: "Potwierdź nazwę i dotknij „Dodaj”.",
+  },
+  {
+    image: "/images/ios-instalation/ios_instalation_step_4.png",
+    caption: "Gotowe! Otwórz Rehability z ekranu głównego.",
+  },
+];
 
 // ── Kadencja (delikatna): pytamy po 1. logowaniu, potem +3 dni, +7 dni, max 3× ──
 const OPTOUT_KEY = "pwa_install_optout"; // twarde "Nie, dziękuję"
@@ -41,6 +61,7 @@ export default function PWAInstallPrompt() {
   } | null>(null);
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<"android" | "ios">("android");
+  const [iosStep, setIosStep] = useState(0);
 
   useEffect(() => {
     if (!isEligible()) return;
@@ -195,36 +216,92 @@ export default function PWAInstallPrompt() {
                 </button>
               </div>
             ) : (
-              // ── iOS: instrukcja krok po kroku (Safari nie ma natywnego prompta) ──
-              <div className="px-6 pb-6 flex flex-col gap-3">
-                <div className="rounded-2xl bg-brand-primary/5 border border-brand-primary/10 p-4 flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white text-brand-primary border border-brand-primary/15 shrink-0">
-                      <Export size={20} weight="bold" />
-                    </span>
-                    <p className="text-[13px] text-brand-secondary/80 leading-snug">
-                      1. Dotknij ikony <strong>Udostępnij</strong> na dolnym
-                      pasku Safari.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white text-brand-primary border border-brand-primary/15 shrink-0">
-                      <PlusSquare size={20} weight="bold" />
-                    </span>
-                    <p className="text-[13px] text-brand-secondary/80 leading-snug">
-                      2. Wybierz <strong>„Do ekranu początkowego"</strong>.
-                    </p>
-                  </div>
+              // ── iOS: walkthrough 5 ekranów (Safari nie ma natywnego prompta) ──
+              <div className="px-6 pb-6 flex flex-col gap-4">
+                {/* Ekran kroku */}
+                <div className="relative w-full h-[52vh] max-h-[420px] rounded-2xl rounded-tr-none overflow-hidden bg-brand-secondary/5 border border-brand-primary/10">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={iosStep}
+                      src={IOS_STEPS[iosStep].image}
+                      alt={IOS_STEPS[iosStep].caption}
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 }}
+                      transition={{ duration: 0.25 }}
+                      className="absolute inset-0 w-full h-full object-contain"
+                    />
+                  </AnimatePresence>
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-brand-secondary/70 backdrop-blur-sm text-white text-[11px] font-bold">
+                    Krok {iosStep + 1}/{IOS_STEPS.length}
+                  </span>
+
+                  {/* Strzałki nawigacji nałożone na ekran */}
+                  {iosStep > 0 && (
+                    <button
+                      onClick={() => setIosStep((s) => Math.max(0, s - 1))}
+                      aria-label="Poprzedni krok"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/85 backdrop-blur-sm border border-white/60 shadow-md flex items-center justify-center text-brand-secondary hover:bg-white active:scale-95 transition"
+                    >
+                      <CaretLeft size={20} weight="bold" />
+                    </button>
+                  )}
+                  {iosStep < IOS_STEPS.length - 1 && (
+                    <button
+                      onClick={() =>
+                        setIosStep((s) => Math.min(IOS_STEPS.length - 1, s + 1))
+                      }
+                      aria-label="Następny krok"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/85 backdrop-blur-sm border border-white/60 shadow-md flex items-center justify-center text-brand-secondary hover:bg-white active:scale-95 transition"
+                    >
+                      <CaretRight size={20} weight="bold" />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={snooze}
-                  className="w-full h-12 rounded-2xl bg-brand-primary text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.5)] transition"
-                >
-                  Rozumiem
-                </button>
+
+                {/* Podpis */}
+                <p className="text-[13px] text-brand-secondary/80 leading-snug min-h-[36px] text-center px-2">
+                  {IOS_STEPS[iosStep].caption}
+                </p>
+
+                {/* Kropki */}
+                <div className="flex items-center justify-center gap-1.5">
+                  {IOS_STEPS.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setIosStep(i)}
+                      aria-label={`Krok ${i + 1}`}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        i === iosStep
+                          ? "w-6 bg-brand-primary"
+                          : "w-2 bg-brand-primary/20 hover:bg-brand-primary/40"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Nawigacja */}
+                {iosStep < IOS_STEPS.length - 1 ? (
+                  <button
+                    onClick={() =>
+                      setIosStep((s) => Math.min(IOS_STEPS.length - 1, s + 1))
+                    }
+                    className="w-full h-12 rounded-2xl bg-brand-primary text-white font-bold text-[14px] border border-brand-yellow/30 shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] flex items-center justify-center gap-2 transition"
+                  >
+                    Dalej
+                    <CaretRight size={18} weight="bold" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={snooze}
+                    className="w-full h-12 rounded-2xl bg-brand-primary text-white font-bold text-[14px] border border-brand-yellow/30 shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)] transition"
+                  >
+                    Rozumiem, gotowe
+                  </button>
+                )}
                 <button
                   onClick={optOut}
-                  className="w-full h-10 text-brand-secondary/50 hover:text-brand-secondary/80 font-medium text-[12px] transition"
+                  className="w-full h-9 text-brand-secondary/50 hover:text-brand-secondary/80 font-medium text-[12px] transition"
                 >
                   Nie przypominaj
                 </button>
