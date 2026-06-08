@@ -44,6 +44,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 | `/api/cron/bookings/expire-invitations` | Wygasza zaproszenia „zabierz przyjaciółkę" (`PENDING_INVITATION` po 24h) → `EXPIRED`, zwalnia miejsce. | **co 15–30 min** | `*/15 * * * *` |
 | `/api/cron/notifications/cleanup` | Kasuje powiadomienia: przeczytane > 30 dni oraz dowolne > 90 dni. | **raz dziennie** | `30 3 * * *` |
 | `/api/cron/blog/generate-schedule` | Generuje harmonogram wpisów bloga na **następny** miesiąc (trendy PL + fallback). Idempotentny. | **raz w miesiącu** | `0 3 1 * *` |
+| `/api/cron/blob/cleanup` | Kasuje z Vercel Blob pliki nieużywane nigdzie w bazie (starsze niż 24h). | **raz w tygodniu** | `0 4 * * 0` |
 
 ## Szczegóły / uzasadnienie
 
@@ -52,6 +53,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 - **bookings/expire-invitations** — TTL zaproszenia to 24h, więc precyzja nie jest krytyczna; co 15–30 min w zupełności wystarcza. Można nawet co godzinę.
 - **notifications/cleanup** — czysto porządkowe, raz dziennie w nocy (np. 03:30 UTC = 04:30/05:30 PL). Progi: `READ_TTL_DAYS = 30`, `HARD_TTL_DAYS = 90`.
 - **blog/generate-schedule** — kalendarz zawsze miesiąc do przodu; odpalany 1. dnia miesiąca. Idempotentny: jeśli plan istnieje, zwraca `created: 0`. Można też wołać ręcznie z `?year=&month=` (month 0-indexed) lub `?offset=N`.
+- **blob/cleanup** — garbage collection storage. Zbiera referencje ze WSZYSTKICH pól z URL-ami (też JSON: `content` bloga, `blocks`/`invitationEmail*` wyjazdu, `sections` maili) i kasuje bloby, których nigdzie nie ma. **Guard wieku** (`minAgeHours`, domyślnie 24h) chroni przed wyścigiem „wgrano plik → rekord jeszcze niezapisany". `?dryRun=1` = tylko raport (użyj przy pierwszym uruchomieniu!). `?minAgeHours=N` zmienia próg. Rzadko, bo to operacja nieodwracalna.
 
 ## Jak to spiąć
 

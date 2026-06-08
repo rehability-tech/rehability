@@ -37,27 +37,39 @@ async function getPost(slug: string) {
   });
 }
 
+const RELATED_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  coverImage: true,
+  category: true,
+  readTime: true,
+  publishedAt: true,
+  updatedAt: true,
+} as const;
+
 async function getRelatedPosts(currentSlug: string, category: string) {
-  return prisma.post.findMany({
-    where: {
-      status: "PUBLISHED",
-      slug: { not: currentSlug },
-      category,
-    },
+  // Najpierw z tej samej kategorii…
+  const sameCategory = await prisma.post.findMany({
+    where: { status: "PUBLISHED", slug: { not: currentSlug }, category },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
     take: 3,
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      excerpt: true,
-      coverImage: true,
-      category: true,
-      readTime: true,
-      publishedAt: true,
-      updatedAt: true,
-    },
+    select: RELATED_SELECT,
   });
+
+  if (sameCategory.length >= 3) return sameCategory;
+
+  // …a jeśli za mało, dobierz najnowsze z innych kategorii (bez duplikatów).
+  const excludeSlugs = [currentSlug, ...sameCategory.map((p) => p.slug)];
+  const fillers = await prisma.post.findMany({
+    where: { status: "PUBLISHED", slug: { notIn: excludeSlugs } },
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    take: 3 - sameCategory.length,
+    select: RELATED_SELECT,
+  });
+
+  return [...sameCategory, ...fillers];
 }
 
 function formatDate(date: Date) {
@@ -199,21 +211,31 @@ export default async function BlogPostPage({ params }: Props) {
               as="div"
               immediate
               y={12}
-              className="mb-6 text-[12px] font-montserrat text-white/50 flex items-center gap-2"
+              className="mb-6 text-[12px] font-montserrat text-white/50 flex items-center gap-2 min-w-0"
             >
-              <nav aria-label="Okruszki" className="flex items-center gap-2">
-                <Link href="/" className="hover:text-white/80 transition-colors">
+              <nav
+                aria-label="Okruszki"
+                className="flex items-center gap-1.5 min-w-0 w-full"
+              >
+                <Link
+                  href="/"
+                  className="hover:text-white/80 transition-colors shrink-0"
+                >
                   Start
                 </Link>
-                <span aria-hidden>›</span>
+                <span aria-hidden className="shrink-0">
+                  ›
+                </span>
                 <Link
                   href="/blog"
-                  className="hover:text-white/80 transition-colors"
+                  className="hover:text-white/80 transition-colors shrink-0"
                 >
                   Blog
                 </Link>
-                <span aria-hidden>›</span>
-                <span className="text-white/30 truncate max-w-[40ch]">
+                <span aria-hidden className="shrink-0">
+                  ›
+                </span>
+                <span className="text-white/30 truncate min-w-0">
                   {post.title}
                 </span>
               </nav>

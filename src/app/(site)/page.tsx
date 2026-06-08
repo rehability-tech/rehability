@@ -37,11 +37,12 @@ const AppPresentation = dynamic(() =>
     default: m.AppPresentation,
   })),
 );
-const PopularCourses = dynamic(() =>
-  import("./_components/PopularCourses").then((m) => ({
-    default: m.PopularCourses,
-  })),
-);
+// Ukryte do czasu uruchomienia VOD — sekcja "Najczęściej wybierane kursy".
+// const PopularCourses = dynamic(() =>
+//   import("./_components/PopularCourses").then((m) => ({
+//     default: m.PopularCourses,
+//   })),
+// );
 const UpcomingTrips = dynamic(() =>
   import("./_components/UpcomingTrips").then((m) => ({
     default: m.UpcomingTrips,
@@ -134,7 +135,7 @@ export default async function HomePage() {
         <AboutSection />
         <ServicesSection />
         <AppPresentation />
-        <PopularCourses />
+        {/* <PopularCourses /> — ukryte do czasu uruchomienia VOD */}
         {featuredTrip && <UpcomingTrips featuredTrip={featuredTrip} />}
         <KnowledgeBase posts={latestPosts} />
         <FAQSection />

@@ -87,7 +87,15 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // 0. Aktualizacja sesji z klienta (useSession().update) — np. po zmianie
+      //    imienia/zdjęcia w profilu. Wartości lecą w `session`.
+      if (trigger === "update" && session) {
+        const s = session as { name?: string; image?: string };
+        if (typeof s.name === "string") token.name = s.name;
+        if (typeof s.image === "string") token.picture = s.image;
+      }
+
       // 1. Logowanie po raz pierwszy (rejestracja) - wyciągamy z obiektu user
       if (user) {
         token.id = user.id;

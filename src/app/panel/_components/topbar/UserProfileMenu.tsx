@@ -11,7 +11,7 @@ import {
   DownloadSimple,
   BellRinging,
 } from "@phosphor-icons/react/dist/ssr";
-import { getInitials, type UserTopbarUser } from "./types";
+import { type UserTopbarUser } from "./types";
 import { isStandalone } from "@/lib/pwa/clientEnv";
 import {
   triggerInstallPrompt,
@@ -34,7 +34,7 @@ export default function UserProfileMenu({ user }: { user?: UserTopbarUser }) {
       >
         <div className="relative">
           <div className="absolute -inset-[3px] rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary shadow-[0_0_16px_rgba(40,125,136,0.3)] opacity-90" />
-          <div className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden">
+          <div className="relative w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center overflow-hidden">
             {user?.image ? (
               <img
                 src={user.image}
@@ -43,8 +43,8 @@ export default function UserProfileMenu({ user }: { user?: UserTopbarUser }) {
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="font-bold text-[12px] text-brand-secondary">
-                {getInitials(user?.name)}
+              <span className="font-bold text-[13px] text-white">
+                {(user?.name?.trim()?.charAt(0) || "U").toUpperCase()}
               </span>
             )}
           </div>

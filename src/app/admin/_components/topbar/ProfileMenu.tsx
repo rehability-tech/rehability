@@ -9,7 +9,7 @@ import {
   Globe,
   SignOut,
 } from "@phosphor-icons/react/dist/ssr";
-import { AdminUser, getInitials } from "./types";
+import { AdminUser } from "./types";
 
 export default function ProfileMenu({ user }: { user?: AdminUser }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +33,7 @@ export default function ProfileMenu({ user }: { user?: AdminUser }) {
       >
         <div className="relative">
           <div className="absolute -inset-[3px] rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary shadow-[0_0_16px_rgba(40,125,136,0.5)] opacity-90" />
-          <div className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden">
+          <div className="relative w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center overflow-hidden">
             {user?.image ? (
               <img
                 src={user.image}
@@ -42,8 +42,8 @@ export default function ProfileMenu({ user }: { user?: AdminUser }) {
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="font-bold text-[12px] text-brand-secondary">
-                {getInitials(user?.name)}
+              <span className="font-bold text-[13px] text-white">
+                {(user?.name?.trim()?.charAt(0) || "U").toUpperCase()}
               </span>
             )}
           </div>
