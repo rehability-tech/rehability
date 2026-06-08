@@ -4,6 +4,7 @@ import "./globals.css";
 import { DebugNav } from "./_components/DebugNav";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import PWARegister from "@/components/PWARegister";
+import { Analytics } from "@vercel/analytics/next";
 import {
   SITE_URL,
   SITE_NAME,
@@ -182,6 +183,7 @@ export default function RootLayout({
         <DebugNav />
         <main>{children}</main>
         <ConsentBanner />
+        <Analytics />
       </body>
     </html>
   );

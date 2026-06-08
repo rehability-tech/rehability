@@ -162,7 +162,7 @@ export function Navbar({ session }: NavbarProps) {
                   {isActive && (
                     <motion.div
                       layoutId="nav-underline"
-                      className="absolute -bottom-1 h-[3px] w-5 bg-[#0B3B4C] rounded-full"
+                      className="absolute bottom-1 h-[3px] w-5 bg-brand-primary rounded-full"
                       initial={false}
                       transition={{
                         type: "spring",
