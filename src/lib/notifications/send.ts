@@ -42,7 +42,7 @@ export async function sendOneSignalPush(
   }
 
   if (playerIds.length === 0) return;
-  const BADGE_URL = "https://rehability-q534.vercel.app//badge-96x96.png";
+  const BADGE_URL = "https://www.rehabilityprudnik.pl/badge-96x96.png";
   try {
     const res = await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
