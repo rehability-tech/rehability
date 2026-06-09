@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     // AVIF dla przeglądarek które go wspierają (mniejszy o ~30% od WebP),
     // WebP jako fallback dla starszych. Oba lepiej kompresują od JPG/PNG.
     formats: ["image/avif", "image/webp"],
+    // Next 16 wymaga jawnej listy dozwolonych wartości `quality` w <Image>.
+    // 75 = domyślna, 80 = okładki hero (campy_hero).
+    qualities: [75, 80],
     remotePatterns: [
       {
         protocol: "https",

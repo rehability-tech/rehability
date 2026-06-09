@@ -1,10 +1,14 @@
-// Minimalny Service Worker spełniający kryteria PWA installability w Chrome.
-// Chrome wymaga zarejestrowanego SW z handlerem 'fetch', żeby wyemitować
-// 'beforeinstallprompt' i pokazać button instalacji.
+// Service Worker dla PWA + push OneSignal (jeden plik, współdzielony — patrz
+// OneSignalProvider: serviceWorkerPath: "sw.js").
 //
-// Strategia: network-only passthrough (zero cache).
-// Jeśli kiedyś będziemy chcieli offline mode — tu jest miejsce na rozbudowę
-// (Workbox, cache-first dla statycznych assetów itd.).
+// Strategia: brak własnej obsługi 'fetch'. Pusty handler 'fetch' został usunięty —
+// współczesny Chrome (≥89) NIE wymaga go już do instalowalności PWA (wystarczy
+// zarejestrowany SW + manifest), a pusty no-op tylko dokładał narzut i ostrzeżenie
+// "no-op fetch handler" przy każdej nawigacji.
+//
+// WAŻNE: powiadomienia push działają niezależnie od tego pliku — wszystkie handlery
+// (push, notificationclick, message, pushsubscriptionchange) dostarcza SDK OneSignal
+// ładowane przez importScripts poniżej. Dlatego usunięcie 'fetch' nie rusza OneSignal.
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -14,8 +18,4 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", (event) => {
-  // Passthrough — nie chcemy interferować ze streamami Next.js (RSC, server actions).
-  // Brak respondWith() = przeglądarka leci normalnie do sieci.
-});
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");

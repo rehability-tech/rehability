@@ -273,6 +273,7 @@ function StatBadge({
           src={imageSrc}
           fill
           alt={label}
+          sizes="110px"
           className="object-cover rounded-full"
         />
         {IconOrPath && (
