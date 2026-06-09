@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { usePathname } from "next/navigation";
@@ -74,7 +75,11 @@ export function Navbar({ session }: NavbarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // Portal renderuje się dopiero po zamontowaniu (document.body niedostępny w SSR).
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   const path = usePathname();
 
@@ -369,16 +374,21 @@ export function Navbar({ session }: NavbarProps) {
         </button>
       </div>
 
-      {/* === NAWIGACJA MOBILE (MENU ROZWIJANE) === */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] flex flex-col bg-white px-6 py-4 md:hidden overflow-y-auto"
-          >
+      {/* === NAWIGACJA MOBILE (MENU ROZWIJANE) ===
+          Renderowane przez portal do <body>, aby wyrwać menu ze stacking-contextu
+          <header> (na podstronach fixed z-50). Bez tego pozycjonowana treść strony
+          — np. karta logowania — potrafiła wychodzić ponad menu. */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-0 z-[100] flex flex-col bg-white px-6 py-4 md:hidden overflow-y-auto"
+              >
             <div className="mt-24 flex flex-col flex-1">
               <nav className="flex flex-col gap-2">
                 {NAV_LINKS.map((link) => {
@@ -523,8 +533,10 @@ export function Navbar({ session }: NavbarProps) {
               </Link>
             </div>
           </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </header>
   );
 }
