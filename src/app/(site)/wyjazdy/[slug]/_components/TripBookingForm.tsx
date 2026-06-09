@@ -384,7 +384,7 @@ function Stepper({ step }: { step: Step }) {
           transition={{ duration: 0.5, ease: EASE }}
         />
       </div>
-      <ol className="mt-3 flex items-center justify-between gap-1">
+      <ol className="mt-3 flex items-start justify-between gap-1">
         {items.map((it) => {
           const active = it.n === step;
           const done = it.n < step;
@@ -409,14 +409,21 @@ function Stepper({ step }: { step: Step }) {
               >
                 {done ? <CheckCircle size={14} weight="fill" /> : it.n}
               </motion.span>
-              <span
-                className={cn(
-                  "text-[9px] sm:text-[10px] font-bold text-center truncate w-full tracking-wider uppercase",
-                  active ? "text-brand-secondary" : "text-brand-secondary/30",
+              {/* Etykieta tylko pod aktywnym krokiem */}
+              <AnimatePresence mode="wait">
+                {active && (
+                  <motion.span
+                    key={it.n}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.2, ease: EASE }}
+                    className="text-[10px] font-bold text-center w-full tracking-wider uppercase text-brand-primary whitespace-nowrap"
+                  >
+                    {it.label}
+                  </motion.span>
                 )}
-              >
-                {it.label}
-              </span>
+              </AnimatePresence>
             </li>
           );
         })}
@@ -637,7 +644,7 @@ function Step3Details({
       </Item>
 
       <Item>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-4">
           <Field
             label="Imię"
             value={customer.firstName}
@@ -650,15 +657,13 @@ function Step3Details({
             onChange={(v) => setCustomer({ ...customer, lastName: v })}
             error={errors.lastName}
           />
-          <div className="sm:col-span-2">
-            <Field
-              label="Numer telefonu"
-              type="tel"
-              value={customer.phone}
-              onChange={(v) => setCustomer({ ...customer, phone: v })}
-              error={errors.phone}
-            />
-          </div>
+          <Field
+            label="Numer telefonu"
+            type="tel"
+            value={customer.phone}
+            onChange={(v) => setCustomer({ ...customer, phone: v })}
+            error={errors.phone}
+          />
         </div>
       </Item>
 
@@ -680,7 +685,7 @@ function Step3Details({
               Prześlemy jej dedykowany link do opłacenia swojego zadatku. Ma na
               to równe 24 godziny.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+            <div className="flex flex-col gap-4 relative z-10">
               <Field
                 label="Imię"
                 value={friend.firstName}
@@ -693,15 +698,13 @@ function Step3Details({
                 onChange={(v) => setFriend({ ...friend, lastName: v })}
                 error={errors.friendLastName}
               />
-              <div className="sm:col-span-2">
-                <Field
-                  label="Adres e-mail"
-                  type="email"
-                  value={friend.email}
-                  onChange={(v) => setFriend({ ...friend, email: v })}
-                  error={errors.friendEmail}
-                />
-              </div>
+              <Field
+                label="Adres e-mail"
+                type="email"
+                value={friend.email}
+                onChange={(v) => setFriend({ ...friend, email: v })}
+                error={errors.friendEmail}
+              />
             </div>
           </div>
         </Item>
@@ -923,53 +926,55 @@ function VariantCard({
       whileTap={{ scale: 0.98 }}
       transition={SPRING}
       className={cn(
-        "relative w-full text-left rounded-[20px] p-5 transition-all duration-300 flex items-center justify-between gap-4 border-2",
+        "relative w-full text-left rounded-[20px] p-5 transition-all duration-300 flex flex-col gap-4 border-2",
         selected
           ? "bg-white/80 border-brand-primary shadow-[0_8px_20px_-8px_rgba(40,125,136,0.3)]"
           : "bg-white/40 border-white/60 hover:bg-white/70 hover:border-brand-primary/30",
       )}
     >
-      <div className="flex items-center gap-4">
-        <motion.span
-          initial={false}
-          animate={{
-            background: selected
-              ? "linear-gradient(135deg, #287D88, #3DB5C4)"
-              : "#ffffff",
-            color: selected ? "#fff" : "#287D88",
-            scale: selected ? 1.05 : 1,
-            boxShadow: selected
-              ? "0 4px 12px rgba(40,125,136,0.3)"
-              : "0 2px 8px rgba(0,0,0,0.05)",
-          }}
-          transition={SPRING}
-          className="flex items-center justify-center w-12 h-12 rounded-[14px]"
-        >
-          {icon}
-        </motion.span>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-jakarta font-bold text-[15px] text-brand-secondary">
-              {title}
+      <div className="flex items-start gap-4">
+        <div className="relative shrink-0">
+          <motion.span
+            initial={false}
+            animate={{
+              background: selected
+                ? "linear-gradient(135deg, #287D88, #3DB5C4)"
+                : "#ffffff",
+              color: selected ? "#fff" : "#287D88",
+              scale: selected ? 1.05 : 1,
+              boxShadow: selected
+                ? "0 4px 12px rgba(40,125,136,0.3)"
+                : "0 2px 8px rgba(0,0,0,0.05)",
+            }}
+            transition={SPRING}
+            className="flex items-center justify-center w-12 h-12 rounded-[14px]"
+          >
+            {icon}
+          </motion.span>
+          {badge && (
+            <span className="absolute -top-2 -right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-brand-yellow text-brand-secondary shadow-sm ring-2 ring-white">
+              {badge}
             </span>
-            {badge && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-yellow/20 text-brand-secondary border border-brand-yellow/30">
-                {badge}
-              </span>
-            )}
-          </div>
-          <p className="text-[12px] font-medium text-brand-secondary/50 mt-0.5">
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <span className="font-jakarta font-bold text-[15px] text-brand-secondary leading-tight">
+            {title}
+          </span>
+          <p className="text-[12px] font-medium text-brand-secondary/50 mt-0.5 leading-relaxed">
             {subtitle}
           </p>
         </div>
       </div>
-      <div className="text-right">
-        <div className="text-[10px] uppercase tracking-widest text-brand-secondary/40 font-bold mb-0.5">
-          /osoba
-        </div>
-        <div className="font-jakarta font-bold text-[16px] text-brand-secondary">
+
+      <div className="flex items-center justify-between border-t border-brand-secondary/10 pt-3">
+        <span className="text-[11px] uppercase tracking-widest text-brand-secondary/40 font-bold">
+          Cena / osoba
+        </span>
+        <span className="font-jakarta font-bold text-[18px] text-brand-secondary whitespace-nowrap">
           {formatPLN(pricePerPerson)}
-        </div>
+        </span>
       </div>
       <AnimatePresence>
         {selected && (
