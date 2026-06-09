@@ -343,7 +343,9 @@ export function Navbar({ session }: NavbarProps) {
 
         {/* === PRZYCISK MENU MOBILE === */}
         <button
-          className="md:hidden flex flex-col justify-center items-center w-12 h-12 gap-1.5 z-[101] bg-brand-primary rounded-tl-full rounded-bl-full rounded-br-full rounded-tr-[2px] shadow-sm transition-all hover:bg-brand-primary/90"
+          className={`md:hidden flex flex-col justify-center items-center w-12 h-12 gap-1.5 z-[101] bg-brand-primary rounded-tl-full rounded-bl-full rounded-br-full rounded-tr-[2px] shadow-sm transition-all hover:bg-brand-primary/90 ${
+            isMobileMenuOpen ? "opacity-0 pointer-events-none" : ""
+          }`}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
         >
@@ -389,6 +391,17 @@ export function Navbar({ session }: NavbarProps) {
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="fixed inset-0 z-[100] flex flex-col bg-white px-6 py-4 md:hidden overflow-y-auto"
               >
+            {/* Przycisk zamykania — w portalu, bo hamburger w <header> jest pod
+                menu (header fixed z-50 < portal z-100). */}
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Zamknij menu"
+              className="absolute top-4 right-6 flex flex-col justify-center items-center w-12 h-12 z-[110] bg-brand-primary rounded-tl-full rounded-bl-full rounded-br-full rounded-tr-[2px] shadow-sm transition-all hover:bg-brand-primary/90"
+            >
+              <span className="absolute w-6 h-[2px] bg-white rounded-full rotate-45" />
+              <span className="absolute w-6 h-[2px] bg-white rounded-full -rotate-45" />
+            </button>
+
             <div className="mt-24 flex flex-col flex-1">
               <nav className="flex flex-col gap-2">
                 {NAV_LINKS.map((link) => {
