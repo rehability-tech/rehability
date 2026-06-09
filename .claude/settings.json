@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import json;d=json.load\\(open\\('c:/Users/mkoci/.claude.json'\\)\\);print\\('global mcpServers:',list\\(d.get\\('mcpServers',{}\\).keys\\(\\)\\)\\)\")"
+    ]
+  }
+}
