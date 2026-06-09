@@ -92,7 +92,7 @@ Zwróć tablicę JSON z dokładnie ${publishDays.length} obiektami (bez żadnych
   {
     "title": "Chwytliwy tytuł po polsku (max 10 słów)",
     "topic": "2-3 zdania opisujące o czym jest artykuł i jaką wartość da czytelnikom",
-    "category": "jedna z: Fizjoterapia | Mindfulness | Żywienie | Ruch | Camp Stories | Terapia | Ogólne",
+    "category": "jedna z: Fizjoterapia | Mindfulness | Żywienie | Ruch | Wyjazdy holistyczne | Terapia | Ogólne",
     "keywords": ["słowo1", "słowo2", "słowo3", "słowo4"]
   }
 ]`;

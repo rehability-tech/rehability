@@ -14,7 +14,7 @@ type AuthMode = "login" | "register";
 const IS_DEV = process.env.NODE_ENV === "development";
 
 export default function AuthCard() {
-  const [mode, setMode] = useState<AuthMode>("register"); // Domyślnie rejestracja (biała karta po prawej)
+  const [mode, setMode] = useState<AuthMode>("login"); // Domyślnie logowanie (biała karta po lewej)
   const [isAccepted, setIsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -281,6 +281,24 @@ export default function AuthCard() {
                 {error && (
                   <p className="text-red-500 text-xs font-medium">{error}</p>
                 )}
+
+                <p className="font-montserrat text-[12px] text-gray-500 leading-[150%] max-w-[280px] md:max-w-[320px] mx-auto">
+                  Logując się, akceptujesz{" "}
+                  <Link
+                    href="/polityka-prywatnosci"
+                    className="font-bold text-[#0B3B4C] hover:text-[#76ADB6] transition-colors"
+                  >
+                    politykę prywatności
+                  </Link>{" "}
+                  oraz{" "}
+                  <Link
+                    href="/regulamin"
+                    className="font-bold text-[#0B3B4C] hover:text-[#76ADB6] transition-colors"
+                  >
+                    regulamin
+                  </Link>
+                  .
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

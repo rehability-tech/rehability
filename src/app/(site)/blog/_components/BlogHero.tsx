@@ -20,7 +20,7 @@ const CATEGORIES = [
   "Mindfulness",
   "Żywienie",
   "Ruch",
-  "Camp Stories",
+  "Wyjazdy holistyczne",
   "Terapia",
   "Ogólne",
 ];

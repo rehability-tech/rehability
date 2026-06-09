@@ -18,7 +18,7 @@ export type BlogCategory =
   | "Fizjoterapia"
   | "Terapia"
   | "Mindfulness"
-  | "Camp Stories"
+  | "Wyjazdy holistyczne"
   | "Ruch"
   | "Żywienie"
   | "Ogólne";
@@ -69,7 +69,7 @@ export const PILLARS: readonly Pillar[] = [
     // AUTOCOMPLETE z pustymi geoModifiers => seedy odpytywane wprost (krajowo).
     // Trends dla tych fraz zwracał pustkę albo szum (hotele) — patrz zwiad.
     discovery: "AUTOCOMPLETE",
-    category: "Camp Stories",
+    category: "Wyjazdy holistyczne",
     seedKeywords: ["wyjazd dla kobiet", "wyjazd weekendowy", "wyjazd ze spa"],
     geoModifiers: [],
   },

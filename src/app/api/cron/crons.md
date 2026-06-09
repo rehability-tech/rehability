@@ -41,6 +41,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 | --- | --- | --- | --- |
 | `/api/cron/bookings/cleanup` | Anuluje porzucone koszyki SPA (`ServiceOrder` w `PENDING` starsze niż 15 min) — zwalnia zablokowane terminy. | **co 5 min** | `*/5 * * * *` |
 | `/api/cron/blog/publish` | Publikuje wpisy `SCHEDULED`, których `publishedAt` już minął. | **co 5 min** | `*/5 * * * *` |
+| `/api/cron/blog/reminders` | Przypomina adminom (IN_APP + PUSH) o wpisach `PLANNED` zaplanowanych na dziś lub zaległych — „czas napisać publikację". | **raz dziennie** | `0 7 * * *` |
 | `/api/cron/bookings/expire-invitations` | Wygasza zaproszenia „zabierz przyjaciółkę" (`PENDING_INVITATION` po 24h) → `EXPIRED`, zwalnia miejsce. | **co 15–30 min** | `*/15 * * * *` |
 | `/api/cron/notifications/cleanup` | Kasuje powiadomienia: przeczytane > 30 dni oraz dowolne > 90 dni. | **raz dziennie** | `30 3 * * *` |
 | `/api/cron/blog/generate-schedule` | Generuje harmonogram wpisów bloga na **następny** miesiąc (trendy PL + fallback). Idempotentny. | **raz w miesiącu** | `0 3 1 * *` |
@@ -50,6 +51,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 
 - **bookings/cleanup** — termin „wygasa" po 15 min od utworzenia; uruchamiając co 5 min zwalniasz miejsce maks. ~5 min po wygaśnięciu. Im rzadziej, tym dłużej slot pozostaje zablokowany dla innych.
 - **blog/publish** — częstotliwość = dokładność publikacji. Co 5 min oznacza, że wpis ukaże się maks. ~5 min po zaplanowanej godzinie. Runtime nigdy nie cofa czasu (publikuje tylko, gdy `publishedAt <= now`).
+- **blog/reminders** — przypomina o `BlogScheduleEntry` w statusie `PLANNED`, których `scheduledDate <= koniec dnia dzisiaj` (czyli na dziś i zaległe). Wysyła JEDNO zbiorcze powiadomienie do adminów (IN_APP + PUSH) z linkiem do `/admin/blog/harmonogram`. **Trzymaj się dziennej kadencji** — brak flagi „wysłano", więc częstsze odpalanie powtarza te same przypomnienia. Każdy zaległy/dzisiejszy wpis przypomina się raz na dobę, aż dostanie treść (zmieni status z `PLANNED`). Pora `0 7 * * *` (UTC) = 9:00 PL.
 - **bookings/expire-invitations** — TTL zaproszenia to 24h, więc precyzja nie jest krytyczna; co 15–30 min w zupełności wystarcza. Można nawet co godzinę.
 - **notifications/cleanup** — czysto porządkowe, raz dziennie w nocy (np. 03:30 UTC = 04:30/05:30 PL). Progi: `READ_TTL_DAYS = 30`, `HARD_TTL_DAYS = 90`.
 - **blog/generate-schedule** — kalendarz zawsze miesiąc do przodu; odpalany 1. dnia miesiąca. Idempotentny: jeśli plan istnieje, zwraca `created: 0`. Można też wołać ręcznie z `?year=&month=` (month 0-indexed) lub `?offset=N`.
@@ -68,6 +70,7 @@ Wybierz jedno:
   "crons": [
     { "path": "/api/cron/bookings/cleanup", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/blog/publish", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/blog/reminders", "schedule": "0 7 * * *" },
     { "path": "/api/cron/bookings/expire-invitations", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/notifications/cleanup", "schedule": "30 3 * * *" },
     { "path": "/api/cron/blog/generate-schedule", "schedule": "0 3 1 * *" }

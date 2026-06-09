@@ -23,8 +23,10 @@ import {
   CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 
-// Liczba powiadomień na stronę w widoku mobilnym (paginacja zamiast scrolla)
+// Paginacja zamiast scrolla — inna liczba na stronę zależnie od wysokości widoku.
+// Desktopowy widget jest wyższy (dopasowuje się do lewej kolumny), więc mieści więcej.
 const MOBILE_PAGE_SIZE = 5;
+const DESKTOP_PAGE_SIZE = 7;
 
 type ActivityPillar = "CAMP" | "VOD" | "BLOG" | "SYSTEM";
 
@@ -125,9 +127,11 @@ export default function RecentActivity() {
   const [isMuted, setIsMuted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Paginacja tylko dla widoku mobilnego (na desktopie zostaje scroll)
+  // Paginacja na każdym viewporcie (zamiast scrolla). Rozmiar strony zależy
+  // od wysokości widgetu — mobile mieści mniej niż wysoki widget desktopowy.
   const [isMobile, setIsMobile] = useState(false);
   const [page, setPage] = useState(0);
+  const pageSize = isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -153,10 +157,7 @@ export default function RecentActivity() {
     (e) => activeFilter === "ALL" || e.pillar === activeFilter,
   );
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredEntries.length / MOBILE_PAGE_SIZE),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
 
   // Reset strony przy zmianie filtra
   useEffect(() => {
@@ -168,13 +169,11 @@ export default function RecentActivity() {
     if (page > totalPages - 1) setPage(0);
   }, [page, totalPages]);
 
-  // Na mobile pokazujemy max 5 wpisów na stronę, na desktopie pełną listę (scroll)
-  const visibleEntries = isMobile
-    ? filteredEntries.slice(
-        page * MOBILE_PAGE_SIZE,
-        page * MOBILE_PAGE_SIZE + MOBILE_PAGE_SIZE,
-      )
-    : filteredEntries;
+  // Zawsze pokazujemy tylko bieżącą stronę (paginacja, bez scrolla).
+  const visibleEntries = filteredEntries.slice(
+    page * pageSize,
+    page * pageSize + pageSize,
+  );
 
   // Zamykanie menu
   useEffect(() => {
@@ -329,7 +328,7 @@ export default function RecentActivity() {
         </AnimatePresence>
       </div>
 
-      <div className="relative flex-1 overflow-hidden md:overflow-y-auto px-4 py-4 space-y-2 custom-scrollbar">
+      <div className="relative flex-1 overflow-hidden px-4 py-4 space-y-2">
         {/* Renderujemy Szkielet, dopóki dane po raz pierwszy się nie załadują */}
         {isLoading && <ActivitySkeleton />}
 
@@ -404,9 +403,9 @@ export default function RecentActivity() {
         )}
       </div>
 
-      {/* Paginacja — tylko mobile, gdy jest więcej niż jedna strona */}
-      {isMobile && !isLoading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-gray-100/60 shrink-0 md:hidden">
+      {/* Paginacja — na każdym viewporcie, gdy jest więcej niż jedna strona */}
+      {!isLoading && !error && totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-gray-100/60 shrink-0">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}

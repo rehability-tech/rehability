@@ -720,7 +720,7 @@ export async function POST(req: Request) {
           "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
         }
 
-        Dla pola "categorySuggestions" sugeruj 1-3 kategorie WYŁĄCZNIE z tej listy: ["Fizjoterapia", "Mindfulness", "Żywienie", "Ruch", "Camp Stories", "Terapia", "Ogólne"]. Nie wymyślaj własnych kategorii.
+        Dla pola "categorySuggestions" sugeruj 1-3 kategorie WYŁĄCZNIE z tej listy: ["Fizjoterapia", "Mindfulness", "Żywienie", "Ruch", "Wyjazdy holistyczne", "Terapia", "Ogólne"]. Nie wymyślaj własnych kategorii.
         Dla pola "tags" generuj 4-6 krótkich słów kluczowych po polsku, małymi literami, bez spacji (używaj myślnika zamiast spacji).`;
         break;
 

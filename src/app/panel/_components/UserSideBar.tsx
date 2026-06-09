@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   SquaresFour,
@@ -70,6 +71,13 @@ const MENU_SECTIONS: MenuSection[] = [
 
 export default function UserSidebar() {
   const pathname = usePathname();
+
+  // Nieprzeczytane wiadomości czatu → pulsująca kropka na zakładce "Czat".
+  const { links: chatUnreadLinks, refresh: refreshChatUnread } =
+    useChatUnreadLinks();
+  useEffect(() => {
+    refreshChatUnread();
+  }, [pathname, refreshChatUnread]);
 
   // LOGIKA WYKRYWANIA KONTEKSTU WYJAZDU
   const segments = pathname?.split("/") || [];
@@ -230,6 +238,11 @@ export default function UserSidebar() {
                                 subItem.key === "trip-home"
                                   ? pathname === subItem.href
                                   : pathname?.startsWith(subItem.href);
+                              // Kropka: statyczny alert (Karta Zdrowia) LUB
+                              // nieprzeczytany czat (API zwraca deep-link czatu).
+                              const needsAttention =
+                                subItem.needsAttention ||
+                                chatUnreadLinks.has(subItem.href);
 
                               return (
                                 <Link key={subItem.key} href={subItem.href}>
@@ -259,8 +272,8 @@ export default function UserSidebar() {
                                             : "text-brand-secondary/40 group-hover:text-brand-secondary/70",
                                         )}
                                       />
-                                      {/* Alert na Kartę Zdrowia */}
-                                      {subItem.needsAttention &&
+                                      {/* Alert: Karta Zdrowia lub nieprzeczytany czat */}
+                                      {needsAttention &&
                                         !isSubActive && (
                                           <span className="absolute -top-1 -right-1 flex h-2 w-2 z-20">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />

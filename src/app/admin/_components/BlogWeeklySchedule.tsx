@@ -13,6 +13,8 @@ import {
   PenNib,
   ArrowRight,
   MonitorPlay,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 
 // Fetcher dla SWR — rzuca błąd na nie-OK i pilnuje, by wynik był tablicą,
@@ -113,6 +115,17 @@ export default function BlogWeeklySchedule() {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showRightFade, setShowRightFade] = useState(true);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+
+  // Szerokość jednej karty + odstęp (260px + gap-4 = 16px) — krok strzałek.
+  const CARD_STEP = 276;
+
+  const scrollByDir = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -CARD_STEP : CARD_STEP,
+      behavior: "smooth",
+    });
+  };
 
   // Pobieranie danych z naszego nowego endpointu
   const {
@@ -127,6 +140,7 @@ export default function BlogWeeklySchedule() {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
       setShowRightFade(scrollLeft + clientWidth < scrollWidth - 5);
+      setShowLeftFade(scrollLeft > 5);
     }
   };
 
@@ -252,7 +266,16 @@ export default function BlogWeeklySchedule() {
           )}
         </div>
 
-        {/* Gradient Fade Out */}
+        {/* Gradient Fade — lewa strona */}
+        <div
+          className={`absolute top-0 left-0 bottom-0 w-24 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none transition-opacity duration-300 z-10 ${
+            showLeftFade && entries && entries.length > 0
+              ? "opacity-100"
+              : "opacity-0"
+          }`}
+        />
+
+        {/* Gradient Fade — prawa strona */}
         <div
           className={`absolute top-0 right-0 bottom-0 w-24 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none transition-opacity duration-300 z-10 ${
             showRightFade && entries && entries.length > 0
@@ -260,6 +283,38 @@ export default function BlogWeeklySchedule() {
               : "opacity-0"
           }`}
         />
+
+        {/* Strzałki nawigacji — tylko desktop (na mobile wystarcza swipe).
+            Pojawiają się, gdy w danym kierunku jest co przewijać. */}
+        {entries && entries.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => scrollByDir("left")}
+              aria-label="Poprzednie wpisy"
+              className={`hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-white border border-gray-100 text-brand-secondary shadow-[0_6px_20px_-6px_rgba(3,63,99,0.25)] transition-all hover:bg-brand-primary hover:text-white hover:border-brand-primary ${
+                showLeftFade
+                  ? "opacity-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <CaretLeft size={18} weight="bold" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => scrollByDir("right")}
+              aria-label="Następne wpisy"
+              className={`hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-white border border-gray-100 text-brand-secondary shadow-[0_6px_20px_-6px_rgba(3,63,99,0.25)] transition-all hover:bg-brand-primary hover:text-white hover:border-brand-primary ${
+                showRightFade
+                  ? "opacity-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <CaretRight size={18} weight="bold" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

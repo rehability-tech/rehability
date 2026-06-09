@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "discover-keywords": "npx tsx scripts/discover-keywords.mts"
+    "discover-keywords": "npx tsx scripts/discover-keywords.mts",
+    "migrate:rename-camp-stories": "npx tsx scripts/rename-camp-stories-category.mts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

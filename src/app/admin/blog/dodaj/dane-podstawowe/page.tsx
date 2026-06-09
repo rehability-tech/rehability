@@ -61,7 +61,7 @@ const DEFAULT_CATEGORIES = [
   "Mindfulness",
   "Żywienie",
   "Ruch",
-  "Camp Stories",
+  "Wyjazdy holistyczne",
   "Terapia",
   "Ogólne",
 ];
@@ -847,6 +847,8 @@ function BasicDataFormContent() {
           onSelect={handleCoverSelected}
           defaultQuery={pickerQuery}
           mandatory={!!pendingScheduleId}
+          heading="Wybierz okładkę artykułu"
+          subheading="Klimat na zdjęciu: jasno, naturalnie i kobieco — światło dzienne, spokój i ruch (joga, rozciąganie, spacer, natura, fizjoterapia). Najlepiej autentyczna kobieta 30–55 lat w realnej sytuacji, bez sztucznych stocków. Format poziomy ~1200×630 px."
         />
       </div>
     </>

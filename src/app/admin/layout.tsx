@@ -36,15 +36,22 @@ export default async function AdminLayout({
       {/* 2. POPRAWIONY GRID 
         Na mobile to zwykły flex (jedna kolumna), a na desktopie (lg:) grid 2-kolumnowy o równej szerokości 260px
       */}
-      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[260px_1fr] font-montserrat  ">
+      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[260px_1fr] font-montserrat bg-[#F7FAFB]">
         {/* KLIENCKI KOMPONENT SIDEBARA */}
         <AdminSidebar />
         <AdminMobileNavBar />
         {/* GŁÓWNY KONTENER NA TREŚĆ */}
-        <main className="flex flex-col min-w-0 min-h-screen  bg-gradient-to-br to-brand-primary/15 via-transparent from-brand-yellow/5">
+        <main className="relative z-10 flex flex-col min-w-0 min-h-screen">
+          {/* Dekoracyjne tła — miękki gradient + żółta i morska "kula" (bloby).
+              Identyczne jak w panelu uczestniczki. overflow-hidden TYLKO tu,
+              aby nie psuć `sticky` topbaru w rodzicu. */}
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#dafbff_0%,#ffffff_50%,#f5fbfc_100%)] opacity-50" />
+            <div className="absolute -top-40 -left-20 w-[420px] h-[420px] rounded-full bg-brand-primary/20 blur-[120px]" />
+            <div className="absolute top-1/3 -right-32 w-[380px] h-[380px] rounded-full bg-brand-yellow/25 blur-[120px]" />
+          </div>
           {/* KLIENCKI KOMPONENT TOPBARA */}
           <AdminTopbar user={user} />
-
           <Toaster
             position="top-right"
             gap={8}

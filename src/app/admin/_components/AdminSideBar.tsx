@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FEATURES } from "@/lib/featureFlags";
 import { signOut } from "next-auth/react";
+import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
+import AttentionDot from "@/components/ui/AttentionDot";
 import {
   SquaresFour,
   Suitcase,
@@ -29,6 +31,13 @@ import { cn } from "@/lib/utils";
 export default function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // Nieprzeczytane wiadomości czatu → pulsująca kropka na zakładce "Czat".
+  const { links: chatUnreadLinks, refresh: refreshChatUnread } =
+    useChatUnreadLinks();
+  useEffect(() => {
+    refreshChatUnread();
+  }, [pathname, refreshChatUnread]);
 
   // 1. ZAAWANSOWANE POBIERANIE ID WYJAZDU
   const queryId = searchParams.get("id");
@@ -318,6 +327,10 @@ export default function AdminSidebar() {
                   const isSubActive = step.exact
                     ? pathname === baseHref
                     : pathname.startsWith(baseHref);
+                  // Kropka tylko gdy są nieprzeczytane wiadomości czatu (API
+                  // zwraca wyłącznie deep-linki czatu, więc dotyczy tej zakładki).
+                  const needsAttention =
+                    chatUnreadLinks.has(baseHref) && !isSubActive;
 
                   return (
                     <Link key={step.name} href={step.href}>
@@ -341,6 +354,9 @@ export default function AdminSidebar() {
                           )}
                         >
                           {step.icon}
+                          {needsAttention && (
+                            <AttentionDot className="absolute -top-1.5 -right-1.5 z-20" />
+                          )}
                         </div>
                         <span
                           className={cn(
