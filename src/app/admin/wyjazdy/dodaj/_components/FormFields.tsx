@@ -350,6 +350,11 @@ export function FormDatePicker({
           dateFormat="dd MMMM yyyy"
           autoComplete="off"
           disabled={isLoading}
+          // Kalendarz renderujemy w portalu do <body>, by wyrwać go ze stacking-
+          // contextu pola (wrapper ma `relative z-0`) — inaczej kolejne inputy
+          // poniżej przykrywały popper. Wysoki z-index trzyma go nad resztą UI.
+          portalId="datepicker-portal"
+          popperClassName="!z-[9999]"
           className={cn(
             "relative z-10 w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] pl-10 pr-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors",
             isLoading
