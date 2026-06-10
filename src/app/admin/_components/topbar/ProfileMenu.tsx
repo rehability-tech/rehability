@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDown,
   Globe,
+  GearSix,
   SignOut,
 } from "@phosphor-icons/react/dist/ssr";
 import { AdminUser } from "./types";
@@ -86,6 +87,15 @@ export default function ProfileMenu({ user }: { user?: AdminUser }) {
                 </p>
               </div>
               <div className="p-2">
+                <Link
+                  href="/admin/ustawienia"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-brand-secondary hover:bg-brand-primary/10 transition"
+                >
+                  <GearSix size={16} weight="duotone" />
+                  Ustawienia
+                </Link>
+
                 {!isPWA && (
                   <Link
                     href="/"
