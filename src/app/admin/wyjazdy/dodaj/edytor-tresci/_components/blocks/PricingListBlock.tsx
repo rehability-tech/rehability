@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Reorder, motion } from "framer-motion";
-import { Plus, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { Plus, ImageSquare } from "@phosphor-icons/react/dist/ssr";
 import DraggablePricingItem from "./DraggablePricingItem";
 import { safeUuid } from "@/lib/utils";
 
@@ -40,10 +40,13 @@ export default function PricingListBlock({
     const manualItems = priceItems.filter((item: any) => !item.originalId);
     const newDbItems = pendingSelectedDbIds.map((dbId) => {
       const existing = priceItems.find((item: any) => item.originalId === dbId);
-      if (existing) return existing;
       const dbRef = dbServices.find((s) => s.id === dbId);
+      // Brak referencji (np. usługa usunięta z katalogu) — zachowaj istniejącą kopię.
+      if (!dbRef) return existing;
+      // Zawsze odświeżamy WSZYSTKIE pola z bazy (tytuł, opis, cena, czas, zdjęcie),
+      // zachowując tylko lokalne id pozycji. Dzięki temu re-wybór nie gubi danych.
       return {
-        id: safeUuid(),
+        id: existing?.id ?? safeUuid(),
         originalId: dbRef.id,
         name: dbRef.name,
         duration: dbRef.duration?.toString() || "",
@@ -141,8 +144,20 @@ export default function PricingListBlock({
                         }
                         className="w-5 h-5 cursor-pointer accent-[#287D88]"
                       />
-                      <div className="flex flex-col">
-                        <span className="font-montserrat text-sm font-bold text-[#0B3B4C]">
+                      {dbService.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={dbService.image}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-100"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 text-gray-300">
+                          <ImageSquare size={18} weight="duotone" />
+                        </div>
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-montserrat text-sm font-bold text-[#0B3B4C] truncate">
                           {dbService.name}
                         </span>
                         <span className="text-xs text-gray-400">

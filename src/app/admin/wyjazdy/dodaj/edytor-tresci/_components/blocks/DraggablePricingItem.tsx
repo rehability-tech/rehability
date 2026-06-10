@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Reorder, useDragControls } from "framer-motion";
 import {
   Trash,
   List,
   ImageSquare,
-  UploadSimple,
   X,
   Pencil,
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { Clock } from "@phosphor-icons/react";
 import { Tooltip } from "@/components/ui/ToolTip";
-import { toast } from "sonner";
+import BlogCoverPicker from "@/app/admin/blog/dodaj/_components/BlogCoverPicker";
 
 interface DraggablePricingItemProps {
   item: any;
@@ -28,57 +27,12 @@ export default function DraggablePricingItem({
   onRemove,
 }: DraggablePricingItemProps) {
   const dragControls = useDragControls();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  // Zdjęcie usługi wybieramy tak jak wszędzie — przez wspólny picker
+  // (Pexels + własny upload). Picker sam wgrywa plik do magazynu i zwraca URL.
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const description = item.description ?? "";
   const hasDescription = description.trim().length > 0;
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Wybierz plik graficzny.");
-      return;
-    }
-    setUploading(true);
-    try {
-      const res = await fetch(
-        `/api/admin/wyjazdy/service-image?filename=${encodeURIComponent(file.name)}`,
-        { method: "POST", body: file },
-      );
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Nie udało się wgrać zdjęcia.");
-        return;
-      }
-      const prevUrl = item.image as string | undefined;
-      onUpdate({ ...item, image: data.url });
-      if (prevUrl) {
-        fetch(
-          `/api/admin/wyjazdy/service-image?url=${encodeURIComponent(prevUrl)}`,
-          { method: "DELETE" },
-        ).catch(() => {});
-      }
-      toast.success("Zdjęcie wgrane.");
-    } catch {
-      toast.error("Błąd przesyłania pliku.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const removeImage = async () => {
-    const prevUrl = item.image as string | undefined;
-    onUpdate({ ...item, image: null });
-    if (prevUrl) {
-      fetch(
-        `/api/admin/wyjazdy/service-image?url=${encodeURIComponent(prevUrl)}`,
-        { method: "DELETE" },
-      ).catch(() => {});
-    }
-  };
 
   return (
     <Reorder.Item
@@ -178,7 +132,7 @@ export default function DraggablePricingItem({
           )}
         </div>
 
-        {/* ZDJĘCIE (opcjonalne) */}
+        {/* ZDJĘCIE (opcjonalne) — wybierane przez wspólny picker (Pexels + upload) */}
         <div className="flex flex-col gap-1.5">
           <label className="flex items-center gap-1.5 font-montserrat text-[11px] font-bold uppercase tracking-wide text-[#0B3B4C]/70">
             Zdjęcie
@@ -186,14 +140,6 @@ export default function DraggablePricingItem({
               (opcjonalne)
             </span>
           </label>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
 
           {item.image ? (
             <div className="relative h-[100px] w-full rounded-[14px] overflow-hidden border border-gray-100 group/img">
@@ -207,16 +153,15 @@ export default function DraggablePricingItem({
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-[#0B3B4C] hover:bg-white transition disabled:opacity-50"
+                  onClick={() => setPickerOpen(true)}
+                  className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-[#0B3B4C] hover:bg-white transition"
                   title="Zmień zdjęcie"
                 >
                   <Pencil size={14} weight="bold" />
                 </button>
                 <button
                   type="button"
-                  onClick={removeImage}
+                  onClick={() => onUpdate({ ...item, image: null })}
                   className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-rose-500 hover:bg-white transition"
                   title="Usuń zdjęcie"
                 >
@@ -227,25 +172,27 @@ export default function DraggablePricingItem({
           ) : (
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="h-[100px] w-full flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-200 rounded-[14px] text-gray-400 hover:text-[#287D88] hover:border-[#287D88]/40 hover:bg-[#287D88]/5 transition-colors text-xs font-semibold disabled:opacity-60"
+              onClick={() => setPickerOpen(true)}
+              className="h-[100px] w-full flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-200 rounded-[14px] text-gray-400 hover:text-[#287D88] hover:border-[#287D88]/40 hover:bg-[#287D88]/5 transition-colors text-xs font-semibold"
             >
-              {uploading ? (
-                <>
-                  <UploadSimple size={20} className="animate-pulse" />
-                  <span>Wgrywam...</span>
-                </>
-              ) : (
-                <>
-                  <ImageSquare size={22} weight="duotone" />
-                  <span>Dodaj zdjęcie</span>
-                </>
-              )}
+              <ImageSquare size={22} weight="duotone" />
+              <span>Dodaj zdjęcie</span>
             </button>
           )}
         </div>
       </div>
+
+      <BlogCoverPicker
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(url) => {
+          onUpdate({ ...item, image: url });
+          setPickerOpen(false);
+        }}
+        defaultQuery={item.name || "spa masaż wellness"}
+        heading="Zdjęcie usługi"
+        subheading="Wybierz zdjęcie z Pexels albo wgraj własne — trafi prosto do naszego magazynu."
+      />
     </Reorder.Item>
   );
 }
