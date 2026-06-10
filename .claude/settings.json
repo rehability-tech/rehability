@@ -1,7 +1,35 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c \"import json;d=json.load\\(open\\('c:/Users/mkoci/.claude.json'\\)\\);print\\('global mcpServers:',list\\(d.get\\('mcpServers',{}\\).keys\\(\\)\\)\\)\")"
+      "Bash(python -c \"import json;d=json.load\\(open\\('c:/Users/mkoci/.claude.json'\\)\\);print\\('global mcpServers:',list\\(d.get\\('mcpServers',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(findstr /i \"vod\")",
+      "Bash(curl -s -m 6 -X POST http://127.0.0.1:3845/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d \"{\\\\\"jsonrpc\\\\\":\\\\\"2.0\\\\\",\\\\\"id\\\\\":1,\\\\\"method\\\\\":\\\\\"initialize\\\\\",\\\\\"params\\\\\":{\\\\\"protocolVersion\\\\\":\\\\\"2024-11-05\\\\\",\\\\\"capabilities\\\\\":{},\\\\\"clientInfo\\\\\":{\\\\\"name\\\\\":\\\\\"probe\\\\\",\\\\\"version\\\\\":\\\\\"1\\\\\"}}}\")",
+      "Bash(python --version)",
+      "Bash(py --version)",
+      "Bash(python .figma_mcp_probe.py)",
+      "Bash(python .figma_mcp_get.py \"116:26\")",
+      "Bash(python .figma_mcp_ctx.py \"116:26\")",
+      "Bash(grep -rn \"<Navbar\" src/app src/components)",
+      "Bash(grep -rn \"<Footer\" src/app src/components)",
+      "Bash(sed -n '1,80p' src/app/layout.tsx)",
+      "Bash(grep -oE \">[^<]{3,}</p>\")",
+      "Bash(sed 's/<\\\\/p>//; s/^>//')",
+      "Bash(sed -n '131,150p' .figma_out/design_context.md)",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(curl -s -m 20 http://localhost:3000/kursy)",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if \\($p\\) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; \"stopped PID $p\" } else { \"no listener\" }; Remove-Item \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\\\\.devserver.log\" -Force -ErrorAction SilentlyContinue; \"log removed\")",
+      "Bash(python .figma_fetch.py \"116:30\" n30)",
+      "Bash(python .figma_fetch.py \"116:32\" n32)",
+      "Bash(curl -s -m 30 -o nul -w \"HTTP:%{http_code} size:%{size_download}\\\\n\" http://localhost:3000/kursy/lifting-twarzy-kobido)",
+      "Bash(curl -s -m 20 http://localhost:3000/kursy/lifting-twarzy-kobido)",
+      "Bash(curl -s -m 30 -o nul -w \"HTTP:%{http_code} size:%{size_download}\\\\n\" http://localhost:3000/kursy/lifting-twarzy-kobido/checkout)",
+      "Bash(curl -s -m 20 http://localhost:3000/kursy/lifting-twarzy-kobido/checkout)",
+      "Bash(curl -s -m 20 -o nul -w \"HTTP:%{http_code}\\\\n\" http://localhost:3000/kursy/ergonomia-pracy)",
+      "Bash(curl -s -m 20 http://localhost:3000/kursy/ergonomia-pracy)",
+      "Bash(curl -s -m 20 -o nul -w \"HTTP:%{http_code}\\\\n\" http://localhost:3000/kursy/nieistnieje-xyz)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com/logotypes/logo-email.png\")",
+      "Bash(ls public/logotypy/)",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if \\($p\\) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; \"stopped $p\" } else { \"no listener\" })"
     ]
   }
 }

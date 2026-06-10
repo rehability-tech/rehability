@@ -25,6 +25,7 @@ const NAV_LINKS = [
   { label: "O nas", href: "/o-nas" },
   { label: "Gabinet", href: "/gabinet" },
   { label: "Wyjazdy", href: "/wyjazdy" },
+  { label: "Kursy", href: "/kursy" },
   { label: "Blog", href: "/blog" },
 ];
 
@@ -123,6 +124,7 @@ export function Navbar({ session }: NavbarProps) {
   const isGabinetRoute =
     path === "/gabinet" ||
     path === "/wyjazdy" ||
+    path === "/kursy" ||
     path === `/wyjazdy/${currentPathname[2]}` ||
     path === `/blog/${currentPathname[2]}`;
 
