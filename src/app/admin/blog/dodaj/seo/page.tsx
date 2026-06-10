@@ -25,6 +25,7 @@ import NeonInputGlow from "../_components/NeonInputGlow";
 import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
 import PublishControl from "./_components/PublishControl";
 import GenerateSeoButton from "@/components/admin/seo/GenerateSeoButton";
+import OgImageUploadButton from "@/components/admin/seo/OgImageUploadButton";
 import {
   keywordOverlap,
   type SeoCheck,
@@ -613,6 +614,7 @@ function SeoFormContent() {
               placeholder="https://... lub /images/..."
               className="w-full bg-gray-50 border border-gray-200 text-[#0B3B4C] text-sm rounded-[12px] px-4 py-3 font-montserrat focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors"
             />
+            <OgImageUploadButton onUploaded={setOgImage} />
             {ogImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img

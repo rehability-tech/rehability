@@ -329,7 +329,7 @@ export default function SectionsList({
   function renderContent(section: EmailSection) {
     switch (section.type) {
       case "hero":
-        return <HeroSection image={section.image} onOpenPicker={() => onOpenHeroPicker(section.id)} readonly />;
+        return <HeroSection image={section.image} onOpenPicker={() => onOpenHeroPicker(section.id)} readonly={readonly} />;
       case "image":
         return <InlineImageSection image={section.image} onOpenPicker={() => onOpenHeroPicker(section.id)} readonly={readonly} />;
       case "title":

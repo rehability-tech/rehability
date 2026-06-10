@@ -147,7 +147,7 @@ function ZaproszeniaContent() {
             setShowAIModal(true);
           } else {
             // User was here before but content was cleared / never saved — load defaults silently
-            setSections(createDefaultSections());
+            setSections(createDefaultSections(heroImage));
           }
         }
 
@@ -225,7 +225,7 @@ function ZaproszeniaContent() {
 
   const handleModalManual = useCallback(() => {
     setShowAIModal(false);
-    setSections(createDefaultSections());
+    setSections(createDefaultSections(heroImageRef.current));
   }, []);
 
   // ── Reset email in DB ─────────────────────────────────────────────────────

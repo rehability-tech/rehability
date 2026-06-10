@@ -36,9 +36,9 @@ export const SECTION_LABELS: Record<SectionType, string> = {
 };
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
-export function createDefaultSections(): EmailSection[] {
+export function createDefaultSections(heroImage = ""): EmailSection[] {
   return [
-    { id: uid(), type: "hero", image: "" },
+    { id: uid(), type: "hero", image: heroImage },
     { id: uid(), type: "title", content: DEFAULT_TITLE },
     { id: uid(), type: "text", content: "Cześć {inviteeName}," },
     {

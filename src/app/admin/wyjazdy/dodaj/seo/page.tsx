@@ -20,6 +20,7 @@ import SeoChecklist from "./_components/SeoChecklist";
 import SeoInputField from "./_components/SeoInputField";
 import GenerateSeoButton from "./_components/GenerateSeoButton";
 import SeoAiAnalysisCard from "./_components/SeoAiAnalysisCard";
+import OgImageUploadButton from "@/components/admin/seo/OgImageUploadButton";
 import { useTripSeoForm } from "./_components/useTripSeoForm";
 import { keywordOverlap, type SeoCheck } from "./_components/utils";
 
@@ -203,6 +204,7 @@ function SeoFormContent() {
               placeholder="https://... lub /images/..."
               hint="Zdjęcie wyświetlane przy udostępnieniu na Facebook, LinkedIn itd. Zalecane 1200×630 px."
             />
+            <OgImageUploadButton onUploaded={setOgImage} />
             {ogImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
