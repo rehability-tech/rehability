@@ -1,6 +1,14 @@
 import { useState } from "react";
-import { safeUuid } from "@/lib/utils";
+import { safeUuid, isUsableImageUrl } from "@/lib/utils";
 import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
+
+// Kolejka pickerów zdjęć (współdzielona z blogiem) — pauza na ręczny wybór
+// grafiki dla bloków inlineImage, dla których AI nie ma realnego zdjęcia.
+type PickImagesFor = (
+  blocks: any[],
+  onUpdate?: (blocks: any[]) => void,
+  onlyBlockId?: string,
+) => Promise<any[]>;
 
 export type BlockType =
   | "heading"
@@ -23,6 +31,7 @@ export interface TripBlock {
 }
 export function useTripAiGenerator(
   updateField: (field: any, value: any) => void,
+  pickImagesFor?: PickImagesFor,
 ) {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -33,6 +42,7 @@ export function useTripAiGenerator(
       | "blueprint"
       | "generating"
       | "ratelimit"
+      | "images"
       | "done"
       | "error",
     currentBlock: 0,
@@ -186,6 +196,13 @@ export function useTripAiGenerator(
               blockContent.text =
                 "Treść się nie wygenerowała. Usuń i spróbuj ponownie.";
           }
+          // AI nigdy nie podaje realnego zdjęcia — prawdziwy URL pochodzi WYŁĄCZNIE
+          // z pickera (Pexels / własny upload). Czyścimy cokolwiek wpisało, zostawiając
+          // `alt` jako podpowiedź, co ma przedstawiać zdjęcie.
+          if (step.type === "inlineImage") {
+            blockContent.url = "";
+            if (typeof blockContent.alt !== "string") blockContent.alt = "";
+          }
 
           currentBlocks = currentBlocks.map((block) =>
             block.id === blockIdToUpdate
@@ -193,6 +210,33 @@ export function useTripAiGenerator(
               : block,
           );
           updateField("blocks", currentBlocks);
+
+          // Pauza INLINE na bloku zdjęcia: otwórz picker OD RAZU (z opisem `alt`
+          // jako podpowiedzią) i wznów pisanie dopiero po wyborze/pominięciu.
+          if (
+            pickImagesFor &&
+            step.type === "inlineImage" &&
+            !isUsableImageUrl(
+              currentBlocks.find((b) => b.id === blockIdToUpdate)?.content?.url,
+            )
+          ) {
+            setAiProgress((prev) => ({
+              ...prev,
+              phase: "images",
+              message: "Wybierz zdjęcie do tego miejsca...",
+            }));
+            currentBlocks = (await pickImagesFor(
+              currentBlocks,
+              (bs) => updateField("blocks", bs),
+              blockIdToUpdate,
+            )) as TripBlock[];
+            updateField("blocks", currentBlocks);
+            setAiProgress((prev) => ({
+              ...prev,
+              phase: "generating",
+              message: "Copywriter pisze teksty...",
+            }));
+          }
         } catch (err) {
           currentBlocks = currentBlocks.map((block) =>
             block.id === blockIdToUpdate

@@ -20,6 +20,8 @@ import TripBlocksBuilder from "./_components/lib/TripBlockBuilder";
 import AiGeneratorModal from "../_components/AiGeneratorModal";
 import { useTripContent } from "./_components/hooks/useTripContent";
 import { useTripAiGenerator } from "./_components/hooks/useTripAiGenerator";
+import { useInlineImagePicker } from "@/app/admin/blog/dodaj/edytor-tresci/_components/hooks/useInlineImagePicker";
+import BlogCoverPicker from "@/app/admin/blog/dodaj/_components/BlogCoverPicker";
 
 // Helper do formatowania daty
 const formatDateRange = (start: any, end: any) => {
@@ -62,6 +64,9 @@ function ContentEditorFormContent() {
     handleSaveAndNext,
   } = useTripContent(editId);
 
+  // Pół-automatyczny dobór zdjęć (kolejka pickerów) — współdzielony z blogiem.
+  const imgPicker = useInlineImagePicker();
+
   const {
     isAiModalOpen,
     setIsAiModalOpen,
@@ -69,7 +74,7 @@ function ContentEditorFormContent() {
     setAiPrompt,
     aiProgress,
     handleGenerateLandingPage,
-  } = useTripAiGenerator(updateField);
+  } = useTripAiGenerator(updateField, imgPicker.pickImagesFor);
 
   // Stan UI dla pływającego paska (to zostaje w komponencie, bo dotyczy tylko widoku)
   const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
@@ -109,6 +114,25 @@ function ContentEditorFormContent() {
         onSubmit={handleGenerateLandingPage}
         prompt={aiPrompt}
         setPrompt={setAiPrompt}
+      />
+
+      {/* Kolejka pickerów zdjęć — generator zatrzymuje się i prosi o wybór
+          grafiki dla bloków, dla których AI nie ma realnego zdjęcia (jak blog). */}
+      <BlogCoverPicker
+        key={imgPicker.pickerKey}
+        isOpen={imgPicker.state.isOpen}
+        mandatory
+        onSkip={imgPicker.handleSkip}
+        onClose={imgPicker.handleSkip}
+        onSelect={imgPicker.handleSelect}
+        defaultQuery={imgPicker.state.query}
+        heading={`Dobierz zdjęcie do treści (${imgPicker.state.index}/${imgPicker.state.total})`}
+        subheading={
+          imgPicker.state.query
+            ? `AI proponuje, by zdjęcie przedstawiało: „${imgPicker.state.query}". Wybierz z Pexels lub wgraj własne — albo pomiń i dodaj później.`
+            : "Wybierz pasujące zdjęcie z Pexels lub wgraj własne — albo pomiń i dodaj później."
+        }
+        uploadEndpoint={`/api/admin/wyjazdy/${editId}/upload`}
       />
 
       {/* PŁYWAJĄCY PANEL POSTĘPU AI */}

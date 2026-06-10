@@ -161,7 +161,7 @@ export default function EditableHero({
         className="hidden"
       />
 
-      <div className="absolute top-6 right-6 z-30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-6 right-6 z-30 flex flex-wrap justify-end items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => setPickerOpen(true)}
           disabled={isUploading || isDeleting}
