@@ -118,7 +118,12 @@ export function useTripContent(editId: string | null) {
 
   const handleSaveAndNext = async () => {
     await performSave("bottom");
-    router.push(`/admin/wyjazdy/dodaj/seo?id=${editId}`);
+    // Krok "E-mail" (zaproszenia) istnieje tylko gdy wyjazd pozwala zabrać osobę
+    // towarzyszącą. Inaczej przeskakujemy od razu do SEO — spójnie ze stepperem.
+    const nextStep = campData?.allowBringFriend
+      ? `/admin/wyjazdy/dodaj/zaproszenia?id=${editId}`
+      : `/admin/wyjazdy/dodaj/seo?id=${editId}`;
+    router.push(nextStep);
   };
 
   return {
