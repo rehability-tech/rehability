@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Reorder } from "framer-motion";
 import BlogBlockEditorCard from "./BlogBlockEditorCard";
 import BlogBlockAdder from "./BlogBlockAdder";
@@ -15,12 +15,6 @@ interface BlogBlockBuilderProps {
 }
 
 export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderProps) {
-  const [localBlocks, setLocalBlocks] = useState<BlogBlock[]>(blocks);
-
-  useEffect(() => {
-    setLocalBlocks(blocks);
-  }, [blocks]);
-
   const handleAddBlock = (type: BlogBlockType) => {
     let defaultContent: any = null;
     switch (type) {
@@ -48,10 +42,14 @@ export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderP
       prev.map((b) => (b.id === updated.id ? updated : b)),
     );
 
+  // Reorder.Group musi czytać i zapisywać TEN SAM stan — dlatego `values` i
+  // `onReorder` są podpięte bezpośrednio pod stan rodzica (`blocks`/`onChange`).
+  // Lokalny mirror rozjeżdżał kolejność: `onReorder` aktualizował rodzica, a
+  // `values` czytało stary lokalny stan → elementy nie zamieniały się miejscami.
   return (
     <div className="w-full lg:pr-16">
-      <Reorder.Group axis="y" values={localBlocks} onReorder={onChange} className="flex flex-col gap-2">
-        {localBlocks.map((block) => (
+      <Reorder.Group axis="y" values={blocks} onReorder={onChange} className="flex flex-col gap-2">
+        {blocks.map((block) => (
           <BlogBlockEditorCard
             key={`${block.id}-${block.isGenerating ? "loading" : "ready"}`}
             block={block}
