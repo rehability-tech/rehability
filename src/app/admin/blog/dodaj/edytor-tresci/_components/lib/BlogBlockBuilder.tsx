@@ -9,7 +9,9 @@ import { safeUuid } from "@/lib/utils";
 
 interface BlogBlockBuilderProps {
   blocks: BlogBlock[];
-  onChange: (newBlocks: BlogBlock[]) => void;
+  onChange: (
+    newBlocks: BlogBlock[] | ((prev: BlogBlock[]) => BlogBlock[]),
+  ) => void;
 }
 
 export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderProps) {
@@ -33,11 +35,18 @@ export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderP
       case "videoEmbed":   defaultContent = { url: "" }; break;
       case "table":        defaultContent = { caption: "", headers: ["Kolumna 1", "Kolumna 2"], rows: [["", ""], ["", ""]] }; break;
     }
-    onChange([...blocks, { id: safeUuid(), type, content: defaultContent }]);
+    onChange((prev) => [
+      ...prev,
+      { id: safeUuid(), type, content: defaultContent },
+    ]);
   };
 
-  const handleDeleteBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
-  const handleUpdateBlock = (updated: BlogBlock) => onChange(blocks.map((b) => (b.id === updated.id ? updated : b)));
+  const handleDeleteBlock = (id: string) =>
+    onChange((prev) => prev.filter((b) => b.id !== id));
+  const handleUpdateBlock = (updated: BlogBlock) =>
+    onChange((prev) =>
+      prev.map((b) => (b.id === updated.id ? updated : b)),
+    );
 
   return (
     <div className="w-full lg:pr-16">

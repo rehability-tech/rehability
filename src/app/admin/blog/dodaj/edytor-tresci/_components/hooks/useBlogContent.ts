@@ -17,9 +17,25 @@ export function useBlogContent(postId: string | null) {
   const [postTitle, setPostTitle] = useState("");
   const [contentData, setContentData] = useState<BlogContentState>({ blocks: [] });
 
-  const updateField = useCallback(<K extends keyof BlogContentState>(field: K, value: BlogContentState[K]) => {
-    setContentData((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const updateField = useCallback(
+    <K extends keyof BlogContentState>(
+      field: K,
+      value:
+        | BlogContentState[K]
+        | ((prev: BlogContentState[K]) => BlogContentState[K]),
+    ) => {
+      setContentData((prev) => ({
+        ...prev,
+        [field]:
+          typeof value === "function"
+            ? (value as (p: BlogContentState[K]) => BlogContentState[K])(
+                prev[field],
+              )
+            : value,
+      }));
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!postId) {
