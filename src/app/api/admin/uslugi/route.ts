@@ -19,15 +19,75 @@ const updateSchema = createSchema.extend({
   id: z.string().min(1, "Brak ID usługi"),
 });
 
+type AggregatedService = {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+  description: string;
+  image: string | null;
+};
+
 export async function GET() {
   const { isAuthorized, response } = await requireAdmin();
   if (!isAuthorized) return response as NextResponse;
 
   try {
-    const services = await prisma.extraService.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(services);
+    // GLOBALNA BAZA USŁUG = katalog ExtraService ∪ wszystkie usługi ze wszystkich
+    // wyjazdów (TripService). Usługi tworzone/edytowane "tylko dla wyjazdu" żyją
+    // wyłącznie w TripService — tutaj zbieramy je wszystkie w jedną listę, żeby
+    // "Wybierz z bazy" pokazywało komplet (z opisem i zdjęciem).
+    const [extra, tripServices] = await Promise.all([
+      prisma.extraService.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.tripService.findMany({ orderBy: { name: "asc" } }),
+    ]);
+
+    // Deduplikacja po (nazwa | czas | cena) — zachowuje warianty (np. ta sama
+    // nazwa, inna cena/czas), a scala identyczne kopie z różnych wyjazdów.
+    // Przy kolizji wzbogacamy brakujące zdjęcie/opis z kopii, która je ma.
+    const map = new Map<string, AggregatedService>();
+    const keyOf = (name: string, duration: number, price: number) =>
+      `${name.trim().toLowerCase()}|${duration}|${price}`;
+
+    const upsert = (svc: AggregatedService) => {
+      const key = keyOf(svc.name, svc.duration, svc.price);
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, svc);
+        return;
+      }
+      if (!existing.image && svc.image) existing.image = svc.image;
+      if (
+        (!existing.description || !existing.description.trim()) &&
+        svc.description
+      ) {
+        existing.description = svc.description;
+      }
+    };
+
+    // Katalog globalny ma pierwszeństwo (jego id staje się id pozycji).
+    for (const s of extra) {
+      upsert({
+        id: s.id,
+        name: s.name,
+        duration: s.duration,
+        price: Number(s.price),
+        description: s.description ?? "",
+        image: s.image ?? null,
+      });
+    }
+    for (const ts of tripServices) {
+      upsert({
+        id: ts.id,
+        name: ts.name,
+        duration: ts.duration,
+        price: Number(ts.price),
+        description: ts.description ?? "",
+        image: ts.image ?? null,
+      });
+    }
+
+    return NextResponse.json([...map.values()]);
   } catch (error) {
     console.error("[GET /api/admin/uslugi]", error);
     return NextResponse.json(

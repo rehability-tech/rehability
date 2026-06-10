@@ -8,15 +8,14 @@ import { safeUuid } from "@/lib/utils";
 export default function PricingListBlock({
   content,
   onChange,
-  tripId,
 }: {
   content: any;
   onChange: (c: any) => void;
-  tripId?: string;
 }) {
   const priceItems = content?.items || [];
   const [isServicePickerOpen, setIsServicePickerOpen] = useState(false);
   const [dbServices, setDbServices] = useState<any[]>([]);
+  const [servicesLoaded, setServicesLoaded] = useState(false);
   const [pendingSelectedDbIds, setPendingSelectedDbIds] = useState<string[]>(
     [],
   );
@@ -28,22 +27,19 @@ export default function PricingListBlock({
       );
     }
     setIsServicePickerOpen((prev) => !prev);
-    if (dbServices.length === 0) {
+    if (!servicesLoaded) {
       try {
-        // Pobieramy usługi TEGO wyjazdu (TripService) — mają komplet danych:
-        // nazwę, opis, czas, cenę ORAZ zdjęcie. Globalny katalog (/api/admin/uslugi)
-        // bywa uboższy (np. usługa edytowana tylko dla wyjazdu nie ma zdjęcia w katalogu).
-        const endpoint = tripId
-          ? `/api/admin/wyjazdy/${tripId}/services`
-          : "/api/admin/uslugi";
-        const res = await fetch(endpoint);
+        // Globalna baza usług = katalog ∪ usługi ze wszystkich wyjazdów
+        // (agregowane po stronie /api/admin/uslugi) — komplet z opisem i zdjęciem.
+        const res = await fetch("/api/admin/uslugi");
         if (res.ok) {
           const data = await res.json();
-          // Endpoint wyjazdu zwraca { services: [...] }, katalog — tablicę wprost.
           setDbServices(Array.isArray(data) ? data : (data.services ?? []));
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setServicesLoaded(true);
       }
     }
   };
@@ -134,7 +130,9 @@ export default function PricingListBlock({
             <div className="flex flex-col gap-1 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
               {dbServices.length === 0 ? (
                 <span className="text-sm text-gray-400 italic py-2">
-                  Ładowanie z bazy...
+                  {servicesLoaded
+                    ? "Brak usług w bazie. Dodaj usługi w sklepie wyjazdu lub w katalogu."
+                    : "Ładowanie z bazy..."}
                 </span>
               ) : (
                 dbServices.map((dbService) => {
