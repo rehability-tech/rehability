@@ -8,9 +8,11 @@ import { safeUuid } from "@/lib/utils";
 export default function PricingListBlock({
   content,
   onChange,
+  tripId,
 }: {
   content: any;
   onChange: (c: any) => void;
+  tripId?: string;
 }) {
   const priceItems = content?.items || [];
   const [isServicePickerOpen, setIsServicePickerOpen] = useState(false);
@@ -28,8 +30,18 @@ export default function PricingListBlock({
     setIsServicePickerOpen((prev) => !prev);
     if (dbServices.length === 0) {
       try {
-        const res = await fetch("/api/admin/uslugi");
-        if (res.ok) setDbServices(await res.json());
+        // Pobieramy usługi TEGO wyjazdu (TripService) — mają komplet danych:
+        // nazwę, opis, czas, cenę ORAZ zdjęcie. Globalny katalog (/api/admin/uslugi)
+        // bywa uboższy (np. usługa edytowana tylko dla wyjazdu nie ma zdjęcia w katalogu).
+        const endpoint = tripId
+          ? `/api/admin/wyjazdy/${tripId}/services`
+          : "/api/admin/uslugi";
+        const res = await fetch(endpoint);
+        if (res.ok) {
+          const data = await res.json();
+          // Endpoint wyjazdu zwraca { services: [...] }, katalog — tablicę wprost.
+          setDbServices(Array.isArray(data) ? data : (data.services ?? []));
+        }
       } catch (error) {
         console.error(error);
       }

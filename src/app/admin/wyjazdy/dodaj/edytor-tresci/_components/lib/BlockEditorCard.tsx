@@ -82,7 +82,11 @@ function BlockEditorCardBase({
         );
       case "pricingList":
         return (
-          <PricingListBlock content={block.content} onChange={setContent} />
+          <PricingListBlock
+            content={block.content}
+            onChange={setContent}
+            tripId={tripId}
+          />
         );
       case "videoEmbed":
         return (
