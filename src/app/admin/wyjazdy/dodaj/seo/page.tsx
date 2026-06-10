@@ -19,7 +19,6 @@ import SerpPreview from "./_components/SerpPreview";
 import SeoChecklist from "./_components/SeoChecklist";
 import SeoInputField from "./_components/SeoInputField";
 import GenerateSeoButton from "./_components/GenerateSeoButton";
-import SeoAiAnalysisCard from "./_components/SeoAiAnalysisCard";
 import OgImageUploadButton from "@/components/admin/seo/OgImageUploadButton";
 import { useTripSeoForm } from "./_components/useTripSeoForm";
 import { keywordOverlap, type SeoCheck } from "./_components/utils";
@@ -52,14 +51,8 @@ function SeoFormContent() {
     isGenerating,
     genStatusMsg,
 
-    analysis,
-    analysisLoading,
-    analysisError,
-    runAnalysis,
-
     isFixing,
     generateSeo,
-    applyFixes,
     saveSeo,
   } = useTripSeoForm(tripId);
 
@@ -144,8 +137,8 @@ function SeoFormContent() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
-        {/* Lewa kolumna: Formularz */}
+      <div className="max-w-3xl">
+        {/* Jedna kolumna: formularz + reguły SEO */}
         <div className="flex flex-col gap-6">
           <SerpPreview
             metaTitle={metaTitle}
@@ -269,18 +262,8 @@ function SeoFormContent() {
               />
             </button>
           </div>
-        </div>
 
-        {/* Prawa kolumna: Analiza AI + checklist regułowy */}
-        <div className="xl:sticky xl:top-6 h-fit flex flex-col gap-4">
-          <SeoAiAnalysisCard
-            analysis={analysis}
-            isLoading={analysisLoading}
-            error={analysisError}
-            onRefresh={() => runAnalysis()}
-            onFix={applyFixes}
-            isFixing={isFixing}
-          />
+          {/* Reguły SEO — w tej samej kolumnie co inputy */}
           <SeoChecklist checks={seoChecks} />
         </div>
       </div>
