@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { safeUuid } from "@/lib/utils";
+import { geminiFetch, type RateStatus } from "@/lib/gemini/clientRateLimiter";
 
-let apiCallCount = 0;
-let apiResetTime = Date.now();
-// Realny limit Gemini 3.1 Flash Lite to 15 RPM — trzymamy 14 jako margines.
-const RPM_LIMIT = 14;
 export type BlockType =
   | "heading"
   | "paragraph"
@@ -44,6 +41,32 @@ export function useTripAiGenerator(
     countdown: 0,
   });
 
+  // Wspólny handler statusu z geminiFetch — obsługuje limit Gemini (429) oraz
+  // ponawianie po błędach: zamiast wywalać blok, czekamy i wznawiamy automatycznie
+  // (dokładnie jak generacja bloga). Dzięki temu generacja jest płynna i nie
+  // produkuje bloków z błędem.
+  const buildStatusHandler =
+    (resumeMessage: string) => (status: RateStatus) => {
+      if (status.kind === "waiting") {
+        const baseMsg =
+          status.reason === "ratelimit"
+            ? "Ochrona limitu Gemini. Wznawiam automatycznie ☕"
+            : `Błąd Gemini — ponawiam próbę (${status.attempt}/${status.maxAttempts})`;
+        setAiProgress((prev) => ({
+          ...prev,
+          phase: "ratelimit",
+          message: baseMsg,
+          countdown: status.countdown,
+        }));
+      } else {
+        setAiProgress((prev) =>
+          prev.phase === "ratelimit"
+            ? { ...prev, phase: "generating", message: resumeMessage, countdown: 0 }
+            : prev,
+        );
+      }
+    };
+
   const handleGenerateLandingPage = async (
     prompt: string,
     selectedModel: string,
@@ -58,27 +81,29 @@ export function useTripAiGenerator(
     });
 
     try {
-      if (apiCallCount >= RPM_LIMIT) {
-        apiCallCount = 0;
-        apiResetTime = Date.now();
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-      }
-      apiCallCount++;
-
-      const bpRes = await fetch("/api/admin/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "generateBlueprint",
-          prompt,
-          model: selectedModel,
-        }),
-      });
+      const bpRes = await geminiFetch(
+        "/api/admin/gemini",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generateBlueprint",
+            prompt,
+            model: selectedModel,
+          }),
+        },
+        { onStatus: buildStatusHandler("Architekt AI układa plan strony...") },
+      );
 
       if (!bpRes.ok) throw new Error("Błąd podczas tworzenia planu.");
       const responseData = await bpRes.json();
-      const blueprint = responseData.blueprint;
+      const blueprint = Array.isArray(responseData.blueprint)
+        ? responseData.blueprint
+        : [];
       const meta = responseData.meta;
+      if (blueprint.length === 0) {
+        throw new Error("AI nie zwróciło planu strony. Spróbuj ponownie.");
+      }
 
       setIsAiModalOpen(false);
       setAiPrompt("");
@@ -97,6 +122,8 @@ export function useTripAiGenerator(
         updateField("tags", meta.tags || []);
       }
 
+      // Cała struktura wskakuje od razu (z shimmerem) — tak jak teraz — a treść
+      // dolewamy blok po bloku.
       let currentBlocks: TripBlock[] = blueprint.map((step: any) => ({
         id: safeUuid(),
         type: step.type,
@@ -111,46 +138,22 @@ export function useTripAiGenerator(
         setAiProgress((prev) => ({ ...prev, currentBlock: i + 1 }));
 
         try {
-          if (apiCallCount >= RPM_LIMIT) {
-            const timePassed = Date.now() - apiResetTime;
-            const waitMs = Math.max(0, 60000 - timePassed);
-
-            if (waitMs > 0) {
-              const waitSeconds = Math.ceil(waitMs / 1000);
-              setAiProgress((prev) => ({
-                ...prev,
-                phase: "ratelimit",
-                message: "Ochrona limitu. Agent pije kawę ☕",
-                countdown: waitSeconds,
-              }));
-              for (let s = waitSeconds; s > 0; s--) {
-                setAiProgress((prev) => ({ ...prev, countdown: s }));
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-              }
-            }
-            apiCallCount = 0;
-            apiResetTime = Date.now();
-            setAiProgress((prev) => ({
-              ...prev,
-              phase: "generating",
-              message: "Copywriter wraca do pracy...",
-              countdown: 0,
-            }));
-          }
-          apiCallCount++;
-
-          const blockRes = await fetch("/api/admin/gemini", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "generateSingleBlock",
-              prompt: prompt,
-              overallContext: prompt,
-              blockType: step.type,
-              topic: step.topic,
-              model: selectedModel,
-            }),
-          });
+          const blockRes = await geminiFetch(
+            "/api/admin/gemini",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "generateSingleBlock",
+                prompt: prompt,
+                overallContext: prompt,
+                blockType: step.type,
+                topic: step.topic,
+                model: selectedModel,
+              }),
+            },
+            { onStatus: buildStatusHandler("Copywriter wraca do pracy...") },
+          );
 
           if (!blockRes.ok) throw new Error("Błąd API");
           let blockContent = await blockRes.json();
@@ -219,7 +222,8 @@ export function useTripAiGenerator(
       setAiProgress((prev) => ({
         ...prev,
         phase: "error",
-        message: "Wystąpił błąd. Spróbuj ponownie.",
+        message:
+          err instanceof Error ? err.message : "Wystąpił błąd. Spróbuj ponownie.",
       }));
       setTimeout(
         () => setAiProgress((prev) => ({ ...prev, isVisible: false })),
