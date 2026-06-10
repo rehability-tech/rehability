@@ -167,7 +167,10 @@ export function generateEmailHtml(
     inviterName,
     inviteeName,
     invitationUrl,
-    logoUrl = "https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com/logotypes/logo-email.png",
+    // Logo musi być absolutnym URL-em (klient pocztowy nie zaciągnie ścieżki
+    // względnej). Plik leży w /public/logotypy/logo-email.png i jest serwowany
+    // pod domeną aplikacji. Poprzedni URL do bloba zwracał 404.
+    logoUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.rehabilityprudnik.pl"}/logotypy/logo-email.png`,
   } = ctx;
 
   const vars: Record<string, string> = {

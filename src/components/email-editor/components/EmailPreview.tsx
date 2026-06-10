@@ -55,7 +55,7 @@ export default function EmailPreview({
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com/logotypes/logo-email.png"
+            src="/logotypy/logo-email.png"
             alt="Rehability"
             style={{ width: 120, height: "auto", margin: "0 auto" }}
           />
