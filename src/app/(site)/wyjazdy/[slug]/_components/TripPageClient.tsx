@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { ShoppingCart } from "@phosphor-icons/react/dist/ssr";
+import { ShoppingCart, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 
 import SingleTripHero from "./SingleTripHero";
 import TripBookingForm, { type CurrentUser } from "./TripBookingForm";
@@ -25,6 +25,8 @@ interface TripPageClientProps {
   currentUser: CurrentUser | null;
   initialVariant?: "standard" | "duo";
   initialStep?: number;
+  /** Imię i nazwisko osoby, która wysłała zaproszenie (gdy wejście z linku ?inv=). */
+  inviterName?: string | null;
 }
 
 export default function TripPageClient({
@@ -44,6 +46,7 @@ export default function TripPageClient({
   currentUser,
   initialVariant,
   initialStep,
+  inviterName,
 }: TripPageClientProps) {
   // Referencja do formularza, by śledzić czy jest widoczny na ekranie
   const formRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,18 @@ export default function TripPageClient({
         <div className="absolute top-[800px] left-[-200px] w-[600px] h-[600px] bg-brand-primary/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[200px] right-[-100px] w-[500px] h-[500px] bg-brand-yellow/5 rounded-full blur-[100px]" />
       </div>
+
+      {/* Tag "Zaproszenie od ..." — wejście z linku z maila (?inv=). Desktop: delikatny
+          tag w prawym górnym rogu. Mobile: kompaktowa plakietka przy przycisku CTA. */}
+      {inviterName && (
+        <div className="hidden lg:flex fixed top-24 right-6 z-40 items-center gap-2 px-4 py-2 rounded-full bg-white/85 backdrop-blur-xl border border-brand-yellow/40 shadow-[0_8px_24px_-10px_rgba(3,63,99,0.35)]">
+          <EnvelopeSimple size={15} weight="fill" className="text-brand-primary" />
+          <span className="text-[12.5px] font-montserrat font-semibold text-brand-secondary">
+            Zaproszenie od{" "}
+            <span className="text-brand-primary">{inviterName}</span>
+          </span>
+        </div>
+      )}
 
       <SingleTripHero
         title={title}
@@ -141,8 +156,13 @@ export default function TripPageClient({
               </div>
               <button
                 onClick={scrollToForm}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-primary/90 text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.4)] hover:shadow-lg transition-all"
+                className="relative inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-primary/90 text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.4)] hover:shadow-lg transition-all"
               >
+                {inviterName && (
+                  <span className="absolute -top-2.5 -right-2 px-2 py-0.5 rounded-full rounded-tr-[3px] bg-brand-yellow text-brand-secondary text-[9px] font-bold shadow-sm ring-2 ring-white whitespace-nowrap">
+                    od {inviterName.split(" ")[0]}
+                  </span>
+                )}
                 Rezerwuję <ShoppingCart size={16} weight="fill" />
               </button>
             </div>

@@ -7,6 +7,7 @@ export interface FriendInvitationParams {
   inviteeName: string;
   inviterName: string;
   campName: string;
+  campSlug: string;
   campStart: Date;
   campEnd: Date;
   campLocation: string;
@@ -364,7 +365,10 @@ export async function sendFriendInvitationEmail(
   const resend = getResend();
   if (!resend) return;
 
-  const invitationLink = `${getAppUrl()}/zaproszenie/${params.token}`;
+  // Link prowadzi na stronę wyjazdu z kontekstem zaproszenia (?inv=token) — tam
+  // pokazujemy delikatny tag "Zaproszenie od ...". Stara /zaproszenie/[token] działa
+  // dalej jako fallback (stare maile).
+  const invitationLink = `${getAppUrl()}/wyjazdy/${params.campSlug}?inv=${params.token}`;
   const campDate = formatCampDate(params.campStart, params.campEnd);
   const currentYear = new Date().getFullYear();
 

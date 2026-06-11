@@ -15,7 +15,7 @@ import TripPageClient from "./_components/TripPageClient";
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ variant?: string; step?: string }>;
+  searchParams: Promise<{ variant?: string; step?: string; inv?: string }>;
 }
 
 // Dynamiczne SEO wyjazdu. Strategia:
@@ -175,6 +175,17 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
     sp.variant === "duo" || sp.variant === "standard" ? sp.variant : undefined;
   const initialStep = sp.step ? Number(sp.step) : undefined;
 
+  // Wejście z linku zaproszenia (?inv=token) → pobieramy imię zapraszającego,
+  // by pokazać delikatny tag "Zaproszenie od ...". Token musi dotyczyć tego wyjazdu.
+  let inviterName: string | null = null;
+  if (sp.inv) {
+    const invitation = await prisma.booking.findFirst({
+      where: { invitationToken: sp.inv, tripId: trip.id },
+      select: { invitedBy: { select: { name: true } } },
+    });
+    inviterName = invitation?.invitedBy?.name ?? null;
+  }
+
   const currentUser = session?.user?.email
     ? {
         email: session.user.email,
@@ -226,6 +237,7 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       currentUser={currentUser}
       initialVariant={initialVariant}
       initialStep={initialStep}
+      inviterName={inviterName}
       />
     </>
   );

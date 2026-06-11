@@ -338,6 +338,9 @@ async function maybeSendFriendInvitation(
       inviteeName: guest.name ?? "",
       inviterName: inviter,
       campName: trip.title,
+      // Publiczny route /wyjazdy/[slug] identyfikuje wyjazd po ID, więc do linku
+      // używamy tripId (nie pola slug).
+      campSlug: guest.tripId,
       campStart: trip.startDate,
       campEnd: trip.endDate,
       campLocation: trip.location,
