@@ -94,7 +94,9 @@ export const ParticipantCard = React.memo(function ParticipantCard({
       hasHealth: !!participant?.user?.healthProfile,
       spaText,
       avatarUrl: participant?.user?.image,
-      baseAmountFormatted: formatPLN(baseAmount),
+      // amountPaid trzymane jest w GROSZACH → dzielimy przez 100 (inaczej 75000 zamiast 750).
+      // Kwoty usług (order.price) są już w złotówkach — ich nie dzielimy.
+      baseAmountFormatted: formatPLN(baseAmount / 100),
       additionalAmountFormatted: formatPLN(additionalAmount),
     };
   }, [participant]);

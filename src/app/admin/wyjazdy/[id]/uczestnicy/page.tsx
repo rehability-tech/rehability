@@ -250,7 +250,8 @@ export default function ParticipantsListPage() {
       return name.includes(term) || email.includes(term);
     };
     const spent = (p: any) =>
-      (p.amountPaid || 0) +
+      // amountPaid jest w groszach, order.price w złotówkach — ujednolicamy do zł.
+      (p.amountPaid || 0) / 100 +
       (p.serviceOrders?.reduce(
         (sum: number, o: any) => sum + (o.price || 0),
         0,

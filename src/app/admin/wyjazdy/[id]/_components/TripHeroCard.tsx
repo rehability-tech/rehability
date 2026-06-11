@@ -87,7 +87,9 @@ export function TripHeroCard({ trip }: TripHeroCardProps) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push(`/admin/wyjazdy/edycja?id=${trip.id}`)}
+            onClick={() =>
+              router.push(`/admin/wyjazdy/dodaj/edytor-tresci?id=${trip.id}`)
+            }
             className="group relative inline-flex items-center justify-center gap-2 px-5 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-white font-bold text-[13px] shadow-md hover:bg-white/20 hover:border-white/20 transition-all duration-300 overflow-hidden"
           >
             {/* Delikatna złota sfera aktywowana na hover */}
