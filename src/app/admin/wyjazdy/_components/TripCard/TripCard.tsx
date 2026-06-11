@@ -417,7 +417,7 @@ export function TripCard({
             className="md:hidden absolute top-2 right-2 z-20 flex items-center gap-0.5 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 border border-white/20 shadow-sm"
             ref={menuRef} // Na mobile przenosimy referencję tutaj
           >
-            <ActionButtons isMobile />
+            {ActionButtons({ isMobile: true })}
           </div>
         </div>
       </div>
@@ -444,7 +444,7 @@ export function TripCard({
 
           {/* AKCJE (Usługi) - UKRYTE NA MOBILE */}
           <div className="hidden md:flex items-center gap-1 shrink-0 bg-gray-50 rounded-lg p-1 border border-gray-100">
-            <ActionButtons />
+            {ActionButtons({})}
           </div>
         </div>
 
