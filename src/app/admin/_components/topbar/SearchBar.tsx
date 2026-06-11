@@ -69,11 +69,11 @@ export default function SearchBar() {
         );
 
   return (
-    <div className="relative min-w-0 flex-1 md:flex-none" ref={wrapperRef}>
+    <div className="relative min-w-0 flex-1 md:max-w-[340px]" ref={wrapperRef}>
       <div
         className={`
           flex items-center transition-all duration-300 ease-out h-10
-          ${isFocused ? "w-full md:w-[320px] bg-white shadow-[0_4px_15px_rgba(3,63,99,0.1)] border-brand-primary/30" : "w-10 md:w-[240px] bg-white/50 border-white/60"}
+          ${isFocused ? "w-full bg-white shadow-[0_4px_15px_rgba(3,63,99,0.1)] border-brand-primary/30" : "w-10 md:w-full bg-white/50 border-white/60"}
           rounded-full border overflow-hidden backdrop-blur-md
         `}
       >
@@ -113,7 +113,7 @@ export default function SearchBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-[calc(100%+8px)] left-0 w-full md:w-[320px] z-[160] bg-white/95 backdrop-blur-xl border border-brand-secondary/10 rounded-2xl shadow-[0_20px_40px_-10px_rgba(3,63,99,0.2)] overflow-hidden"
+            className="absolute top-[calc(100%+8px)] left-0 w-full min-w-[240px] z-[160] bg-white/95 backdrop-blur-xl border border-brand-secondary/10 rounded-2xl shadow-[0_20px_40px_-10px_rgba(3,63,99,0.2)] overflow-hidden"
           >
             {filteredResults.length > 0 ? (
               <ul className="py-2">

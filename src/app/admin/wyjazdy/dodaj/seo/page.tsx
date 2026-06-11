@@ -268,25 +268,25 @@ function SeoFormContent() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-gray-100">
+      <div className="flex flex-col-reverse gap-3 pt-6 mt-6 border-t border-gray-100 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href={
             allowBringFriend
               ? `/admin/wyjazdy/dodaj/zaproszenia${tripId ? `?id=${tripId}` : ""}`
               : `/admin/wyjazdy/dodaj/edytor-tresci${tripId ? `?id=${tripId}` : ""}`
           }
-          className="flex items-center gap-2 px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 rounded-[12px] text-gray-500 font-semibold text-sm hover:bg-gray-100 transition-colors sm:w-auto"
         >
           <CaretLeft size={18} weight="bold" />
           Wstecz
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => saveSeo(false)}
             disabled={isSaving}
-            className="px-5 py-2.5 rounded-[12px] text-gray-500 font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center px-5 py-3 rounded-[12px] text-gray-500 font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 sm:w-auto"
           >
             Zapisz bez wychodzenia
           </button>
@@ -295,6 +295,7 @@ function SeoFormContent() {
             isLoading={isSaving}
             disabled={isSaving}
             rightIcon={<CaretRight size={18} weight="bold" />}
+            className="w-full sm:w-auto"
           >
             Zapisz i przejdź dalej
           </Button>

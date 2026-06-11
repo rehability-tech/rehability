@@ -516,7 +516,7 @@ function BasicDataFormContent() {
             disabled={!title || !locationName || isSaving}
             rightIcon={<CaretRight size={18} weight="bold" />}
           >
-            Dalej: Edytor nakładek
+            Dalej: Edytor treści
           </Button>
         </div>
       </form>
