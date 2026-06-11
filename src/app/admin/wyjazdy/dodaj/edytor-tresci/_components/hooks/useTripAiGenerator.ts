@@ -145,7 +145,15 @@ export function useTripAiGenerator(
       for (let i = 0; i < blueprint.length; i++) {
         const step = blueprint[i];
         const blockIdToUpdate = currentBlocks[i].id;
-        setAiProgress((prev) => ({ ...prev, currentBlock: i + 1 }));
+        // Żywy komunikat: co dokładnie agent teraz pisze (jak w panelu bloga).
+        setAiProgress((prev) => ({
+          ...prev,
+          phase: "generating",
+          currentBlock: i + 1,
+          message: `Blok ${i + 1}/${blueprint.length} · ${step.type}${
+            step.topic ? ` – ${step.topic}` : ""
+          }`,
+        }));
 
         try {
           const blockRes = await geminiFetch(

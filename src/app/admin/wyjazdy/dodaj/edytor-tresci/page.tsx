@@ -7,7 +7,6 @@ import {
   CaretLeft,
   CaretRight,
   CircleNotch,
-  Coffee,
 } from "@phosphor-icons/react/dist/ssr";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +21,10 @@ import { useTripContent } from "./_components/hooks/useTripContent";
 import { useTripAiGenerator } from "./_components/hooks/useTripAiGenerator";
 import { useInlineImagePicker } from "@/app/admin/blog/dodaj/edytor-tresci/_components/hooks/useInlineImagePicker";
 import BlogCoverPicker from "@/app/admin/blog/dodaj/_components/BlogCoverPicker";
+import NeonAiPanel, {
+  type NeonStep,
+  type StepStatus,
+} from "@/app/admin/blog/dodaj/_components/NeonAiPanel";
 
 // Helper do formatowania daty
 const formatDateRange = (start: any, end: any) => {
@@ -46,6 +49,37 @@ const formatDateRange = (start: any, end: any) => {
   }
   return `${startDate.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} - ${endDate.toLocaleDateString("pl-PL", { day: "numeric", ...monthYearOptions })}`;
 };
+
+// Buduje kroki agenta z płaskiego stanu aiProgress (planowanie -> treść+zdjęcia).
+function buildAiSteps(
+  phase: string,
+  message: string,
+): (NeonStep & { status: StepStatus })[] {
+  const blueprint: StepStatus =
+    phase === "idle" ? "pending" : phase === "blueprint" ? "active" : "done";
+  const content: StepStatus =
+    phase === "error"
+      ? "error"
+      : phase === "idle" || phase === "blueprint"
+        ? "pending"
+        : phase === "done"
+          ? "done"
+          : "active"; // generating | ratelimit | images
+  return [
+    {
+      id: "blueprint",
+      label: "Planowanie struktury",
+      detail: "Architekt AI układa plan strony...",
+      status: blueprint,
+    },
+    {
+      id: "content",
+      label: "Pisanie treści i dobór zdjęć",
+      detail: message || "Copywriter pisze teksty...",
+      status: content,
+    },
+  ];
+}
 
 function ContentEditorFormContent() {
   const searchParams = useSearchParams();
@@ -135,73 +169,22 @@ function ContentEditorFormContent() {
         uploadEndpoint={`/api/admin/wyjazdy/${editId}/upload`}
       />
 
-      {/* PŁYWAJĄCY PANEL POSTĘPU AI */}
+      {/* PANEL AGENTA AI (kroki + live info) — identyczny jak na blogu */}
       <AnimatePresence>
         {aiProgress.isVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-full shadow-[0_10px_40px_rgba(40,125,136,0.2)] border border-gray-100 px-6 py-3 flex items-center gap-4 min-w-[320px]"
-          >
-            {aiProgress.phase === "error" ? (
-              <div className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full font-bold">
-                !
-              </div>
-            ) : aiProgress.phase === "done" ? (
-              <div className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-full font-bold">
-                ✓
-              </div>
-            ) : aiProgress.phase === "ratelimit" ? (
-              <motion.div
-                animate={{ y: [0, -3, 0] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="w-8 h-8 flex items-center justify-center bg-orange-100 text-orange-500 rounded-full"
-              >
-                <Coffee size={18} weight="fill" />
-              </motion.div>
-            ) : (
-              <div className="relative w-8 h-8 flex items-center justify-center">
-                <CircleNotch
-                  size={24}
-                  className="text-brand-primary animate-spin"
-                  weight="bold"
-                />
-              </div>
-            )}
-
-            <div className="flex flex-col flex-1">
-              <span
-                className={`text-sm font-bold font-jakarta ${aiProgress.phase === "ratelimit" ? "text-orange-600" : "text-[#0B3B4C]"}`}
-              >
-                {aiProgress.message}
-              </span>
-              {aiProgress.phase === "generating" && (
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-brand-primary"
-                      initial={{ width: "0%" }}
-                      animate={{
-                        width: `${(aiProgress.currentBlock / aiProgress.totalBlocks) * 100}%`,
-                      }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-500 font-montserrat font-medium whitespace-nowrap">
-                    {aiProgress.currentBlock} / {aiProgress.totalBlocks}
-                  </span>
-                </div>
-              )}
-              {aiProgress.phase === "ratelimit" && (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-orange-500 font-montserrat font-bold whitespace-nowrap">
-                    Wznawiam pracę za: {aiProgress.countdown}s
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <NeonAiPanel
+            title="Agent AI · Edytor treści"
+            steps={buildAiSteps(aiProgress.phase, aiProgress.message)}
+            liveMessage={
+              aiProgress.phase === "ratelimit"
+                ? `${aiProgress.message}${
+                    aiProgress.countdown
+                      ? ` — wznawiam za ${aiProgress.countdown}s`
+                      : ""
+                  }`
+                : aiProgress.message
+            }
+          />
         )}
       </AnimatePresence>
 

@@ -119,11 +119,14 @@ function BlockEditorCardBase({
       id={block.id}
       dragListener={false}
       dragControls={dragControls}
+      // tabIndex sprawia, że tapnięcie bloku (też spacer/mapa/zdjęcie) fokusuje
+      // kartę i — przez group-focus-within — pokazuje przybornik na mobile.
+      tabIndex={0}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        "relative group/element flex items-start w-full border border-transparent rounded-[20px] transition-colors",
+        "relative group/element flex items-start w-full border border-transparent rounded-[20px] transition-colors focus:outline-none",
         block.isGenerating
           ? "bg-white/50"
           : "bg-white hover:bg-gray-50/80 hover:border-gray-100",
@@ -158,7 +161,7 @@ function BlockEditorCardBase({
       </AnimatePresence>
 
       {!block.isGenerating && (
-        <div className="absolute right-2 top-2 -translate-y-0 lg:top-1/2 lg:-translate-y-1/2 opacity-100 lg:opacity-0 lg:group-hover/element:opacity-100 flex flex-row items-center gap-1 transition-opacity bg-white/95 backdrop-blur-md p-1 rounded-lg shadow-sm border border-gray-200 z-10">
+        <div className="absolute right-2 top-2 -translate-y-0 lg:top-1/2 lg:-translate-y-1/2 opacity-0 group-hover/element:opacity-100 group-focus-within/element:opacity-100 flex flex-row items-center gap-1 transition-opacity bg-white/95 backdrop-blur-md p-1 rounded-lg shadow-sm border border-gray-200 z-10">
           <button
             onClick={onMoveUp}
             className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center"

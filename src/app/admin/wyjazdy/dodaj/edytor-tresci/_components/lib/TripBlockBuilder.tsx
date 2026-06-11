@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-// ZMIANA: Importujemy Reorder zamiast AnimatePresence
+import React from "react";
 import { Reorder } from "framer-motion";
 import BlockEditorCard from "./BlockEditorCard";
 import BlockAdder from "./BlockAdder";
@@ -10,7 +9,9 @@ import { safeUuid } from "@/lib/utils";
 
 interface TripBlocksBuilderProps {
   blocks: TripBlock[];
-  onChange: (newBlocks: TripBlock[]) => void;
+  onChange: (
+    newBlocks: TripBlock[] | ((prev: TripBlock[]) => TripBlock[]),
+  ) => void;
   tripId: string;
   mapUrl: string;
 }
@@ -21,7 +22,6 @@ export default function TripBlocksBuilder({
   tripId,
   mapUrl,
 }: TripBlocksBuilderProps) {
-  const [localBlocks, setLocalBlocks] = useState<TripBlock[]>(blocks);
   const handleAddBlock = (type: BlockType) => {
     let defaultContent: any = null;
     switch (type) {
@@ -46,10 +46,9 @@ export default function TripBlocksBuilder({
         break;
       case "bulletList":
         defaultContent = {
-          items: [
-            { id: safeUuid(), text: "<p>Nowy punkt na liście...</p>" },
-          ],
+          items: [{ id: safeUuid(), text: "<p>Nowy punkt na liście...</p>" }],
         };
+        break;
       case "faq":
         defaultContent = {
           items: [{ id: safeUuid(), question: "", answer: "" }],
@@ -61,41 +60,48 @@ export default function TripBlocksBuilder({
       type,
       content: defaultContent,
     };
-    onChange([...blocks, newBlock]);
+    // Funkcyjne aktualizacje — zawsze na najświeższym stanie, niezależnie od
+    // zamrożenia callbacku przez memo na karcie bloku (inaczej usunięty/edytowany
+    // blok mógł "wracać" przy kolejnej operacji).
+    onChange((prev) => [...prev, newBlock]);
   };
 
   const handleDeleteBlock = (idToRemove: string) => {
-    onChange(blocks.filter((b) => b.id !== idToRemove));
+    onChange((prev) => prev.filter((b) => b.id !== idToRemove));
   };
 
   const handleUpdateBlock = (updatedBlock: TripBlock) => {
-    onChange(blocks.map((b) => (b.id === updatedBlock.id ? updatedBlock : b)));
+    onChange((prev) =>
+      prev.map((b) => (b.id === updatedBlock.id ? updatedBlock : b)),
+    );
   };
 
   const handleMoveBlock = (blockId: string, direction: -1 | 1) => {
-    const index = blocks.findIndex((b) => b.id === blockId);
-    if (index === -1) return;
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= blocks.length) return;
-    const reordered = [...blocks];
-    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
-    onChange(reordered);
+    onChange((prev) => {
+      const index = prev.findIndex((b) => b.id === blockId);
+      if (index === -1) return prev;
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const reordered = [...prev];
+      [reordered[index], reordered[newIndex]] = [
+        reordered[newIndex],
+        reordered[index],
+      ];
+      return reordered;
+    });
   };
-  // Dodaj to wewnątrz komponentu TripBlocksBuilder:
-  useEffect(() => {
-    setLocalBlocks(blocks);
-  }, [blocks]);
+
+  // Reorder.Group czyta i zapisuje TEN SAM stan (blocks/onChange) — bez lokalnego
+  // mirrora, który rozjeżdżał kolejność przy przeciąganiu.
   return (
     <div className="w-full lg:pr-16">
-      {/* ZMIANA: Reorder.Group automatycznie zarządza kolejnością.
-          Kiedy zmienisz pozycję elementu, onReorder wywoła Twoje onChange z nowo ułożoną tablicą! */}
       <Reorder.Group
         axis="y"
-        values={localBlocks}
+        values={blocks}
         onReorder={onChange}
         className="flex flex-col gap-2"
       >
-        {localBlocks.map((block) => (
+        {blocks.map((block) => (
           <BlockEditorCard
             key={`${block.id}-${block.isGenerating ? "loading" : "ready"}`}
             block={block}

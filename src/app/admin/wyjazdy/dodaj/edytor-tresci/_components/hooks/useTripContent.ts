@@ -33,9 +33,19 @@ export function useTripContent(editId: string | null) {
   const updateField = useCallback(
     <K extends keyof CampContentState>(
       field: K,
-      value: CampContentState[K],
+      value:
+        | CampContentState[K]
+        | ((prev: CampContentState[K]) => CampContentState[K]),
     ) => {
-      setContentData((prev) => ({ ...prev, [field]: value }));
+      setContentData((prev) => ({
+        ...prev,
+        [field]:
+          typeof value === "function"
+            ? (value as (p: CampContentState[K]) => CampContentState[K])(
+                prev[field],
+              )
+            : value,
+      }));
     },
     [],
   );
