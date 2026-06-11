@@ -40,12 +40,15 @@ export default function DraggablePricingItem({
       id={item.id}
       dragListener={false}
       dragControls={dragControls}
-      className="relative flex flex-col gap-4 p-5 md:p-6 border-2 border-[#EBF4F5] rounded-[24px] hover:border-[#287D88] group/price transition-colors duration-300 w-full bg-white"
+      // tabIndex: tapnięcie karty usługi fokusuje ją i — przez group-focus-within
+      // — pokazuje przybornik (przeciągnij / usuń) na mobile.
+      tabIndex={0}
+      className="relative flex flex-col gap-4 p-5 md:p-6 border-2 border-[#EBF4F5] rounded-[24px] hover:border-[#287D88] group/price transition-colors duration-300 w-full bg-white focus:outline-none"
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#287D88]/5 to-transparent opacity-0 group-hover/price:opacity-100 transition-opacity duration-300 pointer-events-none rounded-[24px]" />
 
       {/* MINI TOOLBAR */}
-      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1 opacity-0 group-hover/price:opacity-100 transition-opacity bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-1 rounded-xl">
+      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-opacity bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-1 rounded-xl">
         <Tooltip content="Przeciągnij by zmienić kolejność" position="left">
           <div
             onPointerDown={(e) => dragControls.start(e)}
