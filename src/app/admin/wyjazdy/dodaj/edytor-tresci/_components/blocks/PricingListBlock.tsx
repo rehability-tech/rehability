@@ -89,6 +89,18 @@ export default function PricingListBlock({
                 items: priceItems.filter((_: any, i: number) => i !== idx),
               })
             }
+            onMoveUp={() => {
+              if (idx === 0) return;
+              const next = [...priceItems];
+              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+              onChange({ items: next });
+            }}
+            onMoveDown={() => {
+              if (idx === priceItems.length - 1) return;
+              const next = [...priceItems];
+              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+              onChange({ items: next });
+            }}
           />
         ))}
       </Reorder.Group>

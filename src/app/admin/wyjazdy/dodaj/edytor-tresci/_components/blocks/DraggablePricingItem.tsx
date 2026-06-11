@@ -10,6 +10,8 @@ import {
   X,
   Pencil,
   WarningCircle,
+  ArrowUp,
+  ArrowDown,
 } from "@phosphor-icons/react/dist/ssr";
 import { Clock } from "@phosphor-icons/react";
 import { Tooltip } from "@/components/ui/ToolTip";
@@ -19,12 +21,16 @@ interface DraggablePricingItemProps {
   item: any;
   onUpdate: (updatedItem: any) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
 export default function DraggablePricingItem({
   item,
   onUpdate,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: DraggablePricingItemProps) {
   const dragControls = useDragControls();
   // Zdjęcie usługi wybieramy tak jak wszędzie — przez wspólny picker
@@ -49,16 +55,34 @@ export default function DraggablePricingItem({
 
       {/* MINI TOOLBAR */}
       <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-opacity bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-1 rounded-xl">
+        {/* Strzałki — niezawodne na mobile (touch-drag bywa zawodny). */}
+        <Tooltip content="Przesuń wyżej" position="left">
+          <button
+            onClick={onMoveUp}
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center"
+          >
+            <ArrowUp size={16} weight="bold" />
+          </button>
+        </Tooltip>
+        <Tooltip content="Przesuń niżej" position="left">
+          <button
+            onClick={onMoveDown}
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center"
+          >
+            <ArrowDown size={16} weight="bold" />
+          </button>
+        </Tooltip>
+        <div className="w-5 h-px bg-gray-200 my-0.5" />
         <Tooltip content="Przeciągnij by zmienić kolejność" position="left">
           <div
             onPointerDown={(e) => dragControls.start(e)}
             style={{ touchAction: "none" }}
-            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] cursor-grab active:cursor-grabbing transition-colors"
+            className="p-1.5 text-gray-400 hover:text-[#0B3B4C] cursor-grab active:cursor-grabbing transition-colors hidden lg:flex"
           >
             <List size={18} weight="bold" />
           </div>
         </Tooltip>
-        <div className="w-5 h-px bg-gray-200 my-0.5" />
+        <div className="w-5 h-px bg-gray-200 my-0.5 hidden lg:block" />
         <Tooltip content="Usuń usługę" position="left">
           <button
             onClick={onRemove}
