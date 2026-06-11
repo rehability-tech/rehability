@@ -116,57 +116,94 @@ export async function POST(req: Request) {
     );
   }
 
-  const occupiedSeats = await prisma.booking.count({
-    where: {
-      tripId: trip.id,
-      status: { in: ["PENDING", "DEPOSIT_PAID", "FULLY_PAID", "PENDING_INVITATION"] },
-    },
-  });
-  const seatsNeeded = data.variant === "duo" ? 2 : 1;
-  if (occupiedSeats + seatsNeeded > trip.capacity) {
-    return NextResponse.json(
-      { error: "Brak wolnych miejsc na ten wyjazd." },
-      { status: 409 },
-    );
-  }
-
   const fullName = `${data.customer.firstName} ${data.customer.lastName}`.trim();
   const expiresAt = new Date(Date.now() + INVITATION_TTL_HOURS * 3600 * 1000);
 
-  const { bookerId } = await prisma.$transaction(async (tx) => {
-    const booker = await tx.booking.create({
+  // MERGE zaproszenia: jeśli ta osoba ma już aktywne zaproszenie na ten wyjazd
+  // (PENDING_INVITATION na jej email), PRZEJMUJEMY tę rezerwację zamiast tworzyć
+  // duplikat. Dzięki temu zaproszona uczestniczka, która opłaca zadatek normalną
+  // ścieżką (a nie przez link /zaproszenie), ląduje w SWOJEJ istniejącej rezerwacji,
+  // a nie w nowej, osieroconej. To naprawia "tworzenie konta od nowa po zaproszeniu".
+  const existingInvitation = await prisma.booking.findFirst({
+    where: {
+      tripId: trip.id,
+      email: sessionEmail,
+      status: "PENDING_INVITATION",
+      NOT: { expiresAt: { lt: new Date() } }, // nie wygasłe (lub bez daty)
+    },
+    select: { id: true },
+  });
+  const claimedInvitation = !!existingInvitation;
+
+  let bookerId: string;
+
+  if (existingInvitation) {
+    // Przejęcie zaproszenia — bez nowej rezerwacji i bez sprawdzania miejsc
+    // (miejsce jest już zarezerwowane przez to zaproszenie).
+    await prisma.booking.update({
+      where: { id: existingInvitation.id },
       data: {
-        tripId: trip.id,
         userId: sessionUserId ?? null,
         name: fullName,
-        email: sessionEmail,
         phone: data.customer.phone,
         status: "PENDING",
-        amountTotal: totalGrosze,
       },
-      select: { id: true },
     });
-
-    if (data.variant === "duo" && data.friend) {
-      const friendName = `${data.friend.firstName} ${data.friend.lastName}`.trim();
-      const invitationToken = crypto.randomBytes(24).toString("base64url");
-
-      await tx.booking.create({
-        data: {
-          tripId: trip.id,
-          name: friendName,
-          email: data.friend.email,
-          status: "PENDING_INVITATION",
-          amountTotal: totalGrosze,
-          invitedById: booker.id,
-          invitationToken,
-          expiresAt,
+    bookerId = existingInvitation.id;
+  } else {
+    // Standardowa ścieżka — sprawdzamy miejsca i tworzymy nową rezerwację.
+    const occupiedSeats = await prisma.booking.count({
+      where: {
+        tripId: trip.id,
+        status: {
+          in: ["PENDING", "DEPOSIT_PAID", "FULLY_PAID", "PENDING_INVITATION"],
         },
-      });
+      },
+    });
+    const seatsNeeded = data.variant === "duo" ? 2 : 1;
+    if (occupiedSeats + seatsNeeded > trip.capacity) {
+      return NextResponse.json(
+        { error: "Brak wolnych miejsc na ten wyjazd." },
+        { status: 409 },
+      );
     }
 
-    return { bookerId: booker.id };
-  });
+    bookerId = await prisma.$transaction(async (tx) => {
+      const booker = await tx.booking.create({
+        data: {
+          tripId: trip.id,
+          userId: sessionUserId ?? null,
+          name: fullName,
+          email: sessionEmail,
+          phone: data.customer.phone,
+          status: "PENDING",
+          amountTotal: totalGrosze,
+        },
+        select: { id: true },
+      });
+
+      if (data.variant === "duo" && data.friend) {
+        const friendName =
+          `${data.friend.firstName} ${data.friend.lastName}`.trim();
+        const invitationToken = crypto.randomBytes(24).toString("base64url");
+
+        await tx.booking.create({
+          data: {
+            tripId: trip.id,
+            name: friendName,
+            email: data.friend.email,
+            status: "PENDING_INVITATION",
+            amountTotal: totalGrosze,
+            invitedById: booker.id,
+            invitationToken,
+            expiresAt,
+          },
+        });
+      }
+
+      return booker.id;
+    });
+  }
 
   const stripe = getStripe();
 
@@ -185,14 +222,23 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[create-payment-intent] Stripe error:", err);
-    await prisma.booking.updateMany({
-      where: { id: bookerId, status: "PENDING" },
-      data: { status: "CANCELLED" },
-    });
-    await prisma.booking.updateMany({
-      where: { invitedById: bookerId, status: "PENDING_INVITATION" },
-      data: { status: "CANCELLED" },
-    });
+    if (claimedInvitation) {
+      // Przywracamy zaproszenie, żeby nieudana płatność go nie zniszczyła —
+      // uczestniczka może spróbować ponownie.
+      await prisma.booking.updateMany({
+        where: { id: bookerId, status: "PENDING" },
+        data: { status: "PENDING_INVITATION" },
+      });
+    } else {
+      await prisma.booking.updateMany({
+        where: { id: bookerId, status: "PENDING" },
+        data: { status: "CANCELLED" },
+      });
+      await prisma.booking.updateMany({
+        where: { invitedById: bookerId, status: "PENDING_INVITATION" },
+        data: { status: "CANCELLED" },
+      });
+    }
     return NextResponse.json(
       { error: "Nie udało się utworzyć płatności." },
       { status: 502 },
