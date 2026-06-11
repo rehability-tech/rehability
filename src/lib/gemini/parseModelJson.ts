@@ -81,6 +81,16 @@ function normalizeSmartQuotes(text: string): string {
     .replace(/[“”„«»]/g, '"');
 }
 
+function fixHtmlAttrQuotes(text: string): string {
+  // Model bardzo często wstawia w wartość JSON-stringa atrybut HTML z PODWÓJNYM
+  // cudzysłowem (np. <span style="color: #287D88;">), który przedwcześnie kończy
+  // string JSON → "Expected ',' or '}'". Zamieniamy NIEescejpowane atrybuty
+  // style="..." / class="..." na pojedyncze cudzysłowy (poprawny HTML, bezpieczne
+  // dla JSON). Wersje escejpowane (style=\"...\") nie pasują do wzorca, więc
+  // zostają nietknięte.
+  return text.replace(/(style|class)="([^"]*)"/g, "$1='$2'");
+}
+
 export function parseModelJson<T = unknown>(raw: string): T {
   const original = raw;
   const candidates: string[] = [];
@@ -96,6 +106,11 @@ export function parseModelJson<T = unknown>(raw: string): T {
 
   candidates.push(stripTrailingCommas(step3));
   candidates.push(normalizeSmartQuotes(stripTrailingCommas(step3)));
+  // Naprawa nieescejpowanych cudzysłowów z atrybutów HTML (style="..."/class="...").
+  const step3Html = fixHtmlAttrQuotes(step3);
+  candidates.push(step3Html);
+  candidates.push(stripTrailingCommas(step3Html));
+  candidates.push(normalizeSmartQuotes(stripTrailingCommas(step3Html)));
 
   let lastError: unknown;
   for (const c of candidates) {

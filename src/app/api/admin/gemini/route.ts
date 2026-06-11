@@ -126,11 +126,11 @@ export async function POST(req: Request) {
 
         BARDZO WAŻNE - ZASADA WYRÓŻNIEŃ (KOLOR ZAMIAST POGRUBIENIA):
         Kategorycznie zabraniam Ci używania znaczników <strong>, <b> czy <em>! 
-        Aby wyróżnić najważniejsze frazy lub słowa, ZAWSZE używaj znacznika span z odpowiednim kolorem, dokładnie w tym formacie: <span style="color: #287D88;">wyróżnione słowo</span>.
+        Aby wyróżnić najważniejsze frazy lub słowa, ZAWSZE używaj znacznika span z odpowiednim kolorem, dokładnie w tym formacie: <span style='color: #287D88;'>wyróżnione słowo</span>.
 
         WYTYCZNE DLA TYPÓW (PRZESTRZEGAJ BEZWZGLĘDNIE):
-        - "heading": Krótki, zachęcający nagłówek. Użyj <span style="color: #287D88;"> na 1-2 kluczowych słowach.
-        - "paragraph": Pisz obrazowo, używaj języka korzyści. Max 4-5 rozbudowanych zdań. Zastosuj <span style="color: #287D88;"> do wyróżnienia najważniejszych korzyści.
+        - "heading": Krótki, zachęcający nagłówek. Użyj <span style='color: #287D88;'> na 1-2 kluczowych słowach.
+        - "paragraph": Pisz obrazowo, używaj języka korzyści. Max 4-5 rozbudowanych zdań. Zastosuj <span style='color: #287D88;'> do wyróżnienia najważniejszych korzyści.
         - "highlight": Jedno mocne, inspirujące zdanie wyrwane z kontekstu.
         - "bulletList": Generuj min. 4 punkty. Pisz zwięźle.
         - "featuresGrid": Generuj min. 3 karty (ikonki: Heartbeat, Leaf, Sun, Person, Sparkle, Mountains, Tree, Bed, Campfire). UWAGA: OPIS KAŻDEJ KARTY MUSI BYĆ BARDZO KRÓTKI (MAX 20 SŁÓW!).
@@ -256,7 +256,7 @@ export async function POST(req: Request) {
         - Najważniejsze wnioski/definicje formułuj tak, by łatwo było je "wyciąć" jako gotowy fakt.
 
         ZASADA WYRÓŻNIEŃ (KOLOR ZAMIAST POGRUBIENIA):
-        Nie używaj <strong>, <b> ani <em>. Najważniejsze frazy wyróżniaj WYŁĄCZNIE: <span style="color: #287D88;">wyróżnione słowo</span>.
+        Nie używaj <strong>, <b> ani <em>. Najważniejsze frazy wyróżniaj WYŁĄCZNIE: <span style='color: #287D88;'>wyróżnione słowo</span>.
 
         WYTYCZNE DLA TYPÓW:
         - "heading": zwięzły nagłówek sformułowany jak naturalne pytanie/hasło użytkowniczki; gdy pasuje, użyj frazy kluczowej lub jej wariantu. Wyróżnij 1-2 kluczowe słowa spanem.
@@ -264,7 +264,7 @@ export async function POST(req: Request) {
         - "highlight": jedno mocne, inspirujące zdanie LUB zwięzła definicja gotowa do zacytowania.
         - "bulletList": min. 5 konkretnych punktów (kroki/wskazówki/zalety), każdy z realną wartością — nie hasła ogólne.
         - "featuresGrid": min. 3 karty (ikony: Heartbeat, Leaf, Sun, Person, Sparkle, Mountains, Tree, Bed, Campfire). OPIS KARTY MAX 20 SŁÓW.
-        - "table": zwięzła tabela porównawcza/zestawienie. 2-4 kolumny, 3-6 wierszy. Nagłówki krótkie i konkretne, komórki maksymalnie zwięzłe (kilka słów, bez całych zdań). Zadbaj, by każdy wiersz miał tyle komórek, ile jest nagłówków. W "caption" podaj krótki opis czego dotyczy tabela. Komórki mogą zawierać wyróżnienie <span style="color: #287D88;">…</span>, ale oszczędnie.
+        - "table": zwięzła tabela porównawcza/zestawienie. 2-4 kolumny, 3-6 wierszy. Nagłówki krótkie i konkretne, komórki maksymalnie zwięzłe (kilka słów, bez całych zdań). Zadbaj, by każdy wiersz miał tyle komórek, ile jest nagłówków. W "caption" podaj krótki opis czego dotyczy tabela. Komórki mogą zawierać wyróżnienie <span style='color: #287D88;'>…</span>, ale oszczędnie.
         - "faq": 4-6 pytań, jakie realna czytelniczka wpisałaby w Google lub zadała czatowi AI (naturalny język, długi ogon); odpowiedzi empatyczne, konkretne i samodzielne (każda odpowiedź ma sens wyrwana z kontekstu — tak ją zacytuje AI).
 
         FORMAT ZWRACANEGO JSON (płaski obiekt, BEZ kluczy "content"/"data"/nazwy bloku):
@@ -290,7 +290,7 @@ export async function POST(req: Request) {
         6. Wstaw co najmniej jedną tabelę <table> (porównanie / zestawienie / plan), bo LLM-y wprost cytują dane z tabel — o ile temat na to pozwala.
         7. Dodaj na końcu sekcję FAQ: <h2>FAQ</h2> i 4-6 par pytanie (<h3>) + odpowiedź (<p>) w naturalnym języku (długi ogon).
         8. Krótkie akapity (3-4 zdania), bezpośrednio do czytelniczki (forma „ty"). Słowa kluczowe i ich semantyczne warianty wplataj naturalnie (gęstość ~1-2%, zero keyword stuffing).
-        9. WYRÓŻNIENIA: NIE używaj <strong>, <b> ani <em>. Najważniejsze frazy wyróżniaj WYŁĄCZNIE: <span style="color: #287D88;">wyróżnione słowo</span>.
+        9. WYRÓŻNIENIA: NIE używaj <strong>, <b> ani <em>. Najważniejsze frazy wyróżniaj WYŁĄCZNIE: <span style='color: #287D88;'>wyróżnione słowo</span>.
         10. Zakończ inspirującym podsumowaniem + konkretnym wezwaniem do działania.
         11. NIE używaj tagów <html>, <head>, <body>, <article>.
 
