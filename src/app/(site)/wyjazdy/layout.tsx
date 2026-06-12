@@ -1,27 +1,14 @@
 import React from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/auth";
+import { redirect } from "next/navigation";
 
-// Metadata dla /wyjazdy i /wyjazdy/[slug] definiujemy odpowiednio w page.tsx
-// oraz generateMetadata — tu trzymamy tylko layout, by nie nadpisywać
-// `title.template` z root layoutu i nie powielać sufiksu marki.
+// Sekcja „Wyjazdy" jest tymczasowo wyłączona i niedostępna publicznie.
+// Redirect w layoucie blokuje wejście zarówno na /wyjazdy, jak i /wyjazdy/[slug].
+// Aby przywrócić: usuń redirect i odkomentuj poprzedni layout (Navbar + Footer).
 
-export default async function AboutUsLayout({
-  children,
+export default function WyjazdyLayout({
+  children: _children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  return (
-    <div className="">
-      <Navbar session={session} />
-      {/* Poprawiony gradient: to-r (do prawej), from-brand-primary, to-white */}
-      <div className="bg-gradient-to-r from-brand-[#dAFBFF] to-white min-h-screen">
-        {children}
-      </div>
-      <Footer />
-    </div>
-  );
+  redirect("/");
 }

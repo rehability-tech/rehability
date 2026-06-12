@@ -39,17 +39,7 @@ const SERVICES = [
     // Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia.
     buttonHref: "/w-budowie",
   },
-  {
-    title: "Wyjazdy",
-    image: "/images/services/campy.jpg",
-    bullets: [
-      "100% praktyki i intensywny trening zaawansowanych technik manualnych.",
-      "Kameralne grupy pracujące pod bezpośrednim nadzorem doświadczonych praktyków.",
-      "Budowanie wartościowych relacji i wymiana branżowych doświadczeń.",
-    ],
-    buttonText: "Zobacz nadchodzące terminy",
-    buttonHref: "/wyjazdy",
-  },
+  // Karta „Wyjazdy" ukryta — sekcja tymczasowo wyłączona i niedostępna.
 ];
 
 const rowVariants: Variants = {

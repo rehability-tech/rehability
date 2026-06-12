@@ -24,7 +24,6 @@ const NAV_LINKS = [
   { label: "Start", href: "/" },
   { label: "O nas", href: "/o-nas" },
   { label: "Gabinet", href: "/gabinet" },
-  { label: "Wyjazdy", href: "/wyjazdy" },
   { label: "Kursy", href: "/kursy" },
   { label: "Blog", href: "/blog" },
 ];

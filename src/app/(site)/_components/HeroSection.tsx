@@ -24,8 +24,8 @@ const HeaderBlock = () => (
       Nowoczesna <span className="text-brand-primary">fizjoterapia</span> w
       Prudniku.
     </h1>
-    <Button showArrow href="/wyjazdy">
-      Zobacz terminy
+    <Button showArrow href="/gabinet">
+      Umów wizytę
     </Button>
   </div>
 );
