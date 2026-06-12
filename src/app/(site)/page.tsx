@@ -43,12 +43,11 @@ const AppPresentation = dynamic(() =>
 //     default: m.PopularCourses,
 //   })),
 // );
-// UpcomingTrips (sekcja Wyjazdów) ukryte — sekcja tymczasowo wyłączona.
-// const UpcomingTrips = dynamic(() =>
-//   import("./_components/UpcomingTrips").then((m) => ({
-//     default: m.UpcomingTrips,
-//   })),
-// );
+const UpcomingTrips = dynamic(() =>
+  import("./_components/UpcomingTrips").then((m) => ({
+    default: m.UpcomingTrips,
+  })),
+);
 const KnowledgeBase = dynamic(() =>
   import("./_components/KnowledgeBase").then((m) => ({
     default: m.KnowledgeBase,
@@ -88,10 +87,40 @@ async function getLatestPosts() {
   }
 }
 
-// getFeaturedTrip usunięte wraz z sekcją Wyjazdów na stronie głównej.
+async function getFeaturedTrip() {
+  try {
+    const campRaw = await prisma.trip.findFirst({
+      where: { isFeatured: true, status: "PUBLISHED" },
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        tags: true,
+        heroImage: true,
+        location: true,
+        price: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    if (!campRaw) return null;
+
+    return {
+      ...campRaw,
+      price: campRaw.price ? Number(campRaw.price) : null,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default async function HomePage() {
-  const latestPosts = await getLatestPosts();
+  const [featuredTrip, latestPosts] = await Promise.all([
+    getFeaturedTrip(),
+    getLatestPosts(),
+  ]);
   const session = await getServerSession(authOptions); // <--- POBRANIE SESJI NA SERWERZE
 
   // Jeśli używasz specyficznej konfiguracji autoryzacji (authOptions),
@@ -107,7 +136,7 @@ export default async function HomePage() {
         <ServicesSection />
         <AppPresentation />
         {/* <PopularCourses /> — ukryte do czasu uruchomienia VOD */}
-        {/* Sekcja Wyjazdów ukryta — tymczasowo wyłączona. */}
+        {featuredTrip && <UpcomingTrips featuredTrip={featuredTrip} />}
         <KnowledgeBase posts={latestPosts} />
         <FAQSection />
         <ContactSection />
