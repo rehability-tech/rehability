@@ -65,6 +65,26 @@ export default function StripePaymentStep({
   );
 }
 
+// Placeholder pokazywany, dopóki PaymentElement się nie załaduje (onReady).
+function PaymentElementSkeleton() {
+  return (
+    <div className="absolute inset-0 z-10 bg-white animate-pulse flex flex-col gap-4">
+      <div className="grid grid-cols-3 gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-[56px] rounded-xl bg-gray-100 border border-gray-200/70"
+          />
+        ))}
+      </div>
+      <div className="h-3 w-16 rounded bg-gray-100" />
+      <div className="h-12 rounded-xl bg-gray-100" />
+      <div className="h-3 w-20 rounded bg-gray-100" />
+      <div className="h-12 rounded-xl bg-gray-100" />
+    </div>
+  );
+}
+
 function PaymentForm({
   depositLabel,
   returnUrl,
@@ -75,6 +95,7 @@ function PaymentForm({
   const stripe = useStripe();
   const elements = useElements();
   const [paying, setPaying] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handlePay() {
@@ -106,11 +127,15 @@ function PaymentForm({
 
   return (
     <div className="flex flex-col gap-5">
-      <PaymentElement
-        options={{
-          layout: { type: "tabs", defaultCollapsed: false },
-        }}
-      />
+      <div className="relative min-h-[260px]">
+        <PaymentElement
+          options={{
+            layout: { type: "tabs", defaultCollapsed: false },
+          }}
+          onReady={() => setReady(true)}
+        />
+        {!ready && <PaymentElementSkeleton />}
+      </div>
 
       {error && (
         <div className="flex items-start gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
@@ -122,7 +147,7 @@ function PaymentForm({
       <button
         type="button"
         onClick={handlePay}
-        disabled={!stripe || !elements || paying}
+        disabled={!stripe || !elements || paying || !ready}
         className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-white text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ background: COLORS.accent }}
       >

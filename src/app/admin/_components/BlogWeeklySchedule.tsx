@@ -43,18 +43,29 @@ const STATUS_CONFIG: Record<string, any> = {
   PLANNED: {
     icon: CircleDashed,
     text: "Zaplanowano",
-    color: "text-slate-400",
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    iconBg: "bg-slate-100",
+    color: "text-sky-600",
+    bg: "bg-sky-50/70",
+    border: "border-sky-100",
+    gradient: "from-sky-400 to-sky-600",
+    badge: "bg-sky-100 text-sky-700",
   },
   IN_PROGRESS: {
     icon: PenNib,
     text: "Szkic w toku",
-    color: "text-indigo-500",
-    bg: "bg-indigo-50/50",
-    border: "border-indigo-100",
-    iconBg: "bg-indigo-100",
+    color: "text-violet-600",
+    bg: "bg-violet-50/70",
+    border: "border-violet-100",
+    gradient: "from-violet-500 to-violet-700",
+    badge: "bg-violet-100 text-violet-700",
+  },
+  SCHEDULED: {
+    icon: CalendarBlank,
+    text: "W kolejce",
+    color: "text-amber-600",
+    bg: "bg-amber-50/70",
+    border: "border-amber-100",
+    gradient: "from-amber-400 to-amber-600",
+    badge: "bg-amber-100 text-amber-700",
   },
   PUBLISHED: {
     icon: CheckCircle,
@@ -62,16 +73,27 @@ const STATUS_CONFIG: Record<string, any> = {
     color: "text-brand-primary",
     bg: "bg-brand-primary/5",
     border: "border-brand-primary/20",
-    iconBg: "bg-brand-primary/10",
+    gradient: "from-[#287d88] to-[#1a5c66]",
+    badge: "bg-brand-primary/10 text-brand-primary",
   },
-  // Fallback dla innych statusów (np. SCHEDULED, SKIPPED)
+  SKIPPED: {
+    icon: CircleDashed,
+    text: "Pominięto",
+    color: "text-rose-500",
+    bg: "bg-rose-50/70",
+    border: "border-rose-100",
+    gradient: "from-rose-400 to-rose-600",
+    badge: "bg-rose-100 text-rose-600",
+  },
+  // Fallback dla innych statusów
   DEFAULT: {
     icon: CircleDashed,
     text: "Oczekujący",
-    color: "text-gray-400",
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    iconBg: "bg-gray-100",
+    color: "text-slate-500",
+    bg: "bg-slate-50/70",
+    border: "border-slate-200",
+    gradient: "from-slate-400 to-slate-600",
+    badge: "bg-slate-100 text-slate-600",
   },
 };
 
@@ -151,11 +173,11 @@ export default function BlogWeeklySchedule() {
   }, [entries]); // Ponownie sprawdzamy scroll po załadowaniu danych
 
   return (
-    <div className="w-full rounded-3xl bg-white border border-gray-100 shadow-[0_10px_30px_-10px_rgba(3,63,99,0.05)] flex flex-col relative overflow-hidden">
+    <div className="w-full rounded-[24px] rounded-tr-none bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)] flex flex-col relative overflow-hidden">
       {/* --- NAGŁÓWEK WIDGETU --- */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 z-10 bg-white">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-white/50 z-10 bg-white/40 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-brand-secondary/5 text-brand-secondary flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl rounded-tr-none bg-gradient-to-br from-[#287d88] to-[#1a5c66] text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(40,125,136,0.6)]">
             <CalendarBlank size={20} weight="duotone" />
           </div>
           <div>
@@ -215,14 +237,25 @@ export default function BlogWeeklySchedule() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`min-w-[260px] max-w-[260px] flex flex-col justify-between p-4 rounded-2xl border ${config.border} ${config.bg} transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer group bg-white`}
+                  className={`relative overflow-hidden min-w-[260px] max-w-[260px] flex flex-col justify-between p-4 pt-5 rounded-2xl rounded-tr-none border ${config.border} ${config.bg} backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer group`}
                 >
-                  <div>
+                  {/* Kolorowy pasek statusu u góry */}
+                  <div
+                    className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${config.gradient}`}
+                  />
+                  {/* Delikatna kolorowa poświata w rogu */}
+                  <div
+                    className={`absolute -bottom-4 -right-4 w-20 h-20 rounded-full bg-gradient-to-br ${config.gradient} opacity-10 blur-2xl pointer-events-none transition-opacity duration-300 group-hover:opacity-25`}
+                  />
+
+                  <div className="relative">
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-jakarta text-[11px] font-extrabold text-brand-secondary/70 tracking-wide uppercase">
                         {displayDate}
                       </span>
-                      <span className="px-2 py-1 rounded-md bg-white border border-gray-100 text-[10px] font-bold text-brand-secondary/60 shadow-sm truncate max-w-[100px]">
+                      <span
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold truncate max-w-[100px] ${config.badge}`}
+                      >
                         {entry.category}
                       </span>
                     </div>
@@ -231,9 +264,9 @@ export default function BlogWeeklySchedule() {
                     </h4>
                   </div>
 
-                  <div className="flex items-center gap-2.5 mt-5 pt-3 border-t border-gray-100/60">
+                  <div className="relative flex items-center gap-2.5 mt-5 pt-3 border-t border-white/60">
                     <div
-                      className={`w-6 h-6 rounded-lg ${config.iconBg} ${config.color} flex items-center justify-center shrink-0`}
+                      className={`w-6 h-6 rounded-lg rounded-tr-none bg-gradient-to-br ${config.gradient} text-white flex items-center justify-center shrink-0 shadow-sm`}
                     >
                       <Icon
                         size={14}

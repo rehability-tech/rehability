@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { validateTripCompleteness } from "@/lib/trips/validateTripCompleteness";
 import { createSystemUpdate } from "@/lib/notifications/send";
+import { notifyIndexNow } from "@/lib/seo/indexing";
+import { absoluteUrl } from "@/lib/seo/site";
 import { z } from "zod";
 
 // Definiujemy schemat Zod dla aktualizacji statusu
@@ -84,6 +86,13 @@ export async function PATCH(req: Request) {
       }).catch((err) =>
         console.error("[wyjazdy/status] createSystemUpdate failed:", err),
       );
+
+      // IndexNow — powiadom wyszukiwarki (Bing/Yandex/...) o nowym wyjeździe,
+      // pomijając te oznaczone jako noIndex (spójnie z sitemap.xml). notifyIndexNow
+      // nigdy nie rzuca; Google dociąga wyjazd z sitemap.xml (nie IndexNow).
+      if (!updatedCamp.noIndex) {
+        await notifyIndexNow(absoluteUrl(`/wyjazdy/${updatedCamp.id}`));
+      }
     }
 
     return NextResponse.json({ success: true, trip: updatedCamp });

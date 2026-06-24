@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import Portal from "@/components/ui/Portal";
 import type { Service } from "./types";
 
 export function ServiceCard({
@@ -134,6 +135,7 @@ export function ServiceCard({
         </div>
       </div>
 
+      <Portal>
       <AnimatePresence>
         {isDetailsOpen && (
           <>
@@ -251,6 +253,7 @@ export function ServiceCard({
           </>
         )}
       </AnimatePresence>
+      </Portal>
     </>
   );
 }

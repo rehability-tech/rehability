@@ -10,6 +10,11 @@ import {
   absoluteUrl,
 } from "@/lib/seo/site";
 import { truncateSmart } from "@/lib/seo/utils";
+import {
+  getTripBookingWindow,
+  bookingClosedMessage,
+  bookingClosedHeadline,
+} from "@/lib/trips/bookingWindow";
 
 import TripPageClient from "./_components/TripPageClient";
 
@@ -171,6 +176,9 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
   const blocks = parseBlocksSafely(trip.blocks);
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
 
+  // Stan okna zapisów — decyduje, czy pokazać formularz, czy kartę "zapisy zamknięte".
+  const bookingWindow = getTripBookingWindow(trip);
+
   const initialVariant =
     sp.variant === "duo" || sp.variant === "standard" ? sp.variant : undefined;
   const initialStep = sp.step ? Number(sp.step) : undefined;
@@ -238,6 +246,13 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       initialVariant={initialVariant}
       initialStep={initialStep}
       inviterName={inviterName}
+      bookingOpen={bookingWindow.isOpen}
+      bookingClosedHeadline={
+        bookingWindow.isOpen ? null : bookingClosedHeadline(bookingWindow.reason)
+      }
+      bookingClosedMessage={
+        bookingWindow.isOpen ? null : bookingClosedMessage(bookingWindow.reason)
+      }
       />
     </>
   );

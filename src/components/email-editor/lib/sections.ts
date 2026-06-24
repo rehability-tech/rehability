@@ -60,6 +60,22 @@ export function createDefaultSections(heroImage = ""): EmailSection[] {
   ];
 }
 
+// ─── Defaults dla KAMPANII mailingowej (moduł src/lib/mailer) ─────────────────
+// Bez sekcji wyjazdowych (details/validity) — kampania nie jest powiązana z
+// konkretnym wyjazdem. Treść neutralna, zmienne kontaktu: {name}.
+export function createCampaignDefaultSections(): EmailSection[] {
+  return [
+    { id: uid(), type: "title", content: "Cześć {name}!" },
+    {
+      id: uid(),
+      type: "text",
+      content:
+        "Mamy dla Ciebie coś nowego. Tu wpisz treść swojej wiadomości — możesz dodawać kolejne sekcje, zdjęcia i przycisk z linkiem.",
+    },
+    { id: uid(), type: "cta", content: "Sprawdź szczegóły" },
+  ];
+}
+
 // ─── Migrate from old flat fields ─────────────────────────────────────────────
 export function migrateToSections(data: {
   invitationEmailTitle?: string | null;

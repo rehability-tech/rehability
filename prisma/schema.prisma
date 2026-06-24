@@ -62,6 +62,15 @@ model Trip {
   price        Decimal
   deposit      Decimal
 
+  // ── Okno zapisów ──────────────────────────────────────────────
+  // Termin zamknięcia zapisów online. NULL = zapisy otwarte do dnia
+  // rozpoczęcia (startDate). Po tej dacie publiczny formularz znika.
+  registrationDeadline DateTime?
+  // Ręczne zamknięcie zapisów przez admina (np. gdy pokoje są już
+  // zaklepane). Wyjazd zostaje widoczny, ale bez formularza rezerwacji.
+  registrationClosed   Boolean  @default(false)
+  // ──────────────────────────────────────────────────────────────
+
   subtitle     String?
   tags         String[]
   heroImage    String?
@@ -215,6 +224,21 @@ model Post {
   status          String    @default("DRAFT")
   publishedAt     DateTime?
   lastStage       String    @default("dane-podstawowe")
+
+  views           Int       @default(0)
+  pageViews       PostView[]
+}
+
+model PostView {
+  id          String   @id @default(cuid())
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  visitorHash String
+  day         DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  @@unique([postId, visitorHash, day])
+  @@index([postId, day])
 }
 
 model BlogScheduleEntry {
@@ -437,6 +461,160 @@ model User {
   healthProfile HealthProfile?
   notifications Notification[]
   messages      Message[]
+  enrollments   Enrollment[]
+  lessonProgress LessonProgress[]
+  courseReviews CourseReview[]
+  courseFavorites CourseFavorite[]
+
+  // Powiązanie z rekordem kontaktu w module mailingowym (1:1, opcjonalne).
+  contact       Contact?
+}
+
+// ===== PLATFORMA VOD (KURSY) =====
+
+model Course {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  category     String
+  excerpt      String   @db.Text
+  price        Int      @default(0)
+  durationMin  Int      @default(0)
+  // Zagregowane oceny (cache liczony z CourseReview): rating = średnia, reviews = liczba.
+  rating       Float    @default(0)
+  reviews      Int      @default(0)
+  // Licznik wyświetleń strony kursu (cache; szczegóły dedupowane w CourseView).
+  views        Int      @default(0)
+  // "single" = jeden film, "sections" = moduły/lekcje
+  format       String   @default("sections")
+  video        String?  // główne wideo (single) lub zwiastun
+  // Długość głównego wideo w sekundach (format „single"; z Bunny).
+  videoDurationSec Int  @default(0)
+  image        String?  // miniatura (opcjonalnie; VOD bierze z wideo)
+  // DRAFT | PUBLISHED | ARCHIVED
+  status       String   @default("PUBLISHED")
+  // elastyczne pola treści
+  description  Json?   // bloki zakładki „O kursie"
+  content      Json?   // bloki zakładki „Zawartość" (opis co kurs zawiera)
+  faq          Json?
+  testimonials Json?
+  // ── SEO (mirror modelu Post/Trip) ─────────────────
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  focusKeyword    String?
+  ogImage         String?
+  canonicalUrl    String?
+  noIndex         Boolean  @default(false)
+  // ─────────────────────────────────────────────────
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  // Data PIERWSZEJ publikacji (status → PUBLISHED). Null = nigdy nie publikowany.
+  // Używana w panelu do alertów „mało kursantów" dopiero po okresie karencji.
+  publishedAt  DateTime?
+
+  modules       CourseModule[]
+  enrollments   Enrollment[]
+  courseReviews CourseReview[]
+  pageViews     CourseView[]
+  favorites     CourseFavorite[]
+
+  @@index([status])
+}
+
+// Ulubione/„zapisane" kursy użytkownika. Gość trzyma to w localStorage; po
+// zalogowaniu migrujemy do bazy i każdy kolejny zapis ląduje tutaj.
+model CourseFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+model CourseView {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  visitorHash String
+  day         DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  @@unique([courseId, visitorHash, day])
+  @@index([courseId, day])
+}
+
+model CourseReview {
+  id        String   @id @default(cuid())
+  courseId  String
+  userId    String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int // 1–5
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Jeden kursant = jedna opinia per kurs (można edytować własną).
+  @@unique([courseId, userId])
+  @@index([courseId])
+}
+
+model CourseModule {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int      @default(0)
+  lessons   Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id          String         @id @default(cuid())
+  moduleId    String
+  module      CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String?        @db.Text
+  video       String?
+  // Długość nagrania w sekundach (z Bunny) — do liczenia czasu kursu.
+  durationSec Int            @default(0)
+  order       Int            @default(0)
+  progress    LessonProgress[]
+
+  @@index([moduleId])
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  // Ukończenie kursu: single → po obejrzeniu filmu; moduły → po ostatniej lekcji.
+  completedAt DateTime?
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+model LessonProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed Boolean  @default(false)
+  seconds   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
 }
 
 model Notification {
@@ -474,4 +652,116 @@ model EmailTemplate {
   sections  Json     @default("[]")
   category  String   @default("general")
   status    String   @default("DRAFT") // DRAFT | ACTIVE
+}
+
+// ==========================================
+// MODUŁ MAILINGOWY (przenośny — patrz src/lib/mailer)
+// ==========================================
+//
+// Modele celowo GENERYCZNE (Contact / Campaign / CampaignRecipient), bez nazw
+// domenowych Rehability. Cała logika żyje w przenośnym module src/lib/mailer,
+// który dotyka tych tabel WYŁĄCZNIE przez warstwę repository/prisma.ts.
+// Powiązanie z domeną (User, źródła "Wyjazdy"/"VOD"/"Newsletter") realizuje
+// adapter src/lib/crm/contactSync.ts — sam rdzeń mailera o tym nie wie.
+
+// Pojedynczy kontakt mailingowy. Email jest kluczem deduplikacji — jeden adres
+// = jeden Contact, niezależnie z ilu źródeł (sources[]) przyszedł.
+model Contact {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+
+  // SUBSCRIBED | UNSUBSCRIBED | BOUNCED | COMPLAINED
+  status    String   @default("SUBSCRIBED")
+
+  // Źródła pochodzenia, zarządzane automatycznie przez sync (np. "Wyjazdy",
+  // "VOD", "Newsletter"). Kontakt może mieć wiele źródeł jednocześnie.
+  sources   String[] @default([])
+  // Tagi ręczne nadawane przez admina — sync ich NIE rusza.
+  tags      String[] @default([])
+
+  // Opcjonalne powiązanie z kontem użytkownika (gdy kontakt to realny User).
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Token do publicznej strony wypisania (jednorazowo generowany).
+  unsubscribeToken String @unique
+
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastSyncedAt DateTime?
+
+  recipients CampaignRecipient[]
+
+  @@index([status])
+}
+
+// Kampania mailingowa: treść (sekcje z edytora) + filtr audytorium + liczniki.
+model Campaign {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  fromName  String?
+  fromEmail String?
+
+  // Sekcje z edytora maili (ten sam format co EmailTemplate.sections).
+  sections  Json     @default("[]")
+  // Domyślny URL przycisków CTA w tej kampanii.
+  ctaUrl    String?
+
+  // DRAFT | SCHEDULED | SENDING | SENT | FAILED
+  status    String   @default("DRAFT")
+
+  // Filtr segmentu odbiorców.
+  filterSources String[] @default([])
+  filterTags    String[] @default([])
+  filterStatus  String   @default("SUBSCRIBED")
+
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  // Liczniki (cache, aktualizowane przy wysyłce i z webhooka).
+  totalRecipients Int @default(0)
+  sentCount       Int @default(0)
+  deliveredCount  Int @default(0)
+  openedCount     Int @default(0)
+  bouncedCount    Int @default(0)
+  failedCount     Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipients CampaignRecipient[]
+
+  @@index([status])
+}
+
+// Pojedynczy odbiorca kampanii — kolejka wysyłki + stan dostarczenia.
+model CampaignRecipient {
+  id         String   @id @default(cuid())
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  // Snapshot adresu na moment dodania do kolejki.
+  email      String
+
+  // PENDING | SENT | DELIVERED | OPENED | BOUNCED | FAILED
+  status     String   @default("PENDING")
+
+  // ID wiadomości zwrócone przez providera (Resend) — do korelacji z webhookiem.
+  providerMessageId String?
+  error      String?
+
+  sentAt     DateTime?
+  openedAt   DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId, status])
+  @@index([providerMessageId])
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,8 @@ import {
   ChatCircle,
   Storefront,
   Lock,
+  GraduationCap,
+  PlayCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +39,15 @@ interface MenuSection {
   title: string;
   items: MenuItem[];
 }
+
+// Element podmenu (kontekst wyjazdu / VOD).
+type SubItem = {
+  key: string;
+  href: string;
+  label: string;
+  icon: MenuItem["icon"];
+  needsAttention?: boolean;
+};
 
 // Wielosekcyjna struktura nawigacji (usunięto Profil)
 const MENU_SECTIONS: MenuSection[] = [
@@ -63,7 +74,6 @@ const MENU_SECTIONS: MenuSection[] = [
         href: "/panel/vod",
         label: "Platforma VOD",
         icon: MonitorPlay,
-        disabled: true,
       },
     ],
   },
@@ -71,6 +81,10 @@ const MENU_SECTIONS: MenuSection[] = [
 
 export default function UserSidebar() {
   const pathname = usePathname();
+  const [lastCourse, setLastCourse] = useState<{
+    slug: string;
+    title: string;
+  } | null>(null);
 
   // Nieprzeczytane wiadomości czatu → pulsująca kropka na zakładce "Czat".
   const { links: chatUnreadLinks, refresh: refreshChatUnread } =
@@ -87,8 +101,27 @@ export default function UserSidebar() {
     segments.length >= 4;
   const tripId = isTripContext ? segments[3] : null;
 
+  // Kontekst platformy VOD → rozwijane podmenu pod „Platforma VOD".
+  const isVodContext =
+    segments[1] === "panel" && segments[2] === "vod";
+
+  // Ostatnio oglądany kurs — pobierany tylko w kontekście VOD (skrót w menu).
+  useEffect(() => {
+    if (!isVodContext) return;
+    let active = true;
+    fetch("/api/panel/vod/last", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) setLastCourse(d.course ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [pathname, isVodContext]);
+
   // Submenu wyjazdu
-  const tripItems = [
+  const tripItems: SubItem[] = [
     {
       key: "trip-home",
       href: `/panel/wyjazdy/${tripId}`,
@@ -119,6 +152,38 @@ export default function UserSidebar() {
       label: "Zdrowie",
       icon: Heartbeat,
       needsAttention: true,
+    },
+  ];
+
+  // Submenu platformy VOD
+  const vodItems: SubItem[] = [
+    {
+      key: "vod-home",
+      href: "/panel/vod",
+      label: "Przegląd",
+      icon: SquaresFour,
+    },
+    {
+      key: "vod-moje",
+      href: "/panel/vod?widok=moje",
+      label: "Moje kursy",
+      icon: GraduationCap,
+    },
+    ...(lastCourse
+      ? [
+          {
+            key: "vod-last",
+            href: `/panel/vod/${lastCourse.slug}`,
+            label: "Ostatnio oglądany",
+            icon: PlayCircle,
+          },
+        ]
+      : []),
+    {
+      key: "vod-katalog",
+      href: "/kursy",
+      label: "Katalog kursów",
+      icon: Storefront,
     },
   ];
 
@@ -157,8 +222,15 @@ export default function UserSidebar() {
             <div className="flex flex-col gap-1">
               {section.items.map(
                 ({ key, href, label, icon: Icon, disabled }) => {
-                  // Jeśli jesteśmy w wyjeździe i to jest przycisk "Moje Wyjazdy", traktujemy go jako "Otwarty Folder"
-                  const isOpenParent = key === "campy" && isTripContext;
+                  // Rozwijane podmenu: kontekst wyjazdu (Moje Wyjazdy) lub VOD
+                  // (Platforma VOD) → traktujemy przycisk jako „Otwarty Folder".
+                  const submenu: SubItem[] | null =
+                    key === "campy" && isTripContext
+                      ? tripItems
+                      : key === "vod" && isVodContext
+                        ? vodItems
+                        : null;
+                  const isOpenParent = !!submenu;
                   const isActive =
                     href === "/panel"
                       ? pathname === "/panel"
@@ -224,7 +296,7 @@ export default function UserSidebar() {
 
                       {/* --- INTELIGENTNE SUBMENU WYJAZDU --- */}
                       <AnimatePresence>
-                        {isOpenParent && (
+                        {submenu && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
@@ -233,11 +305,21 @@ export default function UserSidebar() {
                             // Wcięcie i linia odniesienia do rodzica
                             className="flex flex-col gap-1 ml-5 pl-3 mt-1.5 border-l border-brand-primary/15 overflow-hidden"
                           >
-                            {tripItems.map((subItem) => {
-                              const isSubActive =
-                                subItem.key === "trip-home"
-                                  ? pathname === subItem.href
-                                  : pathname?.startsWith(subItem.href);
+                            {submenu.map((subItem) => {
+                              // Reguła aktywności: pozycje „Przegląd/Panel"
+                              // (bazowy href) → dokładne dopasowanie; pozycje
+                              // z query (?widok) nie podświetlają się (ten sam
+                              // adres co Przegląd); reszta → startsWith.
+                              const base = subItem.href.split("?")[0];
+                              const hasQuery = subItem.href.includes("?");
+                              const isHome =
+                                base === "/panel/vod" ||
+                                base === `/panel/wyjazdy/${tripId}`;
+                              const isSubActive = hasQuery
+                                ? false
+                                : isHome
+                                  ? pathname === base
+                                  : pathname?.startsWith(base);
                               // Kropka: statyczny alert (Karta Zdrowia) LUB
                               // nieprzeczytany czat (API zwraca deep-link czatu).
                               const needsAttention =

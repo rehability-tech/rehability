@@ -5,7 +5,7 @@ import { Reorder } from "framer-motion";
 import BlockEditorCard from "./BlockEditorCard";
 import BlockAdder from "./BlockAdder";
 import { BlockType, TripBlock } from "../hooks/useTripAiGenerator";
-import { safeUuid } from "@/lib/utils";
+import { safeUuid, focusBlockById } from "@/lib/utils";
 
 interface TripBlocksBuilderProps {
   blocks: TripBlock[];
@@ -26,7 +26,7 @@ export default function TripBlocksBuilder({
     let defaultContent: any = null;
     switch (type) {
       case "heading":
-        defaultContent = { text: "Nowy nagłówek" };
+        defaultContent = { text: "" };
         break;
       case "paragraph":
         defaultContent = { text: "" };
@@ -64,6 +64,7 @@ export default function TripBlocksBuilder({
     // zamrożenia callbacku przez memo na karcie bloku (inaczej usunięty/edytowany
     // blok mógł "wracać" przy kolejnej operacji).
     onChange((prev) => [...prev, newBlock]);
+    focusBlockById(newBlock.id);
   };
 
   const handleDeleteBlock = (idToRemove: string) => {

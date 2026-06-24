@@ -250,13 +250,14 @@ function ContentEditorFormContent() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-6 mt-8 border-t border-gray-200">
+      <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-between gap-3 pt-6 mt-8 border-t border-gray-200">
         <Link
           href={`/admin/wyjazdy/dodaj/dane-podstawowe${editId ? `?id=${editId}` : ""}`}
+          className="max-sm:w-full max-sm:flex max-sm:justify-center"
         >
           <Button
             variant="secondary"
-            rightIcon={<CaretLeft size={18} weight="bold" />}
+            leftIcon={<CaretLeft size={18} weight="bold" />}
           >
             Wstecz
           </Button>

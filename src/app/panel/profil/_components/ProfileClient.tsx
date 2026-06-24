@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SessionProvider, useSession, signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   Globe,
@@ -28,6 +29,20 @@ export interface ProfileUser {
   image: string | null;
   role: string;
 }
+
+// Wejście strony — sekcje pojawiają się kaskadowo (stagger).
+const pageContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
+};
+const sectionItem = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
 
 export default function ProfileClient({ user }: { user: ProfileUser }) {
   // Lokalny SessionProvider — projekt nie ma globalnego, a potrzebujemy
@@ -120,9 +135,14 @@ function ProfileInner({ user }: { user: ProfileUser }) {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <motion.div
+      variants={pageContainer}
+      initial="hidden"
+      animate="show"
+      className="w-full max-w-2xl mx-auto px-4 py-8"
+    >
       {/* Nagłówek */}
-      <div className="mb-8">
+      <motion.div variants={sectionItem} className="mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/15 mb-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary">
             Mój profil
@@ -131,10 +151,13 @@ function ProfileInner({ user }: { user: ProfileUser }) {
         <h1 className="font-jakarta font-bold text-3xl md:text-4xl text-brand-secondary tracking-tight">
           Twoje konto
         </h1>
-      </div>
+      </motion.div>
 
       {/* Karta tożsamości */}
-      <div className="relative overflow-hidden rounded-3xl rounded-tr-none bg-white/70 backdrop-blur-2xl border border-white/50 shadow-[0_20px_60px_-30px_rgba(3,63,99,0.35)] p-6 mb-6">
+      <motion.div
+        variants={sectionItem}
+        className="relative overflow-hidden rounded-3xl rounded-tr-none bg-white/70 backdrop-blur-2xl border border-white/50 shadow-[0_20px_60px_-30px_rgba(3,63,99,0.35)] p-6 mb-6"
+      >
         <div className="pointer-events-none absolute -bottom-8 -right-8 w-36 h-36 bg-brand-yellow/30 rounded-full blur-2xl" />
 
         <div className="relative flex items-center gap-5">
@@ -161,14 +184,17 @@ function ProfileInner({ user }: { user: ProfileUser }) {
                 </div>
               )}
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label="Zmień zdjęcie"
               className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-brand-primary text-white border-2 border-white flex items-center justify-center shadow-md hover:bg-brand-primary/90 transition disabled:opacity-60"
             >
               <Camera size={15} weight="fill" />
-            </button>
+            </motion.button>
             <input
               ref={fileRef}
               type="file"
@@ -180,8 +206,16 @@ function ProfileInner({ user }: { user: ProfileUser }) {
 
           {/* Dane */}
           <div className="min-w-0 flex-1">
+            <AnimatePresence mode="wait" initial={false}>
             {editing ? (
-              <div className="flex flex-col gap-2">
+              <motion.div
+                key="edit"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col gap-2"
+              >
                 <div className="flex gap-2">
                   <input
                     value={firstName}
@@ -222,12 +256,18 @@ function ProfileInner({ user }: { user: ProfileUser }) {
                     Anuluj
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ) : (
-              <>
+              <motion.div
+                key="view"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
                 <div className="flex items-center gap-2">
                   <h2 className="font-jakarta font-bold text-[20px] text-brand-secondary truncate">
-                    {displayName || "Uczestniczka"}
+                    {displayName || "Uczestnik"}
                   </h2>
                   <button
                     onClick={() => setEditing(true)}
@@ -247,33 +287,39 @@ function ProfileInner({ user }: { user: ProfileUser }) {
                     <span className="truncate">{user.email}</span>
                   </p>
                 )}
-                <span className="inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[11px] font-bold">
-                  <ShieldCheck size={13} weight="fill" />
-                  {isAdmin ? "Administrator" : "Uczestniczka"}
-                </span>
-              </>
+                {isAdmin && (
+                  <span className="inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[11px] font-bold">
+                    <ShieldCheck size={13} weight="fill" />
+                    Administrator
+                  </span>
+                )}
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Powiadomienia */}
-      <SectionTitle
-        icon={<Bell size={16} weight="fill" />}
-        label="Powiadomienia"
-      />
-      <div className="mb-6">
+      <motion.div variants={sectionItem} className="mb-6">
+        <SectionTitle
+          icon={<Bell size={16} weight="fill" />}
+          label="Powiadomienia"
+        />
         <NotificationToggle />
-      </div>
+      </motion.div>
 
       {/* Aplikacja */}
       {canInstall && (
-        <>
+        <motion.div variants={sectionItem}>
           <SectionTitle
             icon={<DownloadSimple size={16} weight="fill" />}
             label="Aplikacja"
           />
-          <button
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.99 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
             onClick={() => triggerInstallPrompt()}
             className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/40 hover:bg-white transition shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] text-left mb-6"
           >
@@ -289,13 +335,14 @@ function ProfileInner({ user }: { user: ProfileUser }) {
                 powiadomienia.
               </p>
             </div>
-          </button>
-        </>
+          </motion.button>
+        </motion.div>
       )}
 
       {/* Konto */}
-      <SectionTitle icon={<Globe size={16} weight="fill" />} label="Konto" />
-      <div className="rounded-2xl bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] overflow-hidden">
+      <motion.div variants={sectionItem}>
+        <SectionTitle icon={<Globe size={16} weight="fill" />} label="Konto" />
+        <div className="rounded-2xl bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_18px_-10px_rgba(3,63,99,0.18)] overflow-hidden">
         <Link
           href="/"
           className="flex items-center gap-3 px-4 py-3.5 text-[14px] text-brand-secondary hover:bg-brand-primary/5 transition"
@@ -321,8 +368,9 @@ function ProfileInner({ user }: { user: ProfileUser }) {
             </>
           )}
         </button>
-      </div>
-    </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

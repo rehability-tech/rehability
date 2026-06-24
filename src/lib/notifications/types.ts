@@ -16,7 +16,8 @@ export type NotificationType =
   | "HEALTH"
   | "SPA"
   | "SYSTEM"
-  | "CAMP";
+  | "CAMP"
+  | "VOD";
 
 export type SystemUpdateType = "VOD" | "CAMP" | "BLOG" | "SYSTEM";
 

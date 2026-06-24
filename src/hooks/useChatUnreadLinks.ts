@@ -1,33 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import useSWR from "swr";
+
+const KEY = "/api/notifications/chat-unread";
+const EMPTY: Set<string> = new Set();
+
+async function fetcher(url: string): Promise<Set<string>> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("chat-unread fetch failed");
+  const data = (await res.json()) as { links: string[] };
+  return new Set(data.links);
+}
 
 /**
- * Polluje deep-linki nieprzeczytanych powiadomień czatu, by paski nawigacji
- * mogły podświetlić zakładkę "Czat". Zwraca `links` (zbiór deep-linków) oraz
- * `refresh` do natychmiastowego odświeżenia (np. po zmianie ścieżki).
+ * Deep-linki nieprzeczytanych powiadomień czatu, by paski nawigacji mogły
+ * podświetlić zakładkę "Czat". Oparte o SWR ze WSPÓLNYM kluczem — wszystkie
+ * zamontowane paski (sidebar + mobile nav, desktop i mobile naraz) współdzielą
+ * JEDNO zapytanie i jeden timer pollingu zamiast każdy własny. SWR domyślnie
+ * nie pollinguje przy nieaktywnej karcie i odświeża się po powrocie na zakładkę.
+ *
+ * Zwraca `links` (zbiór deep-linków) oraz `refresh` do natychmiastowego
+ * odświeżenia (np. po zmianie ścieżki).
  */
 export function useChatUnreadLinks(pollMs = 30_000) {
-  const [links, setLinks] = useState<Set<string>>(() => new Set());
+  const { data, mutate } = useSWR<Set<string>>(KEY, fetcher, {
+    refreshInterval: pollMs,
+    revalidateOnFocus: true,
+    // Zwija burst natychmiastowych fetchy z wielu zamontowanych instancji w jeden.
+    dedupingInterval: 10_000,
+    keepPreviousData: true,
+  });
 
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch("/api/notifications/chat-unread", {
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { links: string[] };
-      setLinks(new Set(data.links));
-    } catch {
-      // milcz — odświeży się przy następnym pollingu
-    }
-  }, []);
+  const refresh = useCallback(() => mutate(), [mutate]);
 
-  useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, pollMs);
-    return () => clearInterval(t);
-  }, [refresh, pollMs]);
-
-  return { links, refresh };
+  return { links: data ?? EMPTY, refresh };
 }

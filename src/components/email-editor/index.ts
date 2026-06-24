@@ -6,6 +6,7 @@ export type { EmailSection, SectionType } from "./lib/sections";
 export type { TripContext } from "./lib/types";
 export {
   createDefaultSections,
+  createCampaignDefaultSections,
   migrateToSections,
   aiToSections,
   sectionsToLegacy,

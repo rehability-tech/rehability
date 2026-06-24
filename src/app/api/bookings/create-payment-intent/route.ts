@@ -6,6 +6,10 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth/auth";
 import { logCampEvent } from "@/lib/notifications/send";
+import {
+  getTripBookingWindow,
+  bookingClosedMessage,
+} from "@/lib/trips/bookingWindow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,11 +96,27 @@ export async function POST(req: Request) {
       deposit: true,
       capacity: true,
       allowBringFriend: true,
+      startDate: true,
+      endDate: true,
+      registrationDeadline: true,
+      registrationClosed: true,
     },
   });
 
   if (!trip || trip.status !== "PUBLISHED") {
     return NextResponse.json({ error: "Wyjazd jest niedostępny." }, { status: 404 });
+  }
+
+  // Okno zapisów. "Twarde" zamknięcia (wyjazd zakończony / ręcznie zamknięty)
+  // blokują KAŻDĄ płatność — także przejęcie zaproszenia. Minięty termin
+  // (DEADLINE) blokuje tylko nowe rezerwacje (sprawdzane niżej, w ścieżce
+  // standardowej), bo zaproszona przyjaciółka ma własne 24h na opłatę.
+  const bookingWindow = getTripBookingWindow(trip);
+  if (bookingWindow.reason === "ENDED" || bookingWindow.reason === "MANUAL") {
+    return NextResponse.json(
+      { error: bookingClosedMessage(bookingWindow.reason) },
+      { status: 409 },
+    );
   }
 
   if (data.variant === "duo" && !trip.allowBringFriend) {
@@ -151,7 +171,15 @@ export async function POST(req: Request) {
     });
     bookerId = existingInvitation.id;
   } else {
-    // Standardowa ścieżka — sprawdzamy miejsca i tworzymy nową rezerwację.
+    // Standardowa ścieżka — najpierw okno zapisów (blokuje też DEADLINE),
+    // potem miejsca, na końcu tworzymy nową rezerwację.
+    if (!bookingWindow.isOpen) {
+      return NextResponse.json(
+        { error: bookingClosedMessage(bookingWindow.reason) },
+        { status: 409 },
+      );
+    }
+
     const occupiedSeats = await prisma.booking.count({
       where: {
         tripId: trip.id,

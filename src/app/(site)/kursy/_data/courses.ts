@@ -5,7 +5,32 @@
 export type CourseBlock =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string }
-  | { type: "list"; items: string[] };
+  | { type: "list"; items: string[] }
+  /** Wyróżniony akapit w ramce z akcentem (callout). */
+  | { type: "highlight"; text: string }
+  /** Cytat / wypowiedź eksperta. */
+  | { type: "quote"; text: string }
+  /** Pusta przerwa wizualna między sekcjami. */
+  | { type: "spacer" };
+
+/** Moduł programu (zakładka „Zawartość"). */
+export interface CourseModule {
+  title: string;
+  lessons: string[];
+}
+
+/** Opinia kursanta (zakładka „Opinie"). */
+export interface CourseReview {
+  author: string;
+  rating: number;
+  text: string;
+}
+
+/** Pytanie i odpowiedź (zakładka „FAQ"). */
+export interface CourseFaq {
+  q: string;
+  a: string;
+}
 
 export interface Course {
   id: string;
@@ -14,13 +39,51 @@ export interface Course {
   category: string;
   rating: number;
   reviews: number;
+  /** Liczba wyświetleń strony kursu (z bazy; relikt COURSES jej nie ma). */
+  views?: number;
   durationMin: number;
   price: number;
   image: string;
   /** Krótki podtytuł na stronie szczegółów (nagłówek). */
   excerpt: string;
+  /**
+   * Tryb kursu: „single" = jeden film (bez programu modułów),
+   * „sections" = moduły + lekcje. Gdy brak — traktujemy jak „sections".
+   */
+  format?: "single" | "sections";
   /** Pełny opis w zakładce „O kursie". Gdy brak — render fallbacku. */
   description?: CourseBlock[];
+  /** Opis zakładki „Zawartość" (co kurs zawiera). Gdy brak — render fallbacku. */
+  content?: CourseBlock[];
+  /** Program kursu (zakładka „Zawartość"). Gdy brak — render fallbacku. */
+  curriculum?: CourseModule[];
+  /** Opinie kursantów (zakładka „Opinie"). Gdy brak — render fallbacku. */
+  testimonials?: CourseReview[];
+  /** Najczęstsze pytania (zakładka „FAQ"). Gdy brak — render fallbacku. */
+  faq?: CourseFaq[];
+  /** Czy kursowi brakuje nagrań — UI pokazuje „Nagrania w przygotowaniu". */
+  videoPending?: boolean;
+  // ── SEO / Open Graph (z bazy; relikt COURSES ich nie ma) ──
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  focusKeyword?: string | null;
+  ogImage?: string | null;
+  canonicalUrl?: string | null;
+  noIndex?: boolean;
+  /** Data utworzenia (ISO). */
+  createdAt?: string;
+  /** Data pierwszej publikacji (ISO) lub null, gdy nigdy nie publikowany. */
+  publishedAt?: string | null;
+}
+
+/** Formatuje czas materiału: 200 → „3h 20 min", 42 → „42 min", 0 → „—". */
+export function formatCourseDuration(min: number): string {
+  if (!min || min <= 0) return "—";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m} min`;
+  if (h) return `${h}h`;
+  return `${m} min`;
 }
 
 // Standardowe korzyści dla każdego kursu VOD (zakładka „O kursie", fallback).
@@ -36,6 +99,58 @@ export const ORDER_INCLUDES: string[] = [
   "Dożywotni dostęp do aplikacji",
   "Treści chronione na panelu kursanta",
   "Natychmiastowy dostęp",
+];
+
+// Domyślny program kursu (zakładka „Zawartość", fallback).
+export const DEFAULT_CURRICULUM: CourseModule[] = [
+  {
+    title: "Moduł 1 · Wprowadzenie",
+    lessons: [
+      "Jak korzystać z platformy i przejść przez program",
+      "Krótka autodiagnoza — od czego zacząć",
+      "Zasady bezpiecznego ćwiczenia w domu",
+    ],
+  },
+  {
+    title: "Moduł 2 · Część praktyczna",
+    lessons: [
+      "Rozgrzewka i przygotowanie ciała do pracy",
+      "Ćwiczenia krok po kroku, pokazane z wielu ujęć kamery",
+      "Modyfikacje dla początkujących i zaawansowanych",
+    ],
+  },
+  {
+    title: "Moduł 3 · Utrwalenie efektów",
+    lessons: [
+      "Gotowe plany ćwiczeń na cały tydzień",
+      "Najczęstsze błędy i jak ich unikać",
+      "Jak podtrzymać rezultaty na co dzień",
+    ],
+  },
+];
+
+// Domyślne FAQ (zakładka „FAQ", fallback).
+export const DEFAULT_FAQ: CourseFaq[] = [
+  {
+    q: "Jak długo mam dostęp do kursu?",
+    a: "Dostęp jest dożywotni. Po zakupie materiały zostają na Twoim panelu kursanta — wracasz do nich, kiedy tylko chcesz, bez żadnych limitów czasowych.",
+  },
+  {
+    q: "Czy potrzebuję specjalnego sprzętu?",
+    a: "Nie. Program zaprojektowaliśmy tak, by dało się go wykonać w domu. Jeśli przyda się akcesorium (np. mata czy wałek), zaznaczamy to i pokazujemy alternatywy bez sprzętu.",
+  },
+  {
+    q: "Czy ćwiczenia są bezpieczne?",
+    a: "Tak. Wszystkie sekwencje ułożyła dyplomowana specjalistka, a każdy ruch tłumaczymy krok po kroku wraz z modyfikacjami dla różnych poziomów. W razie wątpliwości zdrowotnych skonsultuj się z lekarzem.",
+  },
+  {
+    q: "Na jakich urządzeniach obejrzę materiały?",
+    a: "Na komputerze, tablecie i telefonie. Treści odtwarzasz bezpośrednio na chronionym panelu kursanta — wystarczy dostęp do internetu.",
+  },
+  {
+    q: "Czy otrzymam fakturę?",
+    a: "Tak. Po opłaceniu zamówienia automatycznie wystawiamy dokument zakupu na podane dane.",
+  },
 ];
 
 export const COURSES: Course[] = [

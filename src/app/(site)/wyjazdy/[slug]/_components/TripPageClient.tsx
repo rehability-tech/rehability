@@ -2,7 +2,11 @@
 
 import React, { useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { ShoppingCart, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
+import {
+  ShoppingCart,
+  EnvelopeSimple,
+  LockSimple,
+} from "@phosphor-icons/react/dist/ssr";
 
 import SingleTripHero from "./SingleTripHero";
 import TripBookingForm, { type CurrentUser } from "./TripBookingForm";
@@ -27,6 +31,10 @@ interface TripPageClientProps {
   initialStep?: number;
   /** Imię i nazwisko osoby, która wysłała zaproszenie (gdy wejście z linku ?inv=). */
   inviterName?: string | null;
+  /** Czy zapisy są otwarte (formularz vs. karta "zapisy zamknięte"). */
+  bookingOpen?: boolean;
+  bookingClosedHeadline?: string | null;
+  bookingClosedMessage?: string | null;
 }
 
 export default function TripPageClient({
@@ -47,6 +55,9 @@ export default function TripPageClient({
   initialVariant,
   initialStep,
   inviterName,
+  bookingOpen = true,
+  bookingClosedHeadline,
+  bookingClosedMessage,
 }: TripPageClientProps) {
   // Referencja do formularza, by śledzić czy jest widoczny na ekranie
   const formRef = useRef<HTMLDivElement>(null);
@@ -118,16 +129,23 @@ export default function TripPageClient({
             transition={{ duration: 0.6, delay: 0.2 }}
             className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-32 z-30"
           >
-            <TripBookingForm
-              tripId={tripId}
-              tripTitle={title}
-              price={priceValue}
-              deposit={depositValue}
-              allowBringFriend={allowBringFriend}
-              currentUser={currentUser}
-              initialVariant={initialVariant}
-              initialStep={initialStep}
-            />
+            {bookingOpen ? (
+              <TripBookingForm
+                tripId={tripId}
+                tripTitle={title}
+                price={priceValue}
+                deposit={depositValue}
+                allowBringFriend={allowBringFriend}
+                currentUser={currentUser}
+                initialVariant={initialVariant}
+                initialStep={initialStep}
+              />
+            ) : (
+              <BookingClosedCard
+                headline={bookingClosedHeadline}
+                message={bookingClosedMessage}
+              />
+            )}
           </motion.div>
         </div>
       </section>
@@ -154,21 +172,64 @@ export default function TripPageClient({
                   {priceValue.toLocaleString("pl-PL")} zł
                 </span>
               </div>
-              <button
-                onClick={scrollToForm}
-                className="relative inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-primary/90 text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.4)] hover:shadow-lg transition-all"
-              >
-                {inviterName && (
-                  <span className="absolute -top-2.5 -right-2 px-2 py-0.5 rounded-full rounded-tr-[3px] bg-brand-yellow text-brand-secondary text-[9px] font-bold shadow-sm ring-2 ring-white whitespace-nowrap">
-                    od {inviterName.split(" ")[0]}
-                  </span>
-                )}
-                Rezerwuję <ShoppingCart size={16} weight="fill" />
-              </button>
+              {bookingOpen ? (
+                <button
+                  onClick={scrollToForm}
+                  className="relative inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-primary/90 text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.4)] hover:shadow-lg transition-all"
+                >
+                  {inviterName && (
+                    <span className="absolute -top-2.5 -right-2 px-2 py-0.5 rounded-full rounded-tr-[3px] bg-brand-yellow text-brand-secondary text-[9px] font-bold shadow-sm ring-2 ring-white whitespace-nowrap">
+                      od {inviterName.split(" ")[0]}
+                    </span>
+                  )}
+                  Rezerwuję <ShoppingCart size={16} weight="fill" />
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-brand-secondary/10 text-brand-secondary/70 font-bold text-[14px]">
+                  <LockSimple size={16} weight="fill" />
+                  {bookingClosedHeadline ?? "Zapisy zamknięte"}
+                </span>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+/* ───────────────────────── Karta "Zapisy zamknięte" ───────────────────────── */
+
+function BookingClosedCard({
+  headline,
+  message,
+}: {
+  headline?: string | null;
+  message?: string | null;
+}) {
+  return (
+    <section id="formularz-rezerwacji" className="scroll-mt-32">
+      <div className="relative rounded-[32px] bg-white/60 backdrop-blur-2xl border border-white/60 shadow-[0_15px_60px_-15px_rgba(3,63,99,0.15)] overflow-hidden p-8 text-center">
+        <div className="absolute -top-20 -right-20 w-56 h-56 bg-brand-secondary/10 rounded-full blur-[60px] pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <span className="flex items-center justify-center w-16 h-16 rounded-2xl rounded-tr-none bg-brand-secondary/10 text-brand-secondary">
+            <LockSimple size={30} weight="duotone" />
+          </span>
+          <h2 className="text-[22px] font-jakarta font-bold text-brand-secondary leading-tight">
+            {headline ?? "Zapisy zamknięte"}
+          </h2>
+          <p className="text-[14px] font-medium text-brand-secondary/60 leading-relaxed max-w-sm">
+            {message ??
+              "Nie przyjmujemy już zgłoszeń na ten wyjazd. Napisz do nas — chętnie pomożemy znaleźć inny termin."}
+          </p>
+          <a
+            href="/wyjazdy"
+            className="mt-2 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-brand-primary text-white font-bold text-[14px] shadow-[0_8px_20px_-6px_rgba(40,125,136,0.45)] hover:shadow-lg transition-all"
+          >
+            Zobacz inne wyjazdy
+          </a>
+        </div>
+      </div>
+    </section>
   );
 }

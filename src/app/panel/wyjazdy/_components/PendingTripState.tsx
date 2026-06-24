@@ -11,6 +11,7 @@ import {
   X,
 } from "@phosphor-icons/react/dist/ssr";
 import StripePaymentStep from "@/app/(site)/wyjazdy/[slug]/_components/StripePaymentStep";
+import Portal from "@/components/ui/Portal";
 
 const DEFAULT_TRIP_IMAGE = "/images/camp-background.jpg";
 
@@ -183,6 +184,7 @@ export default function PendingTripState({ booking }: { booking: any }) {
 
       {/* OVERLAY / MODAL Z PŁATNOŚCIĄ */}
       {isModalOpen && (
+        <Portal>
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-brand-secondary/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
             {/* Nagłówek Modala */}
@@ -255,6 +257,7 @@ export default function PendingTripState({ booking }: { booking: any }) {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </>
   );

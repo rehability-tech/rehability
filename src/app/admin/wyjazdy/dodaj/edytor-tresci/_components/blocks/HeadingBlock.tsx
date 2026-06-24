@@ -13,6 +13,7 @@ export default function HeadingBlock({ content, onChange }: HeadingBlockProps) {
     <RichTextInput
       value={content?.text || ""}
       onChange={(text) => onChange({ text })}
+      placeholder="Nowy nagłówek"
       className="text-2xl md:text-3xl font-jakarta font-bold text-[#0B3B4C] leading-[1.2]"
     />
   );

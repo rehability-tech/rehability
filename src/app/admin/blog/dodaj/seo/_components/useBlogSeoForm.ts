@@ -224,7 +224,7 @@ export function useBlogSeoForm(postId: string | null) {
       try {
         await persistSeo({ metaTitle, metaDescription, focusKeyword });
         toast.success("Dane SEO zapisane!");
-        if (redirect) router.push("/admin/blog");
+        if (redirect) router.push("/admin/blog/lista");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Błąd serwera.");
       } finally {

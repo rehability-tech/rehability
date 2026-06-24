@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
+import { prisma } from "@/lib/prisma";
+import { getContinueCourse } from "@/lib/courses-db";
 import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 
 import HubTripsWidget from "./_components/HubTripsWidget";
@@ -10,7 +12,7 @@ import HubRecentUpdates from "./_components/HubRecentUpdates"; // <--- Nasz nowy
 export default async function PanelHubPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     redirect("/logowanie");
   }
 
@@ -23,11 +25,19 @@ export default async function PanelHubPage() {
   if (hour < 6) greeting = "Dobrej nocy";
   else if (hour > 18) greeting = "Dobry wieczór";
 
-  // W przyszłości pobierzemy tu info o subskrypcji VOD
-  const hasActiveVod = false;
+  // Dostęp do VOD = posiada przynajmniej jeden kupiony kurs (Enrollment).
+  const enrollmentCount = await prisma.enrollment.count({
+    where: { userId: session.user.id },
+  });
+  const hasActiveVod = enrollmentCount > 0;
+
+  // Realny kurs „Kontynuuj" (ostatnio oglądany / ostatnio kupiony).
+  const continueCourse = hasActiveVod
+    ? await getContinueCourse(session.user.id)
+    : null;
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full">
       {/* NAGŁÓWEK */}
       <div className="mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/15 mb-3">
@@ -66,7 +76,10 @@ export default async function PanelHubPage() {
               Strefa Cyfrowa
             </h2>
           </div>
-          <HubVodWidget hasAccess={hasActiveVod} />
+          <HubVodWidget
+            hasAccess={hasActiveVod}
+            continueCourse={continueCourse}
+          />
         </div>
       </div>
 

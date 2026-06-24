@@ -4,22 +4,19 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveLoyalty } from "@/lib/crm/loyalty";
-import type { CrmClient } from "@/lib/crm/types";
-import GlobalCrmList from "./_components/GlobalCrmList";
+import type { CrmContact, ContactStatus } from "@/lib/crm/types";
+import CrmExplorer from "./_components/CrmExplorer";
 
-// Dane CRM zależą od bieżącego stanu rezerwacji — nie cache'ujemy statycznie.
+// Dane CRM zależą od bieżącego stanu kontaktów — nie cache'ujemy statycznie.
 export const dynamic = "force-dynamic";
 
 /**
- * Server Component — punkt wejścia modułu CRM 360° (lista klientów).
+ * Server Component — punkt wejścia modułu CRM (zunifikowana baza kontaktów).
  *
- * Odpowiedzialności (SRP):
- *   1. Autoryzacja (tylko ADMIN).
- *   2. Pojedyncze, zagnieżdżone zapytanie Prisma (brak N+1).
- *   3. Wyliczenie LTV + segmentacji na serwerze.
- *   4. Serializacja i przekazanie do Client Component.
- *
- * Klientem jest User z co najmniej jedną rezerwacją — nie tworzymy osobnej tabeli.
+ * Źródłem prawdy jest tabela `Contact` (klienci wyjazdów + kursanci VOD +
+ * newsletter, deduplikowani po e-mailu, z tagami źródła). Dla kontaktów
+ * powiązanych z kontem (`userId`) dociągamy LTV/wyjazdy/kartę zdrowia jednym
+ * zagnieżdżonym zapytaniem (bez N+1).
  */
 export default async function GlobalCrmPage() {
   const session = await getServerSession(authOptions);
@@ -27,48 +24,57 @@ export default async function GlobalCrmPage() {
     redirect("/logowanie");
   }
 
-  // Jedno zapytanie z zagnieżdżeniem `bookings` — Prisma robi JOIN/batch,
-  // więc nie generujemy zapytania na każdego klienta (omijamy N+1).
-  const users = await prisma.user.findMany({
-    where: { bookings: { some: {} } },
+  const contacts = await prisma.contact.findMany({
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
-      name: true,
       email: true,
-      image: true,
-      healthProfile: { select: { id: true } },
-      bookings: {
-        where: { status: { not: "CANCELLED" } },
-        select: { amountPaid: true, phone: true, createdAt: true },
+      name: true,
+      status: true,
+      sources: true,
+      tags: true,
+      userId: true,
+      createdAt: true,
+      user: {
+        select: {
+          image: true,
+          healthProfile: { select: { id: true } },
+          bookings: {
+            where: { status: { not: "CANCELLED" } },
+            select: { amountPaid: true, phone: true, createdAt: true },
+          },
+        },
       },
     },
-    orderBy: { name: "asc" },
   });
 
-  // Mapowanie + kalkulacje LTV/lojalności na serwerze.
-  const clients: CrmClient[] = users.map((u) => {
-    const tripsCount = u.bookings.length;
+  const mapped: CrmContact[] = contacts.map((c) => {
+    const bookings = c.user?.bookings ?? [];
+    const tripsCount = bookings.length;
     const totalSpent =
-      u.bookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0) / 100;
-
-    // Telefon trzymany jest na rezerwacji — bierzemy najnowszy uzupełniony.
+      bookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0) / 100;
     const phone =
-      [...u.bookings]
+      [...bookings]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .find((b) => b.phone)?.phone ?? null;
 
     return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      image: u.image,
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      image: c.user?.image ?? null,
       phone,
+      sources: c.sources,
+      tags: c.tags,
+      status: c.status as ContactStatus,
+      userId: c.userId,
       tripsCount,
       totalSpent,
-      loyalty: resolveLoyalty(totalSpent, tripsCount),
-      hasHealthProfile: !!u.healthProfile,
+      loyalty: tripsCount > 0 ? resolveLoyalty(totalSpent, tripsCount) : null,
+      hasHealthProfile: !!c.user?.healthProfile,
+      createdAt: c.createdAt.toISOString(),
     };
   });
 
-  return <GlobalCrmList clients={clients} />;
+  return <CrmExplorer contacts={mapped} />;
 }

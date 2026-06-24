@@ -22,6 +22,7 @@ export async function GET() {
         status: true,
         publishedAt: true,
         lastStage: true,
+        views: true,
         createdAt: true,
         updatedAt: true,
         metaTitle: true,

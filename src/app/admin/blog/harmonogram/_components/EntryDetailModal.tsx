@@ -15,6 +15,7 @@ import {
   STATUS_LABELS,
   formatDisplayDate,
 } from "./types";
+import Portal from "@/components/ui/Portal";
 
 interface Props {
   entry: ScheduleEntry | null;
@@ -25,6 +26,7 @@ export default function EntryDetailModal({ entry, onClose }: Props) {
   const router = useRouter();
 
   return (
+    <Portal>
     <AnimatePresence>
       {entry && (
         <motion.div
@@ -157,5 +159,6 @@ export default function EntryDetailModal({ entry, onClose }: Props) {
         </motion.div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

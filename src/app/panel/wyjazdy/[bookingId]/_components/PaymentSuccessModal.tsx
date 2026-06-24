@@ -10,6 +10,7 @@ import {
   X,
 } from "@phosphor-icons/react/dist/ssr";
 import confetti from "canvas-confetti";
+import Portal from "@/components/ui/Portal";
 
 type Phase = "processing" | "success" | "timeout";
 
@@ -122,6 +123,7 @@ export default function PaymentSuccessModal({
   const isFullyPaid = paidStatus === "FULLY_PAID";
 
   return (
+    <Portal>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -237,5 +239,6 @@ export default function PaymentSuccessModal({
         </motion.div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

@@ -39,23 +39,26 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 
 | Endpoint | Co robi | Zalecana częstotliwość | Cron (UTC) |
 | --- | --- | --- | --- |
-| `/api/cron/bookings/cleanup` | Anuluje porzucone koszyki SPA (`ServiceOrder` w `PENDING` starsze niż 15 min) — zwalnia zablokowane terminy. | **co 5 min** | `*/5 * * * *` |
+| `/api/cron/bookings/cleanup` | Anuluje porzucone koszyki SPA (`ServiceOrder` w `PENDING` > 15 min) ORAZ porzucone rezerwacje wyjazdów (`Booking` w `PENDING` bez wpłaty, nieaktywne > 60 min, wraz z osieroconymi zaproszeniami) — zwalnia zablokowane miejsca. | **co 5 min** | `*/5 * * * *` |
+| `/api/cron/trips/archive-past` | Archiwizuje wyjazdy, które już się odbyły (`PUBLISHED` z `endDate` w przeszłości → `ARCHIVED`). Znikają z listingów i z rezerwacji. | **raz dziennie** | `15 3 * * *` |
 | `/api/cron/blog/publish` | Publikuje wpisy `SCHEDULED`, których `publishedAt` już minął. | **co 5 min** | `*/5 * * * *` |
 | `/api/cron/blog/reminders` | Przypomina adminom (IN_APP + PUSH) o wpisach `PLANNED` zaplanowanych na dziś lub zaległych — „czas napisać publikację". | **raz dziennie** | `0 7 * * *` |
 | `/api/cron/bookings/expire-invitations` | Wygasza zaproszenia „zabierz przyjaciółkę" (`PENDING_INVITATION` po 24h) → `EXPIRED`, zwalnia miejsce. | **co 15–30 min** | `*/15 * * * *` |
 | `/api/cron/notifications/cleanup` | Kasuje powiadomienia: przeczytane > 30 dni oraz dowolne > 90 dni. | **raz dziennie** | `30 3 * * *` |
 | `/api/cron/blog/generate-schedule` | Generuje harmonogram wpisów bloga na **następny** miesiąc (trendy PL + fallback). Idempotentny. | **raz w miesiącu** | `0 3 1 * *` |
-| `/api/cron/blob/cleanup` | Kasuje z Vercel Blob pliki nieużywane nigdzie w bazie (starsze niż 24h). | **raz w tygodniu** | `0 4 * * 0` |
+| `/api/cron/blob/cleanup` | Kasuje pliki nieużywane nigdzie w bazie (starsze niż 24h): zdjęcia z Vercel Blob **oraz** wideo z Bunny Stream. | **raz w tygodniu** | `0 4 * * 0` |
+| `/api/cron/mailer-drain` | Domyka wysyłkę kampanii mailingowych: dla każdej kampanii w `SENDING` wysyła kolejną paczkę oczekujących odbiorców (Resend batch ≤100). Idempotentny — gdy 0 oczekujących, kampania przechodzi w `SENT`. | **co 1–2 min** (podczas wysyłek) | `*/2 * * * *` |
 
 ## Szczegóły / uzasadnienie
 
-- **bookings/cleanup** — termin „wygasa" po 15 min od utworzenia; uruchamiając co 5 min zwalniasz miejsce maks. ~5 min po wygaśnięciu. Im rzadziej, tym dłużej slot pozostaje zablokowany dla innych.
+- **bookings/cleanup** — koszyk SPA „wygasa" po 15 min od utworzenia; uruchamiając co 5 min zwalniasz miejsce maks. ~5 min po wygaśnięciu. Dodatkowo anuluje porzucone rezerwacje wyjazdów: `Booking` w `PENDING` **bez wpłaty** (`amountPaid = 0`, `depositPaidAt = null`), nieaktywne (`updatedAt`) dłużej niż **60 min**, plus ich osierocone zaproszenia partnerek (`PENDING_INVITATION` z `invitedById`). Wznowienie płatności (`resume-payment`) bumpuje `updatedAt`, więc aktywnie płacące osoby nie są anulowane. Gdyby wpłata jednak dotarła po anulacji, webhook `payment_intent.succeeded` „ożywia" rezerwację (dopuszcza `CANCELLED` przy zadatku).
+- **trips/archive-past** — codzienne porządkowanie statusów: wyjazdy z `endDate` w przeszłości lądują w `ARCHIVED`. Publiczne listingi i tak filtrują po `endDate >= początek dziś`, więc to głównie utrzymanie spójności statusu (i odcięcie rezerwacji, która wymaga `status = PUBLISHED`). Pora `15 3 * * *` (UTC) ≈ 04:15/05:15 PL.
 - **blog/publish** — częstotliwość = dokładność publikacji. Co 5 min oznacza, że wpis ukaże się maks. ~5 min po zaplanowanej godzinie. Runtime nigdy nie cofa czasu (publikuje tylko, gdy `publishedAt <= now`).
 - **blog/reminders** — przypomina o `BlogScheduleEntry` w statusie `PLANNED`, których `scheduledDate <= koniec dnia dzisiaj` (czyli na dziś i zaległe). Wysyła JEDNO zbiorcze powiadomienie do adminów (IN_APP + PUSH) z linkiem do `/admin/blog/harmonogram`. **Trzymaj się dziennej kadencji** — brak flagi „wysłano", więc częstsze odpalanie powtarza te same przypomnienia. Każdy zaległy/dzisiejszy wpis przypomina się raz na dobę, aż dostanie treść (zmieni status z `PLANNED`). Pora `0 7 * * *` (UTC) = 9:00 PL.
 - **bookings/expire-invitations** — TTL zaproszenia to 24h, więc precyzja nie jest krytyczna; co 15–30 min w zupełności wystarcza. Można nawet co godzinę.
 - **notifications/cleanup** — czysto porządkowe, raz dziennie w nocy (np. 03:30 UTC = 04:30/05:30 PL). Progi: `READ_TTL_DAYS = 30`, `HARD_TTL_DAYS = 90`.
 - **blog/generate-schedule** — kalendarz zawsze miesiąc do przodu; odpalany 1. dnia miesiąca. Idempotentny: jeśli plan istnieje, zwraca `created: 0`. Można też wołać ręcznie z `?year=&month=` (month 0-indexed) lub `?offset=N`.
-- **blob/cleanup** — garbage collection storage. Zbiera referencje ze WSZYSTKICH pól z URL-ami (też JSON: `content` bloga, `blocks`/`invitationEmail*` wyjazdu, `sections` maili) i kasuje bloby, których nigdzie nie ma. **Guard wieku** (`minAgeHours`, domyślnie 24h) chroni przed wyścigiem „wgrano plik → rekord jeszcze niezapisany". `?dryRun=1` = tylko raport (użyj przy pierwszym uruchomieniu!). `?minAgeHours=N` zmienia próg. Rzadko, bo to operacja nieodwracalna.
+- **blob/cleanup** — garbage collection storage. Zbiera referencje ze WSZYSTKICH pól z URL-ami/embedami (też JSON: `content` bloga, `blocks`/`invitationEmail*` wyjazdu, `sections` maili, a także `Course.video`/`Lesson.video`) i kasuje obiekty, których nigdzie nie ma — **zarówno bloby (Vercel Blob), jak i wideo (Bunny Stream)**. Wideo Bunny dopasowujemy po GUID-zie zawartym w embed URL-u (generous match jak przy blobach). Bunny czyszczone tylko gdy skonfigurowane (`BUNNY_STREAM_LIBRARY_ID` + `BUNNY_STREAM_API_KEY`) — inaczej krok jest pomijany. **Guard wieku** (`minAgeHours`, domyślnie 24h) chroni przed wyścigiem „wgrano plik → rekord jeszcze niezapisany". `?dryRun=1` = tylko raport (użyj przy pierwszym uruchomieniu!). `?minAgeHours=N` zmienia próg. Rzadko, bo to operacja nieodwracalna.
 
 ## Jak to spiąć
 
@@ -69,6 +72,7 @@ Wybierz jedno:
 {
   "crons": [
     { "path": "/api/cron/bookings/cleanup", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/trips/archive-past", "schedule": "15 3 * * *" },
     { "path": "/api/cron/blog/publish", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/blog/reminders", "schedule": "0 7 * * *" },
     { "path": "/api/cron/bookings/expire-invitations", "schedule": "*/15 * * * *" },

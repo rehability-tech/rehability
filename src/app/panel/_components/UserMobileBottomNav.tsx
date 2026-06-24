@@ -37,7 +37,6 @@ const globalItems: GlobalItem[] = [
     href: "/panel/vod",
     label: "VOD",
     icon: MonitorPlay,
-    disabled: true,
   },
   { key: "profil", href: "/panel/profil", label: "Profil", icon: User },
 ];

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
 import { DebugNav } from "./_components/DebugNav";
+import { FavoritesProvider } from "./_components/FavoritesProvider";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import PWARegister from "@/components/PWARegister";
 import { Analytics } from "@vercel/analytics/next";
@@ -181,7 +182,9 @@ export default function RootLayout({
       <body className="antialiased min-h-screen  ">
         <PWARegister />
         <DebugNav />
-        <main>{children}</main>
+        <FavoritesProvider>
+          <main>{children}</main>
+        </FavoritesProvider>
         <ConsentBanner />
         <Analytics />
       </body>

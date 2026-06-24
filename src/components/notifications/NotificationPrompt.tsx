@@ -7,6 +7,7 @@ import { BellRinging, X } from "@phosphor-icons/react/dist/ssr";
 import { getOneSignal } from "@/lib/notifications/onesignal";
 import { isStandalone, isMobileDevice } from "@/lib/pwa/clientEnv";
 import { NOTIF_PROMPT_EVENT } from "@/lib/pwa/triggers";
+import Portal from "@/components/ui/Portal";
 
 // Po ilu dniach od ostatniego pytania możemy zapytać ponownie.
 const REMIND_AFTER_DAYS = 14;
@@ -160,6 +161,7 @@ export default function NotificationPrompt({ force = false }: Props) {
   }
 
   return (
+    <Portal>
     <AnimatePresence>
       {visible && (
         <>
@@ -221,5 +223,6 @@ export default function NotificationPrompt({ force = false }: Props) {
         </>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

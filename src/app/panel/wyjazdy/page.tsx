@@ -74,7 +74,7 @@ export default async function MyTripsPage() {
   }));
 
   return (
-    <div className="w-full animate-in fade-in duration-500">
+    <div className="w-full">
       <div className="mb-8">
         <h1 className="font-jakarta font-bold text-3xl md:text-4xl text-brand-secondary tracking-tight">
           Moje Wyjazdy

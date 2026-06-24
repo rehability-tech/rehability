@@ -89,8 +89,15 @@ async function getLatestPosts() {
 
 async function getFeaturedTrip() {
   try {
+    // Pomijamy wyjazdy już zakończone (po endDate) — próg = początek dziś.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const campRaw = await prisma.trip.findFirst({
-      where: { isFeatured: true, status: "PUBLISHED" },
+      where: {
+        isFeatured: true,
+        status: "PUBLISHED",
+        endDate: { gte: today },
+      },
       orderBy: { startDate: "asc" },
       select: {
         id: true,

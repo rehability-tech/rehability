@@ -25,6 +25,12 @@ export const tripSchema = z.object({
     message: "Podaj prawidłową datę zakończenia",
   }),
 
+  // Termin zamknięcia zapisów. NULL/brak = zapisy do dnia rozpoczęcia.
+  registrationDeadline: z.coerce.date().nullable().optional(),
+
+  // Ręczne zamknięcie zapisów (wyjazd widoczny, ale bez formularza).
+  registrationClosed: z.boolean().optional().default(false),
+
   capacity: z.coerce
     .number({
       message: "Podaj prawidłową liczbę miejsc",

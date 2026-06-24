@@ -25,8 +25,8 @@ import {
 
 // Paginacja zamiast scrolla — inna liczba na stronę zależnie od wysokości widoku.
 // Desktopowy widget jest wyższy (dopasowuje się do lewej kolumny), więc mieści więcej.
-const MOBILE_PAGE_SIZE = 5;
-const DESKTOP_PAGE_SIZE = 7;
+const MOBILE_PAGE_SIZE = 4;
+const DESKTOP_PAGE_SIZE = 4;
 
 type ActivityPillar = "CAMP" | "VOD" | "BLOG" | "SYSTEM";
 
@@ -206,7 +206,7 @@ export default function RecentActivity() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative flex flex-col w-full h-full min-h-[500px] max-h-[800px] rounded-[24px] bg-white border border-gray-100 shadow-[0_10px_24px_-8px_rgba(3,63,99,0.06)] overflow-visible"
+      className="relative flex flex-col w-full h-full rounded-[24px] rounded-tr-none bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)] overflow-visible"
     >
       {/* Nagłówek widgetu */}
       <div className="relative flex flex-col border-b border-gray-100/60 shrink-0 z-20">

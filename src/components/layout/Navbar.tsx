@@ -16,7 +16,6 @@ import {
   User as UserIcon,
   MonitorPlay, // Nowa ikona dla VOD
   Tent, // Nowa ikona dla Wyjazdów (lub użyj MapTrifold/CalendarBlank)
-  Lock,
   CircleNotch,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -126,6 +125,7 @@ export function Navbar({ session }: NavbarProps) {
     path === "/wyjazdy" ||
     path === "/kursy" ||
     path === `/wyjazdy/${currentPathname[2]}` ||
+    path === `/kursy/${currentPathname[2]}` ||
     path === `/blog/${currentPathname[2]}`;
 
   // Ustalanie uprawnień i linków na podstawie roli
@@ -273,24 +273,16 @@ export function Navbar({ session }: NavbarProps) {
                       className="h-px bg-gray-100 my-1 mx-3"
                     />
 
-                    {/* Platforma VOD — w budowie, zablokowana (brak nawigacji) */}
+                    {/* Platforma VOD */}
                     <motion.div variants={itemVariants}>
-                      <div
-                        aria-disabled="true"
-                        title="Platforma VOD jest w budowie"
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-400 cursor-not-allowed select-none"
+                      <Link
+                        href="/panel/vod"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
                       >
-                        <span className="relative flex items-center justify-center shrink-0">
-                          <MonitorPlay size={18} />
-                          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-gray-400 flex items-center justify-center">
-                            <Lock size={8} weight="fill" className="text-white" />
-                          </span>
-                        </span>
+                        <MonitorPlay size={18} />
                         Platforma VOD
-                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                          W budowie
-                        </span>
-                      </div>
+                      </Link>
                     </motion.div>
 
                     {/* Wyjazdy */}

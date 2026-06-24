@@ -104,7 +104,7 @@ export default function PublishControl({
               })}`,
         );
 
-        router.push("/admin/blog");
+        router.push("/admin/blog/lista");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Błąd publikacji.");
       }

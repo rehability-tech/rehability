@@ -2,7 +2,10 @@
 // Jedno źródło prawdy dla URL bazowego, NAP, social i defaultów Metadata.
 // Importowana przez root layout, robots.ts, sitemap.ts oraz generateMetadata.
 
-const PROD_URL = "https://rehabilityprudnik.pl";
+// Domena główna = wersja z www. Vercel serwuje treść na www i przekierowuje
+// apex (bez www) → www, więc canonical / og:url / sitemap muszą używać www,
+// inaczej Google widzi sprzeczność (canonical wskazuje na adres z redirectem).
+const PROD_URL = "https://www.rehabilityprudnik.pl";
 
 // W dev/staging używamy NEXT_PUBLIC_SITE_URL (np. http://localhost:3000),
 // w prod zawsze produkcyjny URL — żeby canonical / og:url były spójne.

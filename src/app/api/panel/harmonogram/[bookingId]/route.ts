@@ -16,7 +16,12 @@ export async function GET(
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { userId: true, email: true, tripId: true },
+    select: {
+      userId: true,
+      email: true,
+      tripId: true,
+      trip: { select: { isSchedulePublished: true } },
+    },
   });
 
   if (!booking) {
@@ -29,6 +34,12 @@ export async function GET(
 
   if (!owns) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Harmonogram wydajemy dopiero po publikacji przez admina (flaga na wyjeździe).
+  // Per-event `isPublished` jest domyślnie true, więc nie pełni roli bramki.
+  if (!booking.trip.isSchedulePublished) {
+    return NextResponse.json({ timeline: [] });
   }
 
   const [campEvents, serviceOrders] = await Promise.all([

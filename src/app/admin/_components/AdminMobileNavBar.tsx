@@ -17,6 +17,9 @@ import {
   DotsThree,
   Lock,
   PlusCircle,
+  PencilSimple,
+  ChartLineUp,
+  GraduationCap,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
@@ -66,10 +69,9 @@ const globalItems: GlobalItem[] = [
   { key: "blog", href: "/admin/blog", label: "Blog", icon: Article },
   {
     key: "vod",
-    href: "/admin/vod",
-    label: "VOD",
+    href: "/admin/kursy",
+    label: "Kursy",
     icon: MonitorPlay,
-    disabled: true,
   },
 ];
 
@@ -120,6 +122,73 @@ export default function AdminMobileNavBar() {
     item.activePrefix
       ? pathname?.startsWith(item.activePrefix)
       : pathname === item.href;
+
+  // KONTEKST KONKRETNEGO KURSU — sub-menu zsynchronizowane z AdminSideBar.
+  const courseSlugMatch = pathname?.match(/\/admin\/kursy\/([a-zA-Z0-9_-]+)/);
+  const currentCourseSlug =
+    courseSlugMatch && !["dodaj", "lista"].includes(courseSlugMatch[1])
+      ? courseSlugMatch[1]
+      : null;
+  const isCourseContext = !!currentCourseSlug;
+
+  const courseItems = [
+    {
+      key: "course-overview",
+      href: `/admin/kursy/${currentCourseSlug}`,
+      label: "Przegląd",
+      icon: MonitorPlay,
+      exact: true,
+    },
+    {
+      key: "course-participants",
+      href: `/admin/kursy/${currentCourseSlug}/uczestnicy`,
+      label: "Uczestnicy",
+      icon: Users,
+      exact: false,
+    },
+    {
+      // Edycja kursu przez kreator (dane, program, nagrania, treść) — jak wyjazdy.
+      key: "course-edit",
+      href: `/admin/kursy/${currentCourseSlug}/edytuj`,
+      label: "Edytuj",
+      icon: PencilSimple,
+      exact: false,
+    },
+  ];
+  const isCourseItemActive = (item: (typeof courseItems)[number]) =>
+    item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+
+  // KONTEKST SEKCJI VOD (poziom sekcji, nie konkretnego kursu) — te same opcje
+  // co w AdminSideBar: Panel / Wszystkie kursy / Kreator kursu. Konkretny kurs
+  // ma pierwszeństwo (isCourseContext sprawdzany wcześniej), więc tu trafiają
+  // tylko /admin/kursy, /admin/kursy/lista oraz /admin/kursy/dodaj.
+  const isVodContext = pathname?.startsWith("/admin/kursy") ?? false;
+
+  const vodItems = [
+    {
+      key: "vod-panel",
+      href: "/admin/kursy",
+      label: "Panel",
+      icon: ChartLineUp,
+      exact: true,
+    },
+    {
+      key: "vod-list",
+      href: "/admin/kursy/lista",
+      label: "Kursy",
+      icon: GraduationCap,
+      exact: false,
+    },
+    {
+      key: "vod-new",
+      href: "/admin/kursy/dodaj",
+      label: "Nowy",
+      icon: PlusCircle,
+      exact: false,
+    },
+  ];
+  const isVodItemActive = (item: (typeof vodItems)[number]) =>
+    item.exact ? pathname === item.href : pathname?.startsWith(item.href);
 
   // 2. SUB-MENU DLA KONKRETNEGO WYJAZDU — zsynchronizowane z AdminSideBar
   const tripItems: TripItem[] = [
@@ -217,7 +286,10 @@ export default function AdminMobileNavBar() {
         </div>
 
         <div className="relative w-full h-11">
-          <AnimatePresence mode="wait" initial={false}>
+          {/* Bez mode="wait": widoki przenikają się (cross-fade), a wspólny
+              layoutId pigułki ("admin-nav-pill") sprawia, że aktywny wskaźnik
+              płynnie przejeżdża między pozycjami zamiast znikać i pojawiać się. */}
+          <AnimatePresence initial={false}>
             {isBlogContext ? (
               /* WIDOK 0: KONTEKST BLOGA (Wpisy, Harmonogram, Nowy) */
               <motion.ul
@@ -254,7 +326,7 @@ export default function AdminMobileNavBar() {
                       >
                         {isActive && (
                           <motion.div
-                            layoutId="admin-blog-pill"
+                            layoutId="admin-nav-pill"
                             transition={LAYOUT_SPRING}
                             className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
                           >
@@ -353,7 +425,7 @@ export default function AdminMobileNavBar() {
                             >
                               {isActive && (
                                 <motion.div
-                                  layoutId="admin-trip-pill"
+                                  layoutId="admin-nav-pill"
                                   transition={LAYOUT_SPRING}
                                   className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
                                 >
@@ -439,6 +511,154 @@ export default function AdminMobileNavBar() {
                   </ul>
                 </div>
               </motion.div>
+            ) : isCourseContext ? (
+              /* WIDOK 1b: KONTEKST KONKRETNEGO KURSU (Przegląd, Treść, Info) */
+              <motion.ul
+                key="course-nav"
+                variants={navVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="absolute inset-0 flex items-center justify-between w-full h-full gap-1.5"
+              >
+                {courseItems.map(({ key, href, label, icon: Icon }) => {
+                  const isActive = isCourseItemActive({
+                    key,
+                    href,
+                    label,
+                    icon: Icon,
+                    exact: key === "course-overview",
+                  });
+                  return (
+                    <motion.li
+                      key={key}
+                      layout
+                      transition={LAYOUT_SPRING}
+                      className={cn("list-none shrink-0", isActive && "flex-grow")}
+                    >
+                      <Link
+                        href={href}
+                        className={cn(
+                          "relative flex items-center justify-center gap-2 h-11 min-w-11 rounded-full",
+                          isActive
+                            ? "w-full px-4 text-white"
+                            : "text-brand-secondary/40 hover:text-brand-primary",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="admin-nav-pill"
+                            transition={LAYOUT_SPRING}
+                            className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
+                          >
+                            <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md" />
+                          </motion.div>
+                        )}
+                        <motion.div
+                          layout="position"
+                          transition={LAYOUT_SPRING}
+                          className="relative flex items-center justify-center z-10"
+                        >
+                          <Icon
+                            size={22}
+                            weight={isActive ? "fill" : "regular"}
+                            className="shrink-0 transition-colors duration-200"
+                          />
+                        </motion.div>
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {isActive && (
+                            <motion.span
+                              key="label"
+                              layout="position"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                              className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap"
+                            >
+                              {label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
+            ) : isVodContext ? (
+              /* WIDOK 1c: KONTEKST SEKCJI VOD (Panel, Wszystkie kursy, Kreator) */
+              <motion.ul
+                key="vod-nav"
+                variants={navVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="absolute inset-0 flex items-center justify-between w-full h-full gap-1.5"
+              >
+                {vodItems.map(({ key, href, label, icon: Icon, ...rest }) => {
+                  const isActive = isVodItemActive({
+                    key,
+                    href,
+                    label,
+                    icon: Icon,
+                    ...rest,
+                  });
+                  return (
+                    <motion.li
+                      key={key}
+                      layout
+                      transition={LAYOUT_SPRING}
+                      className={cn("list-none shrink-0", isActive && "flex-grow")}
+                    >
+                      <Link
+                        href={href}
+                        className={cn(
+                          "relative flex items-center justify-center gap-2 h-11 min-w-11 rounded-full",
+                          isActive
+                            ? "w-full px-4 text-white"
+                            : "text-brand-secondary/40 hover:text-brand-primary",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="admin-nav-pill"
+                            transition={LAYOUT_SPRING}
+                            className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
+                          >
+                            <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md" />
+                          </motion.div>
+                        )}
+                        <motion.div
+                          layout="position"
+                          transition={LAYOUT_SPRING}
+                          className="relative flex items-center justify-center z-10"
+                        >
+                          <Icon
+                            size={22}
+                            weight={isActive ? "fill" : "regular"}
+                            className="shrink-0 transition-colors duration-200"
+                          />
+                        </motion.div>
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {isActive && (
+                            <motion.span
+                              key="label"
+                              layout="position"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                              className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap"
+                            >
+                              {label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
             ) : (
               /* WIDOK 2: GLOBALNA NAWIGACJA ADMINA (Start, Wyjazdy, Blog, VOD) */
               <motion.ul
@@ -504,7 +724,7 @@ export default function AdminMobileNavBar() {
                         >
                           {isActive && (
                             <motion.div
-                              layoutId="admin-global-pill"
+                              layoutId="admin-nav-pill"
                               transition={LAYOUT_SPRING}
                               className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
                             >

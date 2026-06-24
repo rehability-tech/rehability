@@ -12,6 +12,7 @@ import {
   CurrencyCircleDollar,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import Portal from "@/components/ui/Portal";
 import type { SerializedEvent, BlockReservation } from "./timegrid/types";
 
 interface Props {
@@ -94,7 +95,7 @@ export default function ReservationsModal({ event, onClose }: Props) {
   }, [onClose]);
 
   return (
-    <>
+    <Portal>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -226,7 +227,7 @@ export default function ReservationsModal({ event, onClose }: Props) {
           )}
         </div>
       </motion.aside>
-    </>
+    </Portal>
   );
 }
 

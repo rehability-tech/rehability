@@ -14,7 +14,8 @@ interface EmailEditorToolbarProps {
   onSave: () => void;
   isSaving: boolean;
   autoSaveStatus: AutoSaveStatus;
-  onAiClick: () => void;
+  /** Opcjonalne — gdy brak, przycisk AI jest ukryty (np. w kampaniach). */
+  onAiClick?: () => void;
   onPreviewClick?: () => void;
 }
 
@@ -62,14 +63,16 @@ export default function EmailEditorToolbar({
             <Eye size={18} weight="bold" />
           </button>
         )}
-        <button
-          type="button"
-          onClick={onAiClick}
-          className="flex items-center justify-center w-9 h-9 rounded-full text-[#287d88] hover:bg-[#287d88]/10 transition-colors"
-          title="Generuj z AI"
-        >
-          <Sparkle size={18} weight="fill" />
-        </button>
+        {onAiClick && (
+          <button
+            type="button"
+            onClick={onAiClick}
+            className="flex items-center justify-center w-9 h-9 rounded-full text-[#287d88] hover:bg-[#287d88]/10 transition-colors"
+            title="Generuj z AI"
+          >
+            <Sparkle size={18} weight="fill" />
+          </button>
+        )}
         <Tooltip
           content={
             isSaving
@@ -129,22 +132,26 @@ export default function EmailEditorToolbar({
         )}
 
         {/* AI */}
-        <Tooltip content="Asystent AI (Wygeneruj treść)" position="left">
-          <button
-            type="button"
-            onClick={onAiClick}
-            className="flex items-center justify-center w-9 h-9 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-all cursor-pointer relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand-primary/0 to-brand-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Sparkle
-              size={18}
-              weight="fill"
-              className="relative z-10 group-hover:animate-pulse"
-            />
-          </button>
-        </Tooltip>
+        {onAiClick && (
+          <>
+            <Tooltip content="Asystent AI (Wygeneruj treść)" position="left">
+              <button
+                type="button"
+                onClick={onAiClick}
+                className="flex items-center justify-center w-9 h-9 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-all cursor-pointer relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-brand-primary/0 to-brand-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Sparkle
+                  size={18}
+                  weight="fill"
+                  className="relative z-10 group-hover:animate-pulse"
+                />
+              </button>
+            </Tooltip>
 
-        <div className="w-5 h-px bg-gray-200 my-0.5" />
+            <div className="w-5 h-px bg-gray-200 my-0.5" />
+          </>
+        )}
 
         {/* Zapisz */}
         <Tooltip

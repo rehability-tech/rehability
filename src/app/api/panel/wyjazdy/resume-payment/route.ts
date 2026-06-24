@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
+import {
+  getTripBookingWindow,
+  bookingClosedMessage,
+} from "@/lib/trips/bookingWindow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,8 +51,17 @@ export async function POST(req: Request) {
 
   const isDepositPaid = booking.status === "DEPOSIT_PAID";
 
-  // 2. WERYFIKACJA POJEMNOŚCI (Tylko jeśli płaci zadatek - bo dopłata reszty oznacza, że miejsce jest już zaklepane)
+  // 2. OKNO ZAPISÓW + POJEMNOŚĆ (tylko gdy płaci zadatek — dopłata reszty
+  // przez osobę z zaklepanym miejscem jest dozwolona także po zamknięciu zapisów).
   if (!isDepositPaid) {
+    const bookingWindow = getTripBookingWindow(booking.trip);
+    if (!bookingWindow.isOpen) {
+      return NextResponse.json(
+        { error: bookingClosedMessage(bookingWindow.reason) },
+        { status: 409 },
+      );
+    }
+
     const occupiedSeats = await prisma.booking.count({
       where: {
         tripId: booking.tripId,

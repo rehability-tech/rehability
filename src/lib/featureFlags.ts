@@ -4,9 +4,11 @@
 // Moduł jest czysty (bez importów server/edge) — można go bezpiecznie
 // importować w komponentach klienckich, route'ach API i w proxy (middleware).
 //
-// - customerBase   → /admin/klienci (CRM 360° klienta)
-// - emailTemplates → /admin/klienci/szablony-maili (wymaga migracji modelu EmailTemplate)
+// - customerBase     → /admin/klienci (zunifikowana baza kontaktów / CRM)
+// - emailTemplates   → /admin/klienci/szablony-maili (model EmailTemplate)
+// - mailingCampaigns → /admin/klienci/kampanie (moduł mailingowy src/lib/mailer)
 export const FEATURES = {
-  customerBase: false,
-  emailTemplates: false,
+  customerBase: true,
+  emailTemplates: true,
+  mailingCampaigns: true,
 } as const;

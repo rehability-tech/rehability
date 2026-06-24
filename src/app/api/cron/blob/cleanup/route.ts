@@ -1,20 +1,30 @@
 import { list, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { runCron } from "@/lib/cron/runCron";
+import {
+  bunnyConfigured,
+  listBunnyVideos,
+  deleteBunnyVideo,
+} from "@/lib/bunny";
 
 // GET/POST /api/cron/blob/cleanup
 //
-// Usuwa z Vercel Blob pliki, które NIE są nigdzie używane w bazie.
+// Garbage collection storage: usuwa pliki/nagrania, które NIE są nigdzie
+// używane w bazie.
+//  - Vercel Blob — zdjęcia/pliki (User.image, Post*, Trip*, usługi, maile).
+//  - Bunny Stream — wideo kursów (Course.video, Lesson.video; embed URL).
+//
 // Bezpieczeństwo:
-//  - Kasuje tylko bloby starsze niż `minAgeHours` (domyślnie 24h) — chroni
-//    przed wyścigiem "wgrano do blobu, ale rekord w DB jeszcze niezapisany".
+//  - Kasuje tylko obiekty starsze niż `minAgeHours` (domyślnie 24h) — chroni
+//    przed wyścigiem "wgrano plik, ale rekord w DB jeszcze niezapisany".
 //  - `?dryRun=1` — tylko raportuje, nic nie kasuje (do testów / pierwszego runu).
 //  - `?minAgeHours=N` — zmiana progu wieku.
 //
-// Referencje zbieramy ze WSZYSTKICH pól mogących trzymać URL blobu (też JSON):
+// Referencje zbieramy ze WSZYSTKICH pól mogących trzymać URL/embed (też JSON):
 //  User.image · Post(coverImage, ogImage, content) ·
 //  Trip(heroImage, ogImage, description, blocks, invitationEmail*) ·
-//  ExtraService.image · TripService.image · EmailTemplate.sections
+//  ExtraService.image · TripService.image · EmailTemplate.sections ·
+//  Course.video · Lesson.video
 
 export async function GET(req: Request) {
   return runCron(req, "blob/cleanup", () => cleanup(req));
@@ -30,11 +40,28 @@ async function cleanup(req: Request) {
     url.searchParams.get("dryRun") === "1" ||
     url.searchParams.get("dry") === "1";
   const minAgeHours = Number(url.searchParams.get("minAgeHours") ?? 24);
+  const cutoff = Date.now() - minAgeHours * 60 * 60 * 1000;
 
-  // 1. Zbierz wszystkie referencje do plików z bazy w jeden duży string.
+  // Jedna pula referencji służy obu czyszczeniom (blob URL/pathname oraz GUID
+  // wideo Bunny — embed URL zawiera GUID, więc generous match je obejmuje).
   const referenced = await collectReferencedText();
 
-  // 2. Wylistuj wszystkie bloby (z paginacją).
+  const blob = await cleanupBlobs(referenced, cutoff, dryRun);
+  const bunny = await cleanupBunnyVideos(referenced, cutoff, dryRun);
+
+  console.log(
+    `[CRON blob/cleanup] bloby=${blob.totalBlobs} sieroty=${blob.orphans} ` +
+      `usunięto=${blob.deleted} | bunny=${bunny.totalVideos ?? "-"} ` +
+      `sieroty=${bunny.orphans ?? "-"} usunięto=${bunny.deleted ?? "-"}` +
+      `${dryRun ? " (dryRun)" : ""}`,
+  );
+
+  return { dryRun, minAgeHours, blob, bunny };
+}
+
+/** Vercel Blob: kasuje pliki nieużywane nigdzie w bazie i starsze niż próg. */
+async function cleanupBlobs(referenced: string, cutoff: number, dryRun: boolean) {
+  // 1. Wylistuj wszystkie bloby (z paginacją).
   const blobs: { url: string; pathname: string; uploadedAt: Date }[] = [];
   let cursor: string | undefined;
   do {
@@ -45,18 +72,16 @@ async function cleanup(req: Request) {
     cursor = res.cursor;
   } while (cursor);
 
-  // 3. Sieroty = nieużywane I starsze niż próg wieku.
-  const cutoff = Date.now() - minAgeHours * 60 * 60 * 1000;
+  // 2. Sieroty = nieużywane I starsze niż próg wieku.
   const orphans = blobs.filter((b) => {
-    const tooYoung = new Date(b.uploadedAt).getTime() >= cutoff;
-    if (tooYoung) return false;
+    if (new Date(b.uploadedAt).getTime() >= cutoff) return false; // za młody
     // Generous match — keep jeśli URL LUB pathname występuje gdziekolwiek.
     const isUsed =
       referenced.includes(b.url) || referenced.includes(b.pathname);
     return !isUsed;
   });
 
-  // 4. Kasuj (chyba że dry run) — partiami.
+  // 3. Kasuj (chyba że dry run) — partiami.
   let deleted = 0;
   if (!dryRun && orphans.length > 0) {
     const urls = orphans.map((o) => o.url);
@@ -66,23 +91,55 @@ async function cleanup(req: Request) {
     }
   }
 
-  console.log(
-    `[CRON blob/cleanup] bloby=${blobs.length} sieroty=${orphans.length} ` +
-      `usunięto=${deleted}${dryRun ? " (dryRun)" : ""}`,
-  );
-
   return {
-    dryRun,
-    minAgeHours,
     totalBlobs: blobs.length,
     orphans: orphans.length,
     deleted,
-    // próbka do podglądu w odpowiedzi (nie zaśmieca logów)
     sample: orphans.slice(0, 25).map((o) => o.pathname),
   };
 }
 
-/** Skleja wszystkie pola DB mogące zawierać URL blobu w jeden string. */
+/** Bunny Stream: kasuje wideo nieużywane nigdzie w bazie i starsze niż próg. */
+async function cleanupBunnyVideos(
+  referenced: string,
+  cutoff: number,
+  dryRun: boolean,
+) {
+  if (!bunnyConfigured()) {
+    return { configured: false as const, skipped: true as const };
+  }
+
+  // 1. Lista wszystkich wideo w bibliotece (z paginacją).
+  const videos = await listBunnyVideos();
+
+  // 2. Sieroty = GUID nigdzie w referencjach I starsze niż próg wieku.
+  const orphans = videos.filter((v) => {
+    if (new Date(v.dateUploaded).getTime() >= cutoff) return false; // za młode
+    return !referenced.includes(v.guid);
+  });
+
+  // 3. Kasuj pojedynczo (Bunny nie ma batch-delete) — chyba że dry run.
+  let deleted = 0;
+  let failed = 0;
+  if (!dryRun) {
+    for (const v of orphans) {
+      const ok = await deleteBunnyVideo(v.guid);
+      if (ok) deleted += 1;
+      else failed += 1;
+    }
+  }
+
+  return {
+    configured: true as const,
+    totalVideos: videos.length,
+    orphans: orphans.length,
+    deleted,
+    failed,
+    sample: orphans.slice(0, 25).map((o) => ({ guid: o.guid, title: o.title })),
+  };
+}
+
+/** Skleja wszystkie pola DB mogące zawierać URL blobu lub embed wideo. */
 async function collectReferencedText(): Promise<string> {
   const parts: string[] = [];
   const pushStr = (v: string | null | undefined) => {
@@ -92,7 +149,7 @@ async function collectReferencedText(): Promise<string> {
     if (v != null) parts.push(JSON.stringify(v));
   };
 
-  const [users, posts, trips, extras, tripServices, templates] =
+  const [users, posts, trips, extras, tripServices, templates, courses, lessons] =
     await Promise.all([
       prisma.user.findMany({ select: { image: true } }),
       prisma.post.findMany({
@@ -114,6 +171,8 @@ async function collectReferencedText(): Promise<string> {
       prisma.extraService.findMany({ select: { image: true } }),
       prisma.tripService.findMany({ select: { image: true } }),
       prisma.emailTemplate.findMany({ select: { sections: true } }),
+      prisma.course.findMany({ select: { video: true, image: true } }),
+      prisma.lesson.findMany({ select: { video: true } }),
     ]);
 
   for (const u of users) pushStr(u.image);
@@ -139,6 +198,12 @@ async function collectReferencedText(): Promise<string> {
   for (const s of extras) pushStr(s.image);
   for (const s of tripServices) pushStr(s.image);
   for (const tpl of templates) pushJson(tpl.sections);
+
+  for (const c of courses) {
+    pushStr(c.video);
+    pushStr(c.image);
+  }
+  for (const l of lessons) pushStr(l.video);
 
   return parts.join("\n");
 }

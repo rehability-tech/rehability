@@ -56,7 +56,7 @@ function PodsumowanieContent() {
   useEffect(() => {
     if (!id) {
       toast.error("Brak identyfikatora wyjazdu. Powrót do listy.");
-      router.push("/admin/wyjazdy");
+      router.push("/admin/wyjazdy/lista");
       return;
     }
 
@@ -85,7 +85,7 @@ function PodsumowanieContent() {
   }, [id, router]);
 
   const handlePublishCamp = () => {
-    router.push("/admin/wyjazdy");
+    router.push("/admin/wyjazdy/lista");
   };
 
   const handlePreview = () => {

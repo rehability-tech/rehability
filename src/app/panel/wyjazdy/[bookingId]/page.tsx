@@ -97,7 +97,7 @@ export default function BookingDashboardPage() {
   console.log("Personal notification", personalNotifications);
 
   return (
-    <div className="pb-4 flex flex-col gap-5 lg:gap-6 animate-in fade-in duration-500">
+    <div className="pb-4 flex flex-col gap-5 lg:gap-6">
       <DashboardHero booking={booking} trip={trip} firstName={firstName} />
 
       {bookingPackage && <DashboardRoommateCard pkg={bookingPackage} />}

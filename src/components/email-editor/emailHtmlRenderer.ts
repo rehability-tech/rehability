@@ -10,6 +10,15 @@ export interface EmailRenderContext {
   inviteeName: string;
   invitationUrl: string;
   logoUrl?: string;
+  /**
+   * Tryb kampanii mailingowej (moduł src/lib/mailer). Gdy podane:
+   *  - `ctaUrl` nadpisuje docelowy link przycisków CTA (zamiast invitationUrl),
+   *  - `unsubscribeUrl` przełącza stopkę na neutralną z linkiem wypisania (RODO),
+   *  - `vars` dorzuca dodatkowe zmienne szablonu (np. {name}, {email}).
+   */
+  ctaUrl?: string;
+  unsubscribeUrl?: string;
+  vars?: Record<string, string>;
 }
 
 // ─── Icon → emoji fallback for email clients ──────────────────────────────────
@@ -135,14 +144,14 @@ function renderValidity(): string {
     </table>`;
 }
 
-function renderCta(content: string, invitationUrl: string, vars: Record<string, string>): string {
+function renderCta(content: string, ctaUrl: string, vars: Record<string, string>): string {
   const label = applyVars(content, vars) || "Zobacz szczegóły i dołącz";
   return `
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">
       <tr>
         <td align="center">
           <a
-            href="${invitationUrl}"
+            href="${ctaUrl}"
             style="display:inline-block;background:linear-gradient(135deg,#287d88,#1d6b76);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:50px;font-family:Helvetica,Arial,sans-serif;letter-spacing:.02em;"
           >
             ${label}
@@ -171,13 +180,20 @@ export function generateEmailHtml(
     // względnej). Plik leży w /public/logotypy/logo-email.png i jest serwowany
     // pod domeną aplikacji. Poprzedni URL do bloba zwracał 404.
     logoUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.rehabilityprudnik.pl"}/logotypy/logo-email.png`,
+    ctaUrl,
+    unsubscribeUrl,
+    vars: extraVars,
   } = ctx;
 
   const vars: Record<string, string> = {
     inviterName,
     inviteeName,
     campName: tripContext.title || "wyjazd Rehability",
+    ...(extraVars ?? {}),
   };
+
+  // Tryb kampanii: link CTA z kampanii (fallback do invitationUrl).
+  const resolvedCtaUrl = ctaUrl || invitationUrl;
 
   const sectionsHtml = sections
     .map((section) => {
@@ -192,7 +208,7 @@ export function generateEmailHtml(
         case "highlights": return renderHighlights(section.icons, section.labels);
         case "gallery":    return renderGallery(section.images);
         case "validity":   return renderValidity();
-        case "cta":        return renderCta(section.content, invitationUrl, vars);
+        case "cta":        return renderCta(section.content, resolvedCtaUrl, vars);
         case "divider":    return renderDivider();
         default:           return "";
       }
@@ -233,9 +249,19 @@ export function generateEmailHtml(
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:20px auto 0;">
           <tr>
             <td align="center" style="padding:0 16px;">
-              <p style="margin:0 0 5px;color:#8aa0a6;font-size:11px;line-height:1.5;font-family:Helvetica,Arial,sans-serif;">
-                Otrzymujesz tę wiadomość, ponieważ <strong>${inviterName}</strong> wpisała Twój adres e-mail.
+              ${
+                unsubscribeUrl
+                  ? `<p style="margin:0 0 5px;color:#8aa0a6;font-size:11px;line-height:1.5;font-family:Helvetica,Arial,sans-serif;">
+                Otrzymujesz tę wiadomość, ponieważ Twój adres e-mail znajduje się w naszej bazie kontaktów.
               </p>
+              <p style="margin:0 0 5px;color:#8aa0a6;font-size:11px;line-height:1.5;font-family:Helvetica,Arial,sans-serif;">
+                Nie chcesz otrzymywać tych wiadomości?
+                <a href="${unsubscribeUrl}" style="color:#287d88;text-decoration:underline;">Wypisz się</a>.
+              </p>`
+                  : `<p style="margin:0 0 5px;color:#8aa0a6;font-size:11px;line-height:1.5;font-family:Helvetica,Arial,sans-serif;">
+                Otrzymujesz tę wiadomość, ponieważ <strong>${inviterName}</strong> wpisała Twój adres e-mail.
+              </p>`
+              }
               <p style="margin:0;color:#8aa0a6;font-size:11px;font-family:Helvetica,Arial,sans-serif;">
                 © 2026 Rehability. Wszystkie prawa zastrzeżone.
               </p>

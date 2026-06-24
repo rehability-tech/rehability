@@ -39,6 +39,28 @@ export function safeUuid(): string {
 }
 
 /**
+ * Po dodaniu nowego bloku w edytorze ustaw na nim fokus.
+ *
+ * Karta bloku renderuje się z `id` = id bloku (Reorder.Item przekazuje je do
+ * DOM). Szukamy w niej edytowalnego pola (TipTap = [contenteditable]) i dajemy
+ * mu fokus; gdy blok nie ma pola tekstowego (spacer/zdjęcie/wideo) — fokusujemy
+ * samą kartę (ma tabIndex), co i tak odsłania pasek narzędzi.
+ *
+ * `requestAnimationFrame` czeka aż React zamontuje kartę w DOM po zapisie stanu.
+ */
+export function focusBlockById(id: string): void {
+  if (typeof window === "undefined") return;
+  requestAnimationFrame(() => {
+    const root = document.getElementById(id);
+    if (!root) return;
+    const editable = root.querySelector<HTMLElement>(
+      '[contenteditable="true"]',
+    );
+    (editable ?? root).focus();
+  });
+}
+
+/**
  * Domeny-placeholdery, które AI lubi zmyślać dla bloków zdjęć (np.
  * "https://przyklad.pl/...", "https://example.com/..."). To NIE są realne
  * zdjęcia — traktujemy je jak puste, żeby kreator zatrzymał się i poprosił o

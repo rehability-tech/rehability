@@ -45,6 +45,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // 2b. Realny przychód VOD — kupione dostępy do kursów (Enrollment).
+    // Cena kursu jest w zł (całe), tak jak amountPaid/100 dla wyjazdów.
+    const enrollments = await prisma.enrollment.findMany({
+      where: { createdAt: { gte: startDate } },
+      select: { createdAt: true, course: { select: { price: true } } },
+    });
+
     let chartData: any[] = [];
 
     if (range === "month") {
@@ -59,11 +66,14 @@ export async function GET(request: NextRequest) {
           (sum, b) => sum + b.amountPaid / 100,
           0,
         );
+        const vodSum = enrollments
+          .filter((e) => format(e.createdAt, "dd.MM") === dateStr)
+          .reduce((sum, e) => sum + (e.course?.price ?? 0), 0);
 
         return {
           name: dateStr,
           campy: campSum,
-          vod: Math.floor(campSum * 0.25), // Statyczne VOD do czasu podpięcia tabeli VOD
+          vod: vodSum,
         };
       });
     } else {
@@ -83,11 +93,14 @@ export async function GET(request: NextRequest) {
           (sum, b) => sum + b.amountPaid / 100,
           0,
         );
+        const vodSum = enrollments
+          .filter((e) => format(e.createdAt, "yyyy-MM") === formattedMonth)
+          .reduce((sum, e) => sum + (e.course?.price ?? 0), 0);
 
         return {
           name: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
           campy: campSum,
-          vod: Math.floor(campSum * 0.3), // Symulacja pod VOD
+          vod: vodSum,
         };
       });
     }

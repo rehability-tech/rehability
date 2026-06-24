@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export function KursySuggestion() {
   const [topic, setTopic] = useState("");
@@ -16,7 +17,13 @@ export function KursySuggestion() {
 
   return (
     <section className="container pb-24">
-      <div className="relative overflow-hidden rounded-[40px] md:rounded-[63px] bg-[#76adb6] px-6 py-12 md:px-16 md:py-14">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-[40px] md:rounded-[63px] bg-gradient-to-br from-brand-primary to-[#76adb6] px-6 py-12 md:px-16 md:py-14 shadow-[0_30px_80px_-40px_rgba(3,63,99,0.6)]"
+      >
         {/* Dekoracyjne poświaty */}
         <div className="pointer-events-none absolute -right-20 -top-24 w-[420px] h-[420px] rounded-full bg-white/10 blur-[80px]" />
         <div className="pointer-events-none absolute -left-24 -bottom-28 w-[420px] h-[420px] rounded-full bg-brand-primary/20 blur-[90px]" />
@@ -59,7 +66,7 @@ export function KursySuggestion() {
             </form>
           )}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { logCampEvent, sendNotification } from "@/lib/notifications/send";
+import {
+  logCampEvent,
+  sendNotification,
+  logVodPurchase,
+} from "@/lib/notifications/send";
 import { sendFriendInvitationEmail } from "@/lib/email/friendInvitation";
+import {
+  upsertContactFromEmail,
+  CONTACT_SOURCES,
+} from "@/lib/crm/contactSync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +55,8 @@ export async function POST(req: Request) {
         const pi = event.data.object as Stripe.PaymentIntent;
         if (pi.metadata?.kind === "SERVICE_ORDER") {
           await handleServiceOrderPaid(pi);
+        } else if (pi.metadata?.kind === "COURSE_PURCHASE") {
+          await handleCoursePurchasePaid(pi);
         } else {
           await handlePaymentSucceeded(pi);
         }
@@ -134,11 +144,14 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
 
   // Idempotency — ten sam event może przyjść wielokrotnie.
   // PENDING = zwykła bookerka, PENDING_INVITATION = zaproszona gościni
-  // (oba to stany "przed opłaceniem zadatku").
+  // (oba to stany "przed opłaceniem zadatku"). CANCELLED dopuszczamy celowo:
+  // jeśli cron porzuconych rezerwacji anulował booking, a mimo to wpłata
+  // dotarła, "ożywiamy" rezerwację zamiast ignorować pieniądze.
   if (
     paymentType === "deposit" &&
     booking.status !== "PENDING" &&
-    booking.status !== "PENDING_INVITATION"
+    booking.status !== "PENDING_INVITATION" &&
+    booking.status !== "CANCELLED"
   )
     return;
   if (paymentType === "remainder" && booking.status === "FULLY_PAID") return;
@@ -177,6 +190,15 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       amount: formattedAmount,
     }).catch((err) =>
       console.error("[stripe-webhook] Błąd wysyłki powiadomień:", err),
+    );
+
+    // Sync do bazy kontaktów (CRM/mailing) — źródło "Wyjazdy".
+    upsertContactFromEmail(booking.email, {
+      name: booking.name,
+      source: CONTACT_SOURCES.TRIPS,
+      userId,
+    }).catch((err) =>
+      console.error("[stripe-webhook] contact sync (deposit) error:", err),
     );
 
     // "Zabierz przyjaciółkę" — zaproszenie wysyłamy DOPIERO gdy zapraszająca
@@ -424,6 +446,73 @@ async function handleServiceOrderPaid(pi: Stripe.PaymentIntent) {
   }).catch((err) =>
     console.error("[stripe-webhook] SERVICE_BOUGHT notify error:", err),
   );
+}
+
+async function handleCoursePurchasePaid(pi: Stripe.PaymentIntent) {
+  const userId = pi.metadata?.userId;
+  const courseId = pi.metadata?.courseId;
+  if (!userId || !courseId) {
+    console.warn(
+      "[stripe-webhook] COURSE_PURCHASE bez userId/courseId w metadata",
+      pi.id,
+    );
+    return;
+  }
+
+  // Idempotentne nadanie dostępu — webhook może przyjść wielokrotnie.
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId, courseId } },
+    update: {},
+    create: { userId, courseId },
+  });
+
+  // Sync do bazy kontaktów (CRM/mailing) — źródło "VOD".
+  prisma.user
+    .findUnique({ where: { id: userId }, select: { name: true, email: true } })
+    .then((u) => {
+      if (u?.email)
+        return upsertContactFromEmail(u.email, {
+          name: u.name,
+          source: CONTACT_SOURCES.VOD,
+          userId,
+        });
+    })
+    .catch((err) =>
+      console.error("[stripe-webhook] contact sync (VOD) error:", err),
+    );
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { title: true, slug: true },
+  });
+  if (course) {
+    // Powiadomienie dla kupującej — dostęp odblokowany.
+    await sendNotification({
+      userId,
+      title: "🎓 Dostęp do kursu odblokowany",
+      message: `Masz już pełny dostęp do kursu „${course.title}". Miłej nauki!`,
+      type: "PAYMENT",
+      link: `/panel/vod/${course.slug}`,
+      push: true,
+    }).catch((err) =>
+      console.error("[stripe-webhook] COURSE_PURCHASE notify error:", err),
+    );
+
+    // Wpis do live-feedu admina (sprzedaż) — kto, jaki kurs, za ile.
+    const buyer = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+    const amountPln = ((pi.amount_received ?? pi.amount ?? 0) / 100).toFixed(0);
+    await logVodPurchase({
+      userName: buyer?.name || buyer?.email || "Klient",
+      courseTitle: course.title,
+      courseSlug: course.slug,
+      amount: amountPln,
+    }).catch((err) =>
+      console.error("[stripe-webhook] COURSE_PURCHASE activity error:", err),
+    );
+  }
 }
 
 async function handleServiceOrderFailed(pi: Stripe.PaymentIntent) {

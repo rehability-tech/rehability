@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { isStandalone, isIOS, isMobileDevice } from "@/lib/pwa/clientEnv";
 import { PWA_INSTALL_EVENT } from "@/lib/pwa/triggers";
+import Portal from "@/components/ui/Portal";
 
 // Walkthrough instalacji na iOS (Safari nie ma natywnego prompta).
 const IOS_STEPS = [
@@ -143,6 +144,7 @@ export default function PWAInstallPrompt() {
   };
 
   return (
+    <Portal>
     <AnimatePresence>
       {visible && (
         <>
@@ -311,5 +313,6 @@ export default function PWAInstallPrompt() {
         </>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

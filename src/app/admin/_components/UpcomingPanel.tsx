@@ -22,10 +22,36 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const FALLBACK_IMG = "/images/campy/campy_hero.jpg";
 
+/** Lokalizacja bywa stringiem albo obiektem JSON {name, city} (lub jego stringiem). */
+function formatLocation(loc: unknown): string {
+  if (!loc) return "";
+  if (typeof loc === "string") {
+    const s = loc.trim();
+    if (s.startsWith("{")) {
+      try {
+        return formatLocation(JSON.parse(s));
+      } catch {
+        return s;
+      }
+    }
+    return s;
+  }
+  if (typeof loc === "object") {
+    const o = loc as { name?: string | null; city?: string | null };
+    return [o.name, o.city].filter(Boolean).join(", ");
+  }
+  return String(loc);
+}
+
+type TripLocation =
+  | string
+  | { name?: string | null; city?: string | null }
+  | null;
+
 interface TripData {
   id: string;
   title: string;
-  location: string;
+  location: TripLocation;
   startDate: string;
   endDate: string;
   heroImage: string | null;
@@ -47,6 +73,7 @@ function TripCard({ trip }: { trip: TripData }) {
     locale: pl,
   });
   const img = trip.heroImage || FALLBACK_IMG;
+  const locationLabel = formatLocation(trip.location);
 
   return (
     <div className="relative flex flex-col h-full min-h-[340px]">
@@ -80,12 +107,16 @@ function TripCard({ trip }: { trip: TripData }) {
           <p className="font-jakarta font-extrabold text-white text-[20px] leading-tight drop-shadow-sm">
             {trip.title}
           </p>
-          <p className="flex items-center gap-1.5 font-montserrat text-white/75 text-[12px] mt-1">
-            <MapPin size={11} />
-            {trip.location}
-            <span className="opacity-50">·</span>
-            <CalendarBlank size={11} />
-            {dateLabel}
+          <p className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 font-montserrat text-white/75 text-[12px] mt-1">
+            {locationLabel && (
+              <>
+                <MapPin size={11} className="shrink-0" />
+                <span>{locationLabel}</span>
+                <span className="opacity-50">·</span>
+              </>
+            )}
+            <CalendarBlank size={11} className="shrink-0" />
+            <span>{dateLabel}</span>
           </p>
         </div>
 
@@ -130,7 +161,7 @@ function TripCard({ trip }: { trip: TripData }) {
 
         <Link
           href={`/admin/wyjazdy/${trip.id}`}
-          className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white text-brand-secondary hover:bg-brand-yellow transition-colors group"
+          className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-brand-secondary hover:bg-brand-yellow shadow-[0_6px_18px_-8px_rgba(0,0,0,0.35)] transition-colors group"
         >
           <span className="font-montserrat text-[12px] font-bold">Przejdź do wyjazdu</span>
           <ArrowRight
@@ -163,7 +194,7 @@ export default function UpcomingPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="flex-1 rounded-3xl rounded-tr-none bg-white border border-gray-100 shadow-[0_4px_16px_-4px_rgba(3,63,99,0.06)] overflow-hidden"
+        className="flex-1 rounded-[24px] rounded-tr-none bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)] overflow-hidden"
       >
         {/* Skeleton */}
         {isLoading && (

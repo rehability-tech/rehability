@@ -8,6 +8,7 @@ interface Props {
   isWeekend: boolean;
   isToday: boolean;
   isLastInRow: boolean;
+  isHighlighted?: boolean;
   onSelect: (entry: ScheduleEntry) => void;
 }
 
@@ -17,43 +18,58 @@ export default function CalendarDayCell({
   isWeekend,
   isToday,
   isLastInRow,
+  isHighlighted,
   onSelect,
 }: Props) {
   return (
     <button
       type="button"
+      data-entry-id={entry?.id}
       onClick={entry ? () => onSelect(entry) : undefined}
       disabled={!entry}
-      className={`min-h-[140px] border-b border-gray-100/80 px-3 pt-3 pb-3 flex flex-col gap-2.5 text-left transition-all ${
-        isWeekend ? "bg-gray-50/40" : "bg-white"
+      className={`group min-h-[132px] border-b border-brand-secondary/[0.06] px-2.5 pt-2.5 pb-2.5 flex flex-col gap-2 text-left transition-colors ${
+        isToday
+          ? "bg-brand-yellow/[0.07]"
+          : isWeekend
+            ? "bg-brand-secondary/[0.02]"
+            : ""
       } ${
         entry
-          ? "cursor-pointer hover:bg-brand-primary/[0.03] hover:shadow-[inset_0_0_0_1px_rgba(40,125,136,0.1)] focus:outline-none"
+          ? "cursor-pointer hover:bg-brand-primary/[0.04] focus:outline-none"
           : "cursor-default"
-      } ${isLastInRow ? "" : "border-r"} ${isToday ? "bg-brand-primary/[0.02]" : ""}`}
+      } ${isLastInRow ? "" : "border-r"}`}
     >
-      {/* Numer dnia */}
-      <span
-        className={`text-[13px] font-bold font-montserrat w-7 h-7 flex items-center justify-center rounded-full shrink-0 ${
-          isToday
-            ? "bg-brand-primary text-white shadow-md"
-            : isWeekend
-              ? "text-brand-secondary/30"
-              : "text-brand-secondary/60"
-        }`}
-      >
-        {day}
-      </span>
+      {/* Nagłówek komórki: numer dnia + znacznik „Dziś” */}
+      <div className="flex items-center justify-between">
+        <span
+          className={`text-[12px] font-bold font-montserrat w-7 h-7 flex items-center justify-center rounded-full rounded-tr-none shrink-0 transition-all ${
+            isToday
+              ? "bg-brand-primary text-white shadow-[0_4px_12px_-2px_rgba(242,217,103,0.65)]"
+              : isWeekend
+                ? "text-brand-secondary/35"
+                : "text-brand-secondary/55"
+          }`}
+        >
+          {day}
+        </span>
+        {isToday && (
+          <span className="text-[8.5px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded-full">
+            Dziś
+          </span>
+        )}
+      </div>
 
       {/* Zawartość wygenerowanego wpisu */}
       {entry && (
         <div
-          className={`flex-1 w-full rounded-xl border px-3 py-2.5 flex flex-col gap-1.5 transition-all ${
+          className={`flex-1 w-full rounded-2xl rounded-tr-none border px-2.5 py-2 flex flex-col gap-1.5 transition-all ${
             STATUS_CARD[entry.status]
-          } hover:shadow-sm`}
+          } group-hover:-translate-y-0.5 group-hover:shadow-[0_10px_22px_-10px_rgba(40,125,136,0.5)] ${
+            isHighlighted ? "animate-neon-highlight" : ""
+          }`}
         >
           {/* Tag kategorii */}
-          <div className="flex items-center gap-1.5 mb-0.5">
+          <div className="flex items-center gap-1.5">
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[entry.status]}`}
             />
@@ -62,7 +78,7 @@ export default function CalendarDayCell({
             </span>
           </div>
 
-          {/* Tytuł artykułu - nowa czcionka Jakarta */}
+          {/* Tytuł artykułu */}
           <span className="text-[12.5px] font-jakarta font-bold text-brand-secondary leading-[1.3] line-clamp-3">
             {entry.title}
           </span>

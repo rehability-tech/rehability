@@ -20,6 +20,7 @@ import SeoChecklist from "./_components/SeoChecklist";
 import SeoInputField from "./_components/SeoInputField";
 import GenerateSeoButton from "./_components/GenerateSeoButton";
 import OgImageUploadButton from "@/components/admin/seo/OgImageUploadButton";
+import OgImageCreatorButton from "@/components/admin/seo/OgImageCreatorButton";
 import { useTripSeoForm } from "./_components/useTripSeoForm";
 import { keywordOverlap, type SeoCheck } from "./_components/utils";
 
@@ -197,7 +198,16 @@ function SeoFormContent() {
               placeholder="https://... lub /images/..."
               hint="Zdjęcie wyświetlane przy udostępnieniu na Facebook, LinkedIn itd. Zalecane 1200×630 px."
             />
-            <OgImageUploadButton onUploaded={setOgImage} />
+            <div className="flex flex-wrap items-center gap-2">
+              <OgImageUploadButton onUploaded={setOgImage} />
+              <OgImageCreatorButton
+                onApply={setOgImage}
+                title={metaTitle || tripTitle}
+                category="Wyjazd"
+                image={ogImage}
+                subtitle="Wyjazd · Rehability"
+              />
+            </div>
             {ogImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img

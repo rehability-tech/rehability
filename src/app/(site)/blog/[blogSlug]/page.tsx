@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { SITE_NAME, absoluteUrl } from "@/lib/seo/site";
 import { BlogBlockRenderer } from "./_components/BlogBlockRenderer";
 import { Reveal } from "./_components/Reveal";
+import { BlogViewBeacon } from "./_components/BlogViewBeacon";
 
 type Props = { params: Promise<{ blogSlug: string }> };
 
@@ -201,6 +202,8 @@ export default async function BlogPostPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+
+      <BlogViewBeacon slug={post.slug} />
 
       <main className="bg-white">
         {/* Hero */}

@@ -26,6 +26,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Termin zapisów nie może być po dacie rozpoczęcia (inaczej "zapisy"
+    // trwałyby już w trakcie wyjazdu).
+    if (
+      validatedData.registrationDeadline &&
+      validatedData.registrationDeadline > validatedData.startDate
+    ) {
+      return NextResponse.json(
+        { error: "Termin zapisów nie może być po dacie rozpoczęcia wyjazdu" },
+        { status: 400 },
+      );
+    }
+
     // 4. PRZYGOTOWANIE OBIEKTU DANYCH
     // Zod już zwalidował i przekonwertował (coerce) typy na Date i number!
     const campData = {
@@ -38,6 +50,8 @@ export async function POST(req: Request) {
       price: validatedData.price,
       deposit: validatedData.deposit,
       allowBringFriend: validatedData.allowBringFriend, // <--- NOWA LINIA
+      registrationDeadline: validatedData.registrationDeadline ?? null,
+      registrationClosed: validatedData.registrationClosed ?? false,
       description: validatedData.description,
       lastAiPrompt: validatedData.lastAiPrompt,
       lastStage: lastStage || "dane-podstawowe",

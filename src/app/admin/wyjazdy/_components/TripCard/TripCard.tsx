@@ -19,6 +19,7 @@ import {
   FileDashed,
   Image as ImageIcon,
   LockKey,
+  LockKeyOpen,
   MapPin,
   PencilSimple,
   Star,
@@ -154,6 +155,7 @@ export function TripCard({
 }: TripCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [confirmedStatus, setConfirmedStatus] = useState(trip.status);
+  const [regClosed, setRegClosed] = useState(!!trip.registrationClosed);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -176,6 +178,10 @@ export function TripCard({
   useEffect(() => {
     if (!isUpdating) setConfirmedStatus(trip.status);
   }, [trip.status, isUpdating]);
+
+  useEffect(() => {
+    if (!isUpdating) setRegClosed(!!trip.registrationClosed);
+  }, [trip.registrationClosed, isUpdating]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -208,6 +214,28 @@ export function TripCard({
     } catch (error: any) {
       toast.error(error.message || "Błąd serwera. Przywrócono status.");
       if (onChangeStatus) onChangeStatus(trip.id, previousStatus);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleToggleRegistration = async () => {
+    setIsMenuOpen(false);
+    const next = !regClosed;
+    setRegClosed(next); // optymistycznie
+    setIsUpdating(true);
+    try {
+      const response = await fetch("/api/admin/wyjazdy/registration", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: trip.id, registrationClosed: next }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      toast.success(next ? "Zapisy zamknięte." : "Zapisy otwarte.");
+    } catch (error: any) {
+      setRegClosed(!next); // rollback
+      toast.error(error.message || "Nie udało się zmienić stanu zapisów.");
     } finally {
       setIsUpdating(false);
     }
@@ -323,6 +351,26 @@ export function TripCard({
               >
                 <Archive size={16} className="text-red-500" /> Zakończony
               </button>
+
+              <div className="my-1 border-t border-gray-100" />
+
+              <button
+                onClick={handleToggleRegistration}
+                disabled={isUpdating}
+                className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-600 disabled:opacity-40 transition-colors"
+              >
+                {regClosed ? (
+                  <>
+                    <LockKeyOpen size={16} className="text-amber-500" /> Otwórz
+                    zapisy
+                  </>
+                ) : (
+                  <>
+                    <LockKey size={16} className="text-amber-500" /> Zamknij
+                    zapisy
+                  </>
+                )}
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -430,6 +478,12 @@ export function TripCard({
           <div className="flex flex-col gap-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={confirmedStatus} />
+              {regClosed && confirmedStatus === "PUBLISHED" && (
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                  <LockKey size={12} weight="fill" className="text-amber-500" />{" "}
+                  Zapisy zamknięte
+                </span>
+              )}
               {isFeaturedZone && (
                 <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
                   <Star size={12} weight="fill" className="text-amber-500" /> Na

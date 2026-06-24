@@ -5,7 +5,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma";
 
-const ADMIN_EMAILS = ["biuro@kocikdev.com", "piotrsiemaszkofizjo@gmail.com"];
+const ADMIN_EMAILS = ["biuro@kocikdev.com", "piotrsiemaszko.fizjo@gmail.com"];
 
 const MOCK_USERS: Record<string, { email: string; name: string; role: Role }> =
   {
@@ -102,8 +102,13 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
       }
 
-      // 2. Kolejne żądania sesji (user jest undefined) - dociągamy aktualną rolę z DB
-      if (!token.role && token.email) {
+      // 2. Każde kolejne żądanie sesji — synchronizujemy id ORAZ rolę z bazy po
+      //    e-mailu. Kluczowe: token JWT żyje w ciasteczku, więc po resecie/
+      //    reseedzie bazy (dev) zapisane `token.id` wskazywałoby na nieistniejący
+      //    rekord User → naruszenie klucza obcego przy każdym zapisie powiązanym
+      //    z userId (Enrollment, Booking, HealthProfile…). Reconcile po e-mailu
+      //    (pole @unique) utrzymuje aktualne id i rolę.
+      if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
           select: { id: true, role: true },

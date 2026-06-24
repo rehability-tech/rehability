@@ -22,10 +22,18 @@ export const metadata: Metadata = {
 };
 
 async function getInitialCampsData() {
+  // Ukrywamy zakończone wyjazdy (po endDate). Próg: początek dzisiejszego dnia.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const activeWhere = {
+    status: "PUBLISHED",
+    endDate: { gte: today },
+  } as const;
+
   try {
     const [featuredTripRaw, initialTripsRaw, totalCount] = await Promise.all([
       prisma.trip.findFirst({
-        where: { status: "PUBLISHED" },
+        where: activeWhere,
         orderBy: { startDate: "asc" },
         select: {
           id: true,
@@ -40,7 +48,7 @@ async function getInitialCampsData() {
         },
       }),
       prisma.trip.findMany({
-        where: { status: "PUBLISHED" },
+        where: activeWhere,
         take: 4,
         skip: 0,
         orderBy: { startDate: "asc" },
@@ -57,7 +65,7 @@ async function getInitialCampsData() {
           endDate: true,
         },
       }),
-      prisma.trip.count({ where: { status: "PUBLISHED" } }),
+      prisma.trip.count({ where: activeWhere }),
     ]);
 
     const featuredTrip = featuredTripRaw

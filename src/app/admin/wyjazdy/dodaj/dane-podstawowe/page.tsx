@@ -49,6 +49,10 @@ function BasicDataFormContent() {
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [registrationDeadline, setRegistrationDeadline] = useState<Date | null>(
+    null,
+  );
+  const [registrationClosed, setRegistrationClosed] = useState(false);
   const [capacity, setCapacity] = useState("");
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
@@ -76,6 +80,12 @@ function BasicDataFormContent() {
           setTitle(data.title || "");
           setStartDate(data.startDate ? new Date(data.startDate) : null);
           setEndDate(data.endDate ? new Date(data.endDate) : null);
+          setRegistrationDeadline(
+            data.registrationDeadline
+              ? new Date(data.registrationDeadline)
+              : null,
+          );
+          setRegistrationClosed(!!data.registrationClosed);
           setCapacity(data.capacity?.toString() || "");
           setPrice(data.price?.toString() || "");
           setDeposit(data.deposit?.toString() || "");
@@ -191,6 +201,8 @@ function BasicDataFormContent() {
           mapUrl,
           startDate,
           endDate,
+          registrationDeadline,
+          registrationClosed,
           capacity,
           price,
           deposit,
@@ -319,6 +331,73 @@ function BasicDataFormContent() {
               isLoading={isGeneratingData}
               containerClassName="md:col-span-2"
             />
+          </div>
+        </section>
+
+        {/* SEKCJA 1.5: ZAPISY (OKNO REZERWACJI) */}
+        <section>
+          <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+            Zapisy
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormDatePicker
+              label="Termin zamknięcia zapisów (opcjonalnie)"
+              selected={registrationDeadline}
+              onChange={(date) => setRegistrationDeadline(date)}
+              maxDate={startDate || undefined}
+              isClearable
+              placeholderText="Domyślnie: do dnia rozpoczęcia"
+              name="registrationDeadline"
+              isLoading={isGeneratingData}
+            />
+          </div>
+          <p className="text-[12px] text-gray-500 font-montserrat mt-2 leading-relaxed">
+            Po tej dacie publiczny formularz rezerwacji znika (wyjazd pozostaje
+            widoczny). Zostaw puste, aby przyjmować zapisy aż do dnia
+            rozpoczęcia.
+          </p>
+
+          {/* Ręczne zamknięcie zapisów */}
+          <div
+            className={`border rounded-[16px] mt-6 p-5 md:p-6 transition-all duration-300 ${
+              registrationClosed
+                ? "bg-amber-50/60 border-amber-300 shadow-sm"
+                : "bg-gray-50 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <label className="flex items-start gap-4 cursor-pointer group">
+              <div
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out mt-0.5 ${
+                  registrationClosed
+                    ? "bg-amber-500"
+                    : "bg-gray-300 group-hover:bg-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${
+                    registrationClosed ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={registrationClosed}
+                  onChange={(e) => setRegistrationClosed(e.target.checked)}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[15px] font-bold text-[#0B3B4C] font-jakarta transition-colors group-hover:text-amber-600">
+                  Zamknij zapisy ręcznie
+                </span>
+                <p className="text-[13px] text-gray-500 font-montserrat mt-1 leading-relaxed max-w-2xl">
+                  Natychmiast ukrywa formularz rezerwacji (np. gdy pokoje są już
+                  zaklepane). Wyjazd zostaje widoczny ze stroną szczegółów. Tę
+                  samą akcję możesz wykonać szybciej z poziomu listy wyjazdów.
+                </p>
+              </div>
+            </label>
           </div>
         </section>
 

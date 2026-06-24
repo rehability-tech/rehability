@@ -7,10 +7,19 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") ?? "4")));
   const skip = (page - 1) * limit;
 
+  // Nie pokazujemy wyjazdów, które już się zakończyły (po endDate). Próg to
+  // początek dzisiejszego dnia, żeby wyjazd był widoczny przez cały ostatni dzień.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const activeWhere = {
+    status: "PUBLISHED",
+    endDate: { gte: today },
+  } as const;
+
   try {
     const [campsRaw, totalCount] = await Promise.all([
       prisma.trip.findMany({
-        where: { status: "PUBLISHED" },
+        where: activeWhere,
         take: limit,
         skip,
         orderBy: { startDate: "asc" },
@@ -27,7 +36,7 @@ export async function GET(request: NextRequest) {
           endDate: true,
         },
       }),
-      prisma.trip.count({ where: { status: "PUBLISHED" } }),
+      prisma.trip.count({ where: activeWhere }),
     ]);
 
     const trips = campsRaw.map((trip) => ({

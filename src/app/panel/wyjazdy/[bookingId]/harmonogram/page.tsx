@@ -19,7 +19,12 @@ export default async function HarmonogramPage({ params }: Props) {
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { tripId: true, userId: true, email: true },
+    select: {
+      tripId: true,
+      userId: true,
+      email: true,
+      trip: { select: { isSchedulePublished: true } },
+    },
   });
 
   if (!booking) notFound();
@@ -29,20 +34,24 @@ export default async function HarmonogramPage({ params }: Props) {
     booking.email === session.user.email;
   if (!owns) notFound();
 
-  const [campEvents, serviceOrders] = await Promise.all([
-    prisma.tripEvent.findMany({
-      where: { tripId: booking.tripId, isPublished: true },
-      orderBy: [{ startTime: "asc" }, { sortOrder: "asc" }],
-    }),
-    prisma.serviceOrder.findMany({
-      where: { bookingId, status: { not: "CANCELLED" } },
-      include: {
-        spaBlock: { select: { startTime: true, endTime: true } },
-        service: { select: { name: true, duration: true } },
-      },
-      orderBy: { spaBlock: { startTime: "asc" } },
-    }),
-  ]);
+  // Harmonogram pokazujemy wyłącznie, gdy admin go opublikował (flaga na wyjeździe).
+  // Per-event `isPublished` jest domyślnie true, więc samo w sobie nie bramkuje widoku.
+  const [campEvents, serviceOrders] = booking.trip.isSchedulePublished
+    ? await Promise.all([
+        prisma.tripEvent.findMany({
+          where: { tripId: booking.tripId, isPublished: true },
+          orderBy: [{ startTime: "asc" }, { sortOrder: "asc" }],
+        }),
+        prisma.serviceOrder.findMany({
+          where: { bookingId, status: { not: "CANCELLED" } },
+          include: {
+            spaBlock: { select: { startTime: true, endTime: true } },
+            service: { select: { name: true, duration: true } },
+          },
+          orderBy: { spaBlock: { startTime: "asc" } },
+        }),
+      ])
+    : [[], []];
 
   const events = campEvents.map((e) => ({
     id: e.id,

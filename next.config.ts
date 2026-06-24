@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
 
   compress: true,
   poweredByHeader: false,
+
   images: {
     // AVIF dla przeglądarek które go wspierają (mniejszy o ~30% od WebP),
     // WebP jako fallback dla starszych. Oba lepiej kompresują od JPG/PNG.
@@ -30,6 +31,13 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
+      },
+      // Bunny Stream CDN — automatyczne miniatury (kadry) wideo kursów.
+      {
+        protocol: "https",
+        hostname: "*.b-cdn.net",
         port: "",
         pathname: "/**",
       },
@@ -66,10 +74,10 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://onesignal.com https://js.stripe.com https://checkout.stripe.com https://maps.googleapis.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "img-src 'self' blob: data: https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com https://*.googleusercontent.com https://images.unsplash.com https://img.youtube.com https://images.pexels.com https://maps.gstatic.com https://maps.googleapis.com",
-              "connect-src 'self' https://api.stripe.com https://onesignal.com https://*.onesignal.com https://rehabilityprudnik.pl https://maps.googleapis.com",
-              "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com",
-              "media-src 'self' https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com blob:",
+              "img-src 'self' blob: data: https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com https://*.googleusercontent.com https://images.unsplash.com https://img.youtube.com https://images.pexels.com https://maps.gstatic.com https://maps.googleapis.com https://*.b-cdn.net",
+              "connect-src 'self' https://api.stripe.com https://onesignal.com https://*.onesignal.com https://rehabilityprudnik.pl https://www.rehabilityprudnik.pl https://maps.googleapis.com https://video.bunnycdn.com https://*.b-cdn.net https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com https://images.pexels.com",
+              "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com https://iframe.mediadelivery.net",
+              "media-src 'self' https://wkel0sdzlinz0k7a.public.blob.vercel-storage.com blob: https://*.b-cdn.net",
               "worker-src 'self' blob: https://cdn.onesignal.com",
               "manifest-src 'self'",
             ].join("; "),

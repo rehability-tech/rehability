@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils"; // Zakładam, że masz utilsa do klas
 
 export default function MainClientContainer({
@@ -27,7 +28,21 @@ export default function MainClientContainer({
         isProfilePage && "pt-2 lg:pt-4",
       )}
     >
-      {children}
+      {/* Wspólna animacja przejścia między trasami panelu — klucz na pathname
+          sprawia, że treść każdej trasy wjeżdża na nowo przy nawigacji.
+          Czat (pełnoekranowy) dostaje delikatny fade bez przesunięcia. */}
+      <motion.div
+        key={pathname}
+        initial={{ opacity: 0, y: isChatPage ? 0 : 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: isChatPage ? 0.25 : 0.4,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className={cn(isChatPage && "flex flex-col flex-1 min-h-0 h-full")}
+      >
+        {children}
+      </motion.div>
     </main>
   );
 }

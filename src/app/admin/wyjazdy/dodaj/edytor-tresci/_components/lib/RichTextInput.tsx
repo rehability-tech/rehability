@@ -6,21 +6,44 @@ import { BubbleMenu } from "@tiptap/react/menus"; // <-- TO JEST KLUCZ DO SUKCES
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
+import { Placeholder } from "@tiptap/extensions";
 import { TextB, Circle } from "@phosphor-icons/react/dist/ssr";
 
 interface RichTextInputProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  /**
+   * Gdy podane: Enter (bez Shift) NIE wstawia nowej linii, tylko wywołuje ten
+   * callback — używane w listach punktowanych, by Enter tworzył kolejny punkt.
+   * Shift+Enter nadal robi miękki łamacz linii w obrębie punktu.
+   */
+  onEnter?: () => void;
+  /** Ustaw fokus na tym polu po zamontowaniu (np. świeżo dodany punkt listy). */
+  autoFocus?: boolean;
+  /** Tekst podpowiedzi widoczny, gdy pole jest puste (np. „Nowy nagłówek"). */
+  placeholder?: string;
 }
 
 export default function RichTextInput({
   value,
   onChange,
   className = "",
+  onEnter,
+  autoFocus = false,
+  placeholder,
 }: RichTextInputProps) {
+  // Ref trzyma najświeższy callback — editorProps domyka się tylko raz.
+  const onEnterRef = React.useRef(onEnter);
+  onEnterRef.current = onEnter;
+
   const editor = useEditor({
-    extensions: [StarterKit, TextStyle, Color],
+    extensions: [
+      StarterKit,
+      TextStyle,
+      Color,
+      ...(placeholder ? [Placeholder.configure({ placeholder })] : []),
+    ],
     content: value || "",
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
@@ -30,8 +53,40 @@ export default function RichTextInput({
       attributes: {
         class: `outline-none min-h-[24px] cursor-text ${className}`,
       },
+      handleKeyDown(_view, event) {
+        if (
+          onEnterRef.current &&
+          event.key === "Enter" &&
+          !event.shiftKey &&
+          !event.isComposing
+        ) {
+          event.preventDefault();
+          onEnterRef.current();
+          return true;
+        }
+        return false;
+      },
+      // Czyszczenie wklejanej treści: twarde spacje → zwykłe i usunięcie pustych
+      // akapitów (źródło „nieusuwalnego" whitespace'u po wklejeniu z Worda/web).
+      transformPastedHTML(html) {
+        return html
+          .replace(/ /g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, "");
+      },
+      transformPastedText(text) {
+        return text
+          .replace(/ /g, " ")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      },
     },
   });
+
+  React.useEffect(() => {
+    if (autoFocus && editor) editor.commands.focus("end");
+  }, [autoFocus, editor]);
 
   if (!editor) {
     return null;

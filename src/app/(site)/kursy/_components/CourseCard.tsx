@@ -1,79 +1,151 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Star,
   Clock,
-  BookmarkSimple,
+  ArrowRight,
+  Heart,
+  VideoCamera,
 } from "@phosphor-icons/react/dist/ssr";
-import type { Course } from "../_data/courses";
+import { formatCourseDuration, type Course } from "../_data/courses";
+import { useFavorites } from "@/app/_components/FavoritesProvider";
 
-export function CourseCard({ course }: { course: Course }) {
+export function CourseCard({
+  course,
+  index = 0,
+}: {
+  course: Course;
+  index?: number;
+}) {
+  const { isFavorite, toggle } = useFavorites();
+  const liked = isFavorite(course.id);
+  const [heartHover, setHeartHover] = useState(false);
+
+  const toggleLike = (e: React.MouseEvent) => {
+    // Karta jest <Link> — blokujemy nawigację i propagację kliknięcia.
+    e.preventDefault();
+    e.stopPropagation();
+    toggle(course.id);
+  };
+
   return (
-    <article className="group relative flex flex-col bg-white rounded-2xl p-3 shadow-[0_18px_45px_-28px_rgba(3,63,99,0.4)] ring-1 ring-brand-secondary/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_55px_-26px_rgba(3,63,99,0.5)]">
-      {/* MINIATURA */}
-      <div className="relative h-[185px] w-full rounded-xl overflow-hidden">
-        <Image
-          src={course.image}
-          alt={course.title}
-          fill
-          sizes="(max-width: 768px) 100vw, 360px"
-          className="object-cover"
-        />
-        {/* Overlay: kategoria + zakładka */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2">
-          <span className="bg-brand-primary text-white font-montserrat font-medium text-[12px] uppercase px-2.5 py-[5px] rounded-full">
-            {course.category}
-          </span>
-          <button
-            type="button"
-            aria-label="Zapisz program"
-            className="flex items-center justify-center size-[30px] rounded-full bg-white/90 text-brand-primary backdrop-blur-sm transition-colors hover:bg-white"
-          >
-            <BookmarkSimple size={16} weight="bold" />
-          </button>
+    <motion.article
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{
+        duration: 0.55,
+        delay: (index % 6) * 0.06,
+        ease: [0.22, 0.61, 0.36, 1] as const,
+      }}
+      className="group h-full"
+    >
+      <Link
+        href={`/kursy/${course.slug}`}
+        className="relative flex flex-col h-full rounded-[28px] bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_-25px_rgba(3,63,99,0.25)] overflow-hidden"
+      >
+        {/* MINIATURA */}
+        <div className="relative h-[210px] overflow-hidden">
+          <Image
+            src={course.image}
+            alt={course.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-secondary/70 via-brand-secondary/10 to-transparent" />
+
+          {/* Kategoria + zakładka */}
+          <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md text-brand-secondary border border-white/40">
+              {course.category}
+            </span>
+            <motion.button
+              type="button"
+              onClick={toggleLike}
+              aria-pressed={liked}
+              aria-label={liked ? "Usuń z polubionych" : "Dodaj do polubionych"}
+              whileHover={{ scale: 1.15, rotate: -6 }}
+              whileTap={{ scale: 0.8 }}
+              onHoverStart={() => setHeartHover(true)}
+              onHoverEnd={() => setHeartHover(false)}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              className={`flex items-center justify-center size-8 rounded-full backdrop-blur-md border border-white/40 transition-colors ${
+                liked || heartHover ? "bg-white" : "bg-white/80"
+              }`}
+            >
+              <motion.span
+                key={liked ? "on" : "off"}
+                initial={false}
+                animate={{ scale: liked ? [1, 1.4, 1] : 1 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="flex"
+              >
+                <Heart
+                  size={16}
+                  weight={liked || heartHover ? "fill" : "bold"}
+                  className={
+                    liked || heartHover ? "text-rose-500" : "text-brand-primary"
+                  }
+                />
+              </motion.span>
+            </motion.button>
+          </div>
+
+          {/* Ocena na obrazie (lub znacznik „Nowość", gdy brak opinii) */}
+          <div className="absolute bottom-4 left-4 inline-flex items-center gap-1.5 text-white text-[11px] font-semibold bg-white/15 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-full">
+            <Star size={12} weight="fill" className="text-brand-yellow" />
+            {course.reviews > 0 ? (
+              <>
+                {course.rating.toFixed(1)}
+                <span className="text-white/70 font-medium">({course.reviews})</span>
+              </>
+            ) : (
+              "Nowość"
+            )}
+          </div>
+
+          {/* Znacznik: nagrania jeszcze niedostępne */}
+          {course.videoPending && (
+            <span className="absolute bottom-4 right-4 inline-flex items-center gap-1 text-white text-[10px] font-bold bg-amber-500/90 backdrop-blur-md border border-white/20 px-2 py-1 rounded-full">
+              <VideoCamera size={11} weight="fill" />
+              Nagrania wkrótce
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* TREŚĆ */}
-      <div className="flex flex-col gap-3 flex-1 px-1 pt-4">
-        {/* Ocena */}
-        <div className="flex items-center gap-1">
-          <Star size={16} weight="fill" className="text-brand-yellow" />
-          <span className="font-montserrat font-medium text-[12px] text-black/50">
-            {course.rating.toFixed(1)} ({course.reviews})
-          </span>
+        {/* TREŚĆ */}
+        <div className="flex flex-col flex-1 p-6 gap-4">
+          <div className="flex items-center gap-2 text-[12px] text-brand-secondary/60">
+            <Clock size={14} weight="duotone" className="text-brand-primary" />
+            <span className="font-medium">{formatCourseDuration(course.durationMin)} materiału</span>
+          </div>
+
+          <h3 className="font-jakarta text-[19px] font-bold text-brand-secondary leading-snug line-clamp-2 min-h-[52px]">
+            {course.title}
+          </h3>
+
+          {/* Cena + CTA */}
+          <div className="mt-auto flex items-end justify-between pt-4 border-t border-brand-secondary/5">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-brand-secondary/40 font-bold">
+                Cena
+              </p>
+              <p className="font-jakarta text-[22px] font-bold text-brand-primary leading-none mt-1">
+                {course.price} <span className="text-[15px]">PLN</span>
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-2 text-[13px] font-bold text-brand-primary group-hover:gap-3 transition-all">
+              Poznaj szczegóły
+              <ArrowRight size={16} weight="bold" />
+            </span>
+          </div>
         </div>
-
-        {/* Tytuł */}
-        <h3 className="font-montserrat font-bold text-brand-secondary text-[16px] leading-snug line-clamp-2 min-h-[44px]">
-          {course.title}
-        </h3>
-
-        {/* Czas trwania */}
-        <div className="flex items-center gap-1.5">
-          <Clock size={20} weight="duotone" className="text-brand-primary" />
-          <span className="font-montserrat font-medium text-[12px] text-black/50">
-            {course.durationMin} min
-          </span>
-        </div>
-
-        <div className="h-px w-full bg-brand-secondary/10" />
-
-        {/* Cena + CTA */}
-        <div className="mt-auto flex items-center justify-between pt-1">
-          <span className="font-montserrat font-bold text-brand-primary text-[16px]">
-            {course.price} PLN
-          </span>
-          <Link
-            href={`/kursy/${course.slug}`}
-            className="bg-brand-primary text-white font-montserrat font-semibold text-[13px] px-3 py-2 rounded-xl rounded-tr-none transition-colors hover:bg-brand-secondary"
-          >
-            Otrzymaj dostęp
-          </Link>
-        </div>
-      </div>
-    </article>
+      </Link>
+    </motion.article>
   );
 }

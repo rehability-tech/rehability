@@ -16,6 +16,17 @@ export default function BulletListBlock({
   onChange,
 }: BulletListBlockProps) {
   const listItems = content?.items || [];
+  // Id punktu, który ma dostać fokus po dodaniu (Enter → nowy punkt).
+  const [focusId, setFocusId] = React.useState<string | null>(null);
+
+  // Enter na punkcie idx → wstaw nowy punkt zaraz pod nim i przenieś tam fokus.
+  const addItemAfter = (idx: number) => {
+    const newItem = { id: safeUuid(), text: "" };
+    const newItems = [...listItems];
+    newItems.splice(idx + 1, 0, newItem);
+    onChange({ items: newItems });
+    setFocusId(newItem.id);
+  };
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -34,6 +45,8 @@ export default function BulletListBlock({
                 newItems[idx].text = newHtml;
                 onChange({ items: newItems });
               }}
+              onEnter={() => addItemAfter(idx)}
+              autoFocus={focusId === item.id}
               className="text-gray-600 font-montserrat text-base leading-[1.7]"
             />
           </div>

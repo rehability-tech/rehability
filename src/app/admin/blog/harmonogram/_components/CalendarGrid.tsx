@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import CalendarDayCell from "./CalendarDayCell";
 import {
   POLISH_DAYS,
@@ -17,6 +17,7 @@ interface Props {
   currentMonth: number;
   entries: ScheduleEntry[];
   isLoading: boolean;
+  highlightId?: string | null;
   onSelectEntry: (entry: ScheduleEntry) => void;
 }
 
@@ -25,6 +26,7 @@ export default function CalendarGrid({
   currentMonth,
   entries,
   isLoading,
+  highlightId,
   onSelectEntry,
 }: Props) {
   const today = new Date();
@@ -46,6 +48,22 @@ export default function CalendarGrid({
         .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate)),
     [entries],
   );
+
+  // Po wczytaniu miesiąca przewiń wskazany (neonowy) wpis do środka ekranu.
+  useEffect(() => {
+    if (!highlightId || isLoading) return;
+    const raf = requestAnimationFrame(() => {
+      const candidates = document.querySelectorAll<HTMLElement>(
+        `[data-entry-id="${CSS.escape(highlightId)}"]`,
+      );
+      // Wybierz widoczny wariant (desktop lub mobile — drugi ma display:none).
+      const visible = Array.from(candidates).find(
+        (el) => el.offsetParent !== null,
+      );
+      visible?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [highlightId, isLoading, entries]);
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOffset =
@@ -70,12 +88,12 @@ export default function CalendarGrid({
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[88px] rounded-2xl bg-gray-100 animate-pulse opacity-50"
+                className="h-[92px] rounded-2xl rounded-tr-none bg-white/50 border border-white/60 animate-pulse"
               />
             ))}
           </div>
         ) : sortedEntries.length === 0 ? (
-          <div className="rounded-3xl rounded-tr-none border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
+          <div className="rounded-3xl rounded-tr-none border border-white/60 bg-white/70 backdrop-blur-xl px-6 py-12 text-center shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)]">
             <p className="text-sm font-montserrat font-medium text-brand-secondary/50">
               Brak zaplanowanych artykułów w tym miesiącu.
             </p>
@@ -84,19 +102,37 @@ export default function CalendarGrid({
           <ul className="flex flex-col gap-3">
             {sortedEntries.map((entry) => {
               const { day, weekday } = getDateParts(entry.scheduledDate);
+              const todayMobile = isToday(day);
               return (
                 <li key={entry.id}>
                   <button
                     type="button"
+                    data-entry-id={entry.id}
                     onClick={() => onSelectEntry(entry)}
-                    className={`w-full flex items-stretch gap-3 rounded-2xl border px-3 py-3 text-left transition-all active:scale-[0.99] ${STATUS_CARD[entry.status]}`}
+                    className={`w-full flex items-stretch gap-3 rounded-2xl rounded-tr-none border px-3 py-3 text-left transition-all active:scale-[0.99] shadow-[0_10px_30px_-20px_rgba(3,63,99,0.45)] ${STATUS_CARD[entry.status]} ${
+                      entry.id === highlightId ? "animate-neon-highlight" : ""
+                    }`}
                   >
                     {/* Data */}
-                    <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/70 py-1.5 border border-white/80">
-                      <span className="text-[18px] font-jakarta font-bold leading-none text-brand-secondary">
+                    <div
+                      className={`flex w-12 shrink-0 flex-col items-center justify-center rounded-xl rounded-tr-none py-1.5 border ${
+                        todayMobile
+                          ? "bg-brand-primary border-brand-yellow/30 shadow-[0_4px_12px_-2px_rgba(242,217,103,0.6)]"
+                          : "bg-white/70 border-white/80"
+                      }`}
+                    >
+                      <span
+                        className={`text-[18px] font-jakarta font-bold leading-none ${
+                          todayMobile ? "text-white" : "text-brand-secondary"
+                        }`}
+                      >
                         {day}
                       </span>
-                      <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider font-montserrat text-brand-secondary/40">
+                      <span
+                        className={`mt-0.5 text-[9px] font-bold uppercase tracking-wider font-montserrat ${
+                          todayMobile ? "text-white/70" : "text-brand-secondary/40"
+                        }`}
+                      >
                         {weekday}
                       </span>
                     </div>
@@ -130,14 +166,14 @@ export default function CalendarGrid({
       </div>
 
       {/* ─── DESKTOP: kalendarz 7-kolumnowy ─── */}
-      <div className="hidden sm:block bg-white border border-gray-100 rounded-[24px] overflow-hidden shadow-[0_10px_40px_-15px_rgba(3,63,99,0.06)]">
+      <div className="hidden sm:block rounded-[24px] rounded-tr-none bg-white/70 backdrop-blur-xl border border-white/60 overflow-hidden shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)]">
         {/* Nagłówki dni */}
-        <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
+        <div className="grid grid-cols-7 border-b border-brand-secondary/[0.06] bg-white/40">
           {POLISH_DAYS.map((day, i) => (
             <div
               key={day}
               className={`py-3.5 text-center text-[10px] font-bold uppercase tracking-wider font-montserrat ${
-                i >= 5 ? "text-gray-400" : "text-brand-secondary/60"
+                i >= 5 ? "text-brand-primary/50" : "text-brand-secondary/55"
               }`}
             >
               {day}
@@ -147,26 +183,26 @@ export default function CalendarGrid({
 
         {/* Komórki dni */}
         {isLoading ? (
-          <div className="grid grid-cols-7 h-[975px] bg-gray-50/30">
+          <div className="grid grid-cols-7 h-[924px]">
             {Array.from({ length: 35 }).map((_, i) => (
               <div
                 key={i}
-                className={`border-b border-gray-100/60 p-3 flex flex-col ${i % 7 !== 6 ? "border-r" : ""}`}
+                className={`border-b border-brand-secondary/[0.05] p-3 flex flex-col ${i % 7 !== 6 ? "border-r" : ""}`}
               >
-                <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse mb-3 opacity-50" />
+                <div className="w-7 h-7 rounded-full rounded-tr-none bg-brand-secondary/10 animate-pulse mb-3" />
                 {i % 2 !== 0 && i > 3 && i < 28 && (
-                  <div className="w-full h-[80px] bg-gray-100 rounded-xl animate-pulse opacity-40" />
+                  <div className="w-full h-[80px] bg-brand-secondary/[0.06] rounded-xl animate-pulse" />
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-7 bg-gray-50/30 min-h-[975px] content-start">
+          <div className="grid grid-cols-7 min-h-[924px] content-start">
             {Array.from({ length: firstDayOffset }).map((_, i) => (
               <div
                 key={`pad-${i}`}
                 aria-hidden
-                className="min-h-[140px] border-b border-r border-gray-100/60 bg-gray-50/50"
+                className="min-h-[132px] border-b border-r border-brand-secondary/[0.05] bg-brand-secondary/[0.015]"
               />
             ))}
 
@@ -178,6 +214,9 @@ export default function CalendarGrid({
                 isWeekend={isWeekend(day)}
                 isToday={isToday(day)}
                 isLastInRow={(firstDayOffset + day) % 7 === 6}
+                isHighlighted={
+                  !!highlightId && entriesByDay.get(day)?.id === highlightId
+                }
                 onSelect={onSelectEntry}
               />
             ))}

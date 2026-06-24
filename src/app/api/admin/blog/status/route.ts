@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { createSystemUpdate } from "@/lib/notifications/send";
+import { notifyIndexNow } from "@/lib/seo/indexing";
+import { absoluteUrl } from "@/lib/seo/site";
 import { z } from "zod";
 
 const bodySchema = z
@@ -83,6 +85,11 @@ export async function PATCH(req: Request) {
       }).catch((err) =>
         console.error("[blog/status] createSystemUpdate failed:", err),
       );
+
+      // IndexNow — powiadom wyszukiwarki (Bing/Yandex/...) o nowym wpisie.
+      // notifyIndexNow nigdy nie rzuca; await gwarantuje wysyłkę zanim funkcja
+      // serverless się zakończy. Google dociąga wpis z sitemap.xml (nie IndexNow).
+      await notifyIndexNow(absoluteUrl(`/blog/${post.slug}`));
     }
 
     return NextResponse.json(post);

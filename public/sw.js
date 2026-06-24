@@ -18,4 +18,13 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+// Ładowanie SDK OneSignal owinięte w try/catch: gdy zostanie zablokowane
+// (ad-blocker / tarcza prywatności → ERR_BLOCKED_BY_CLIENT) albo CDN nie
+// odpowie, NIE może to wywalić ewaluacji całego Service Workera. Inaczej padała
+// rejestracja SW i cała PWA (instalowalność) — choć push to funkcja opcjonalna.
+// Tracąc OneSignal tracimy tylko powiadomienia push u tego użytkownika.
+try {
+  importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+} catch (err) {
+  console.warn("[sw] Nie udało się załadować SDK OneSignal (push wyłączony):", err);
+}

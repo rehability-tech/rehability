@@ -22,6 +22,7 @@ import {
 import type { TripEventType } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/ToolTip";
+import Portal from "@/components/ui/Portal";
 import { SerializedEvent } from "./timegrid/types";
 import { ICON_OPTIONS } from "./timegrid/constants";
 import type { TripServiceOption } from "./TimeGrid";
@@ -551,7 +552,7 @@ export default function EventModal({
   };
 
   return (
-    <>
+    <Portal>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -975,6 +976,6 @@ export default function EventModal({
           </div>
         </footer>
       </motion.aside>
-    </>
+    </Portal>
   );
 }

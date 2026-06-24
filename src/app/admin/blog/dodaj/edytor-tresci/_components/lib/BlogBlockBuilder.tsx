@@ -5,7 +5,7 @@ import { Reorder } from "framer-motion";
 import BlogBlockEditorCard from "./BlogBlockEditorCard";
 import BlogBlockAdder from "./BlogBlockAdder";
 import { BlogBlock, BlogBlockType } from "../hooks/useBlogAiGenerator";
-import { safeUuid } from "@/lib/utils";
+import { safeUuid, focusBlockById } from "@/lib/utils";
 
 interface BlogBlockBuilderProps {
   blocks: BlogBlock[];
@@ -18,7 +18,7 @@ export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderP
   const handleAddBlock = (type: BlogBlockType) => {
     let defaultContent: any = null;
     switch (type) {
-      case "heading":      defaultContent = { text: "Nowy nagłówek" }; break;
+      case "heading":      defaultContent = { text: "" }; break;
       case "paragraph":    defaultContent = { text: "" }; break;
       case "highlight":    defaultContent = { text: "" }; break;
       case "spacer":       defaultContent = {}; break;
@@ -29,10 +29,9 @@ export default function BlogBlockBuilder({ blocks, onChange }: BlogBlockBuilderP
       case "videoEmbed":   defaultContent = { url: "" }; break;
       case "table":        defaultContent = { caption: "", headers: ["Kolumna 1", "Kolumna 2"], rows: [["", ""], ["", ""]] }; break;
     }
-    onChange((prev) => [
-      ...prev,
-      { id: safeUuid(), type, content: defaultContent },
-    ]);
+    const newId = safeUuid();
+    onChange((prev) => [...prev, { id: newId, type, content: defaultContent }]);
+    focusBlockById(newId);
   };
 
   const handleDeleteBlock = (id: string) =>

@@ -23,23 +23,27 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
   const isChatPage = pathname?.includes("/chat");
 
   // Kontekst konkretnego wyjazdu (/admin/wyjazdy/[id], poza kreatorem "dodaj").
-  // Wtedy pokazujemy back, który wraca do listy wyjazdów ("głównego menu").
+  // Potrzebny też skanerowi QR (przyjmuje tripId).
   const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
   const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
   const isTripContext = !!campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1]);
 
-  // Cel strzałki "wstecz" w topbarze.
-  // Wyjazd → lista wyjazdów; sekcja bloga (/admin/blog/*) → korzeń bloga,
-  // a sam korzeń /admin/blog → dashboard.
-  const isBlogSection =
-    pathname === "/admin/blog" || !!pathname?.startsWith("/admin/blog/");
-  const backHref = isTripContext
+  // Strzałka "wstecz" dla sekcji Wyjazdy / Blog / Kursy (VOD). Na mobile dolny
+  // pasek zastępuje globalną nawigację pod-menu sekcji, więc back pozwala wrócić
+  // poziom wyżej: korzeń sekcji → dashboard, a głębsze widoki (lista, kreator,
+  // konkretny wyjazd/kurs) → korzeń sekcji.
+  const sectionRoot = pathname?.startsWith("/admin/wyjazdy")
     ? "/admin/wyjazdy"
-    : isBlogSection
-      ? pathname === "/admin/blog"
-        ? "/admin"
-        : "/admin/blog"
-      : null;
+    : pathname?.startsWith("/admin/blog")
+      ? "/admin/blog"
+      : pathname?.startsWith("/admin/kursy")
+        ? "/admin/kursy"
+        : null;
+  const backHref = sectionRoot
+    ? pathname === sectionRoot
+      ? "/admin"
+      : sectionRoot
+    : null;
 
   return (
     <>

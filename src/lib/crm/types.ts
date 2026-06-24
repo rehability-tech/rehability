@@ -11,6 +11,41 @@
 /** Segment lojalnościowy wyliczany na serwerze na podstawie LTV i liczby wyjazdów. */
 export type Loyalty = "VIP" | "RETURNING" | "NEW";
 
+/** Status subskrypcji kontaktu (mirror modelu Contact / modułu mailer). */
+export type ContactStatus =
+  | "SUBSCRIBED"
+  | "UNSUBSCRIBED"
+  | "BOUNCED"
+  | "COMPLAINED";
+
+/**
+ * Wiersz zunifikowanej listy CRM — źródłem prawdy jest tabela `Contact`
+ * (klienci wyjazdów + kursanci VOD + newsletter, deduplikowani po e-mailu,
+ * z tagami źródła). Pola LTV/lojalności wypełnione tylko dla kontaktów
+ * powiązanych z kontem użytkownika (`userId`).
+ */
+export interface CrmContact {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  phone: string | null;
+  /** Źródła pochodzenia (auto): "Wyjazdy" / "VOD" / "Newsletter" / "Ręczny". */
+  sources: string[];
+  /** Tagi ręczne nadane przez admina. */
+  tags: string[];
+  status: ContactStatus;
+  /** ID powiązanego konta (gdy kontakt to realny User) — link do profilu 360°. */
+  userId: string | null;
+  tripsCount: number;
+  totalSpent: number;
+  /** null, gdy kontakt nie ma żadnej rezerwacji (np. tylko newsletter). */
+  loyalty: Loyalty | null;
+  hasHealthProfile: boolean;
+  /** ISO. */
+  createdAt: string;
+}
+
 /** Wiersz listy CRM (widok zbiorczy). */
 export interface CrmClient {
   id: string;

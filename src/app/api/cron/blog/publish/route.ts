@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { runCron } from "@/lib/cron/runCron";
 import { sendNotificationToAdmins } from "@/lib/notifications/send";
+import { notifyIndexNow } from "@/lib/seo/indexing";
+import { absoluteUrl } from "@/lib/seo/site";
 
 // GET/POST /api/cron/blog/publish
 //
@@ -55,6 +57,10 @@ export async function POST(req: Request) {
       type: "SYSTEM",
       push: true,
     });
+
+    // IndexNow — zgłoś wszystkie świeżo opublikowane wpisy hurtem (Bing/Yandex/...).
+    // Google dociąga je z sitemap.xml; IndexNow przyspiesza pozostałe wyszukiwarki.
+    await notifyIndexNow(promoted.map((p) => absoluteUrl(`/blog/${p.slug}`)));
 
     return {
       checkedAt: now.toISOString(),

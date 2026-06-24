@@ -7,6 +7,7 @@ type Entry = MetadataRoute.Sitemap[number];
 const staticEntries: Entry[] = [
   { url: absoluteUrl("/"), changeFrequency: "monthly", priority: 1.0 },
   { url: absoluteUrl("/wyjazdy"), changeFrequency: "weekly", priority: 0.9 },
+  { url: absoluteUrl("/kursy"), changeFrequency: "weekly", priority: 0.9 },
   { url: absoluteUrl("/blog"), changeFrequency: "weekly", priority: 0.9 },
   { url: absoluteUrl("/o-nas"), changeFrequency: "monthly", priority: 0.7 },
   { url: absoluteUrl("/gabinet"), changeFrequency: "monthly", priority: 0.8 },
@@ -20,7 +21,7 @@ const staticEntries: Entry[] = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
-    const [trips, posts] = await Promise.all([
+    const [trips, posts, courses] = await Promise.all([
       prisma.trip.findMany({
         where: { status: "PUBLISHED", noIndex: false },
         select: { id: true, updatedAt: true },
@@ -30,6 +31,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         where: { status: "PUBLISHED", noIndex: false },
         select: { slug: true, updatedAt: true, publishedAt: true },
         orderBy: { publishedAt: "desc" },
+      }),
+      prisma.course.findMany({
+        where: { status: "PUBLISHED", noIndex: false },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
       }),
     ]);
 
@@ -47,7 +53,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticEntries, ...tripEntries, ...postEntries];
+    const courseEntries: Entry[] = courses.map((c) => ({
+      url: absoluteUrl(`/kursy/${c.slug}`),
+      lastModified: c.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
+
+    return [
+      ...staticEntries,
+      ...tripEntries,
+      ...postEntries,
+      ...courseEntries,
+    ];
   } catch (error) {
     // Fallback: Wymóg produkcyjny. Nigdy nie zwracaj błędu 500 dla robota.
     // Jeśli dynamiczny content zawiedzie, zwracamy chociaż strony statyczne[cite: 1].

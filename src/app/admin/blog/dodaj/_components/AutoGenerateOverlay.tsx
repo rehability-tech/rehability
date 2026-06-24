@@ -5,6 +5,7 @@ import {
   Sparkle, CheckCircle, CircleNotch, Circle, WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import Portal from "@/components/ui/Portal";
 
 export type StepStatus = "pending" | "active" | "done" | "error";
 
@@ -26,6 +27,7 @@ export default function AutoGenerateOverlay({ steps, onAbort }: Props) {
   const progress     = (doneCount / steps.length) * 100;
 
   return (
+    <Portal>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -191,5 +193,6 @@ export default function AutoGenerateOverlay({ steps, onAbort }: Props) {
         )}
       </motion.div>
     </motion.div>
+    </Portal>
   );
 }

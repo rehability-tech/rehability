@@ -118,6 +118,25 @@ export async function sendNotificationToAdmins(
   });
 }
 
+/**
+ * Push broadcast do wszystkich użytkowników z włączonymi powiadomieniami.
+ * Nie tworzy rekordów IN_APP per-user (GLOBAL target).
+ */
+export async function sendNotificationToAll(
+  input: Omit<SendNotificationInput, "userId" | "push">,
+) {
+  const { title, message = "", type = "INFO", link } = input;
+
+  await dispatchNotification({
+    target: "GLOBAL",
+    title,
+    message,
+    link,
+    type,
+    channels: ["PUSH"],
+  });
+}
+
 // ============================================================
 // FASADA ZDARZEŃ CAMPA
 // ============================================================
@@ -218,6 +237,30 @@ export async function logCampEvent(input: LogCampEventInput) {
     kind: copy.kind,
     who: input.userName,
     tripId: input.tripId,
+  });
+}
+
+/**
+ * Loguje sprzedaż kursu VOD do live-feedu admina (Activity) + powiadomienie/push.
+ * Analogicznie do `logCampEvent`, ale dla pillaru „VOD".
+ */
+export async function logVodPurchase(input: {
+  userName: string;
+  courseTitle: string;
+  courseSlug?: string;
+  amount?: string | null;
+}) {
+  await dispatchNotification({
+    target: "ADMIN",
+    title: "🎓 Sprzedaż kursu VOD",
+    message: `${input.userName} kupił(a) kurs „${input.courseTitle}"${
+      input.amount ? ` (${input.amount} zł)` : ""
+    }.`,
+    link: input.courseSlug ? `/kursy/${input.courseSlug}` : "/admin/kursy/lista",
+    type: "VOD",
+    channels: ["ACTIVITY", "IN_APP", "PUSH"],
+    kind: "VOD_PURCHASE",
+    who: input.userName,
   });
 }
 
