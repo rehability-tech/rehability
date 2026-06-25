@@ -8,6 +8,16 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = await getToken({ req: request });
 
+  // 0. Platforma VOD (/kursy) tymczasowo dostępna TYLKO dla sesji admina.
+  //    Każdy inny (niezalogowany lub zwykły user) jest odsyłany na stronę
+  //    główną — sekcja nie jest jeszcze publiczna.
+  if (
+    (pathname === "/kursy" || pathname.startsWith("/kursy/")) &&
+    token?.role !== "ADMIN"
+  ) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   // 1. Zabezpieczenie przed niezalogowanymi (wypychamy na logowanie)
   const isProtectedRoute =
     pathname.startsWith("/panel") || pathname.startsWith("/admin");
@@ -60,5 +70,7 @@ export const config = {
     "/admin/:path*",
     "/api/admin/:path*",
     "/logowanie",
+    "/kursy",
+    "/kursy/:path*",
   ],
 };
