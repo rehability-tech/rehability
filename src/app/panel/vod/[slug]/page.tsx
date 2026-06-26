@@ -57,6 +57,7 @@ export default async function VodCoursePage({
       allCourses={allCourses}
       completedLessonIds={completedLessonIds}
       myReview={myReview}
+      viewerName={session.user.name ?? "Ty"}
       initialCompleted={courseCompleted}
     />
   );

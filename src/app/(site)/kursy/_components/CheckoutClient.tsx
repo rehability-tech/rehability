@@ -23,7 +23,60 @@ type BuyerType = "private" | "company";
 
 const STEPS = ["Konto", "Dane do płatności", "Płatność", "Podsumowanie"];
 
-function Stepper({ activeStep }: { activeStep: number }) {
+// — Walidacja polskich danych do płatności —
+function isValidEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
+function isValidPostal(v: string) {
+  // Polski kod pocztowy w formacie 00-000.
+  return /^\d{2}-\d{3}$/.test(v.trim());
+}
+function isValidNip(v: string) {
+  // 10 cyfr + suma kontrolna (wagi 6,5,7,2,3,4,5,6,7).
+  const digits = v.replace(/[\s-]/g, "");
+  if (!/^\d{10}$/.test(digits)) return false;
+  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+  const sum = weights.reduce((acc, w, i) => acc + w * Number(digits[i]), 0);
+  return sum % 11 === Number(digits[9]);
+}
+
+type FormShape = {
+  name: string;
+  company: string;
+  nip: string;
+  email: string;
+  address: string;
+  postal: string;
+  city: string;
+};
+type FieldErrors = Partial<Record<keyof FormShape, string>>;
+
+function validatePaymentData(buyer: BuyerType, form: FormShape): FieldErrors {
+  const errs: FieldErrors = {};
+  if (buyer === "company") {
+    if (!form.company.trim()) errs.company = "Podaj pełną nazwę firmy.";
+    if (!isValidNip(form.nip))
+      errs.nip = "Nieprawidłowy NIP — wpisz 10 cyfr.";
+  } else {
+    if (!form.name.trim()) errs.name = "Podaj imię i nazwisko.";
+  }
+  if (!isValidEmail(form.email)) errs.email = "Nieprawidłowy adres email.";
+  if (!form.address.trim()) errs.address = "Podaj adres.";
+  if (!isValidPostal(form.postal))
+    errs.postal = "Kod pocztowy w formacie 00-000.";
+  if (!form.city.trim()) errs.city = "Podaj miasto.";
+  return errs;
+}
+
+function Stepper({
+  activeStep,
+  onStepClick,
+  isStepClickable,
+}: {
+  activeStep: number;
+  onStepClick?: (step: number) => void;
+  isStepClickable?: (step: number) => boolean;
+}) {
   return (
     <>
       {/* MOBILE: kompaktowy widok z paskiem postępu */}
@@ -57,10 +110,19 @@ function Stepper({ activeStep }: { activeStep: number }) {
           const step = i + 1;
           const isDone = step < activeStep;
           const isActive = step === activeStep;
+          const clickable = isStepClickable?.(step) ?? false;
           return (
             <div key={label} className="flex items-center gap-3">
-              <div
+              <button
+                type="button"
+                disabled={!clickable}
+                onClick={clickable ? () => onStepClick?.(step) : undefined}
+                aria-current={isActive ? "step" : undefined}
                 className={`relative flex items-center gap-2 shrink-0 rounded-full pl-1.5 pr-4 py-1.5 border transition-colors overflow-hidden ${
+                  clickable
+                    ? "cursor-pointer hover:border-brand-primary/40"
+                    : "cursor-default"
+                } ${
                   isActive
                     ? "bg-brand-primary border-brand-yellow/30 shadow-[0_4px_15px_0px_rgba(242,217,103,0.35)]"
                     : isDone
@@ -93,7 +155,7 @@ function Stepper({ activeStep }: { activeStep: number }) {
                 >
                   {label}
                 </span>
-              </div>
+              </button>
               {step < STEPS.length && (
                 <span
                   className={`h-px w-6 shrink-0 ${
@@ -115,12 +177,16 @@ function Field({
   placeholder,
   value,
   onChange,
+  error,
+  inputMode,
 }: {
   label: string;
   type?: string;
   placeholder?: string;
   value: string;
   onChange: (v: string) => void;
+  error?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   return (
     <label className="flex flex-col gap-2 w-full">
@@ -129,11 +195,22 @@ function Field({
       </span>
       <input
         type={type}
+        inputMode={inputMode}
         value={value}
         placeholder={placeholder}
+        aria-invalid={!!error}
         onChange={(e) => onChange(e.target.value)}
-        className="h-12 px-4 rounded-2xl border border-brand-primary/15 bg-white/80 font-montserrat text-[14px] text-brand-secondary placeholder:text-brand-secondary/35 outline-none transition-all focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10"
+        className={`h-12 px-4 rounded-2xl border bg-white/80 font-montserrat text-[14px] text-brand-secondary placeholder:text-brand-secondary/35 outline-none transition-all focus:bg-white focus:ring-4 ${
+          error
+            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+            : "border-brand-primary/15 focus:border-brand-primary focus:ring-brand-primary/10"
+        }`}
       />
+      {error && (
+        <span className="font-montserrat text-[11.5px] font-medium text-rose-600">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -142,10 +219,12 @@ export function CheckoutClient({
   course,
   isLoggedIn = true,
   loginUrl = "/logowanie",
+  account = null,
 }: {
   course: Course;
   isLoggedIn?: boolean;
   loginUrl?: string;
+  account?: { name: string; email: string } | null;
 }) {
   const [buyer, setBuyer] = useState<BuyerType>("private");
   const [loading, setLoading] = useState(false);
@@ -153,22 +232,36 @@ export function CheckoutClient({
   // Po utworzeniu PaymentIntent przechodzimy do kroku „Płatność" (PaymentElement).
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [returnUrl, setReturnUrl] = useState("");
-  const [form, setForm] = useState({
-    name: "",
+  const [form, setForm] = useState<FormShape>({
+    name: account?.name ?? "",
     company: "",
     nip: "",
-    email: "",
+    email: account?.email ?? "",
     address: "",
     postal: "",
     city: "",
   });
-  const set = (k: keyof typeof form) => (v: string) =>
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const set = (k: keyof FormShape) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
+    // Błąd pola znika, gdy tylko użytkownik zacznie je poprawiać.
+    setFieldErrors((errs) => (errs[k] ? { ...errs, [k]: undefined } : errs));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setError(null);
+
+    // Walidacja polskich danych do płatności przed utworzeniem płatności.
+    const errs = validatePaymentData(buyer, form);
+    if (Object.values(errs).some(Boolean)) {
+      setFieldErrors(errs);
+      setError("Popraw zaznaczone pola, zanim przejdziesz do płatności.");
+      return;
+    }
+    setFieldErrors({});
+
     setLoading(true);
     try {
       const res = await fetch("/api/kursy/create-payment-intent", {
@@ -213,15 +306,54 @@ export function CheckoutClient({
     }
   };
 
+  // — Dev mock: jednym kliknięciem wypełnia formularz poprawnymi danymi
+  //   testowymi (ważny NIP, kod 00-000). Tylko w środowisku deweloperskim.
+  const isDev = process.env.NODE_ENV === "development";
+  const fillTestData = () => {
+    setFieldErrors({});
+    setForm((f) => ({
+      ...f,
+      name: f.name || "Jan Testowy",
+      company: "Testowa Firma Sp. z o.o.",
+      nip: "5252248481", // poprawna suma kontrolna
+      email: f.email || "test@example.com",
+      address: "ul. Testowa 1/2",
+      postal: "00-001",
+      city: "Warszawa",
+    }));
+  };
+
   const buyerOptions: { id: BuyerType; label: string; icon: React.ReactNode }[] =
     [
       { id: "private", label: "Osoba prywatna", icon: <User size={16} weight="bold" /> },
       { id: "company", label: "Firma", icon: <Buildings size={16} weight="bold" /> },
     ];
 
+  // Krok aktywny wynika ze stanu: niezalogowany → Konto; po utworzeniu
+  // płatności → Płatność; w przeciwnym razie → Dane do płatności.
+  const activeStep = !isLoggedIn ? 1 : clientSecret ? 3 : 2;
+
+  // Klikalne są tylko ukończone kroki o sensownej nawigacji wstecz.
+  // Konta (logowania) nie cofamy; z „Płatności" wracamy do formularza danych.
+  const isStepClickable = (step: number) =>
+    step < activeStep && step !== 1;
+
+  const goToStep = (step: number) => {
+    if (!isStepClickable(step)) return;
+    if (step === 2 && clientSecret) {
+      // Powrót z kroku „Płatność" do formularza danych.
+      setClientSecret(null);
+      setError(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8">
-      <Stepper activeStep={!isLoggedIn ? 1 : clientSecret ? 3 : 2} />
+      <Stepper
+        activeStep={activeStep}
+        onStepClick={goToStep}
+        isStepClickable={isStepClickable}
+      />
 
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-start justify-center">
         {/* LEWA: krok „Konto" (logowanie) gdy niezalogowany */}
@@ -292,10 +424,26 @@ export function CheckoutClient({
               Szyfrowana płatność Stripe
             </span>
 
+            {isDev && (
+              <div className="rounded-2xl border border-dashed border-brand-primary/40 bg-brand-primary/5 px-4 py-3 font-montserrat text-[12px] text-brand-secondary/70">
+                <p className="font-semibold text-brand-primary/80">
+                  ⚙ Karta testowa Stripe (dev)
+                </p>
+                <p className="mt-1">
+                  Numer{" "}
+                  <span className="font-mono font-semibold text-brand-secondary">
+                    4242 4242 4242 4242
+                  </span>{" "}
+                  · data dowolna z przyszłości · CVC dowolne · kod 00-000.
+                </p>
+              </div>
+            )}
+
             <StripePaymentStep
               clientSecret={clientSecret}
               depositLabel={`${course.price} PLN`}
               returnUrl={returnUrl}
+              email={form.email}
             />
           </div>
         ) : (
@@ -304,13 +452,24 @@ export function CheckoutClient({
             onSubmit={handleSubmit}
             className="flex-1 max-w-[731px] w-full flex flex-col gap-7 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[28px] rounded-tr-none shadow-[0_20px_60px_-35px_rgba(3,63,99,0.35)] p-6 md:p-8"
           >
-          <div className="border-b border-brand-primary/10 pb-5">
-            <h2 className="font-jakarta font-bold text-[20px] text-brand-secondary">
-              Dane do płatności
-            </h2>
-            <p className="font-montserrat text-[13px] text-brand-secondary/50 mt-1">
-              Wystawimy dokument zakupu na podane dane.
-            </p>
+          <div className="flex items-start justify-between gap-3 border-b border-brand-primary/10 pb-5">
+            <div>
+              <h2 className="font-jakarta font-bold text-[20px] text-brand-secondary">
+                Dane do płatności
+              </h2>
+              <p className="font-montserrat text-[13px] text-brand-secondary/50 mt-1">
+                Wystawimy dokument zakupu na podane dane.
+              </p>
+            </div>
+            {isDev && (
+              <button
+                type="button"
+                onClick={fillTestData}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-dashed border-brand-primary/40 bg-brand-primary/5 px-3 py-1.5 font-montserrat text-[11.5px] font-semibold text-brand-primary/80 hover:bg-brand-primary/10 transition-colors"
+              >
+                ⚙ Wypełnij danymi testowymi
+              </button>
+            )}
           </div>
 
           {/* Toggle typu nabywcy */}
@@ -350,11 +509,15 @@ export function CheckoutClient({
                   placeholder="Indywidualna praktyka"
                   value={form.company}
                   onChange={set("company")}
+                  error={fieldErrors.company}
                 />
                 <Field
                   label="NIP *"
+                  inputMode="numeric"
+                  placeholder="0000000000"
                   value={form.nip}
                   onChange={set("nip")}
+                  error={fieldErrors.nip}
                 />
               </div>
             ) : (
@@ -362,6 +525,7 @@ export function CheckoutClient({
                 label="Imię i nazwisko *"
                 value={form.name}
                 onChange={set("name")}
+                error={fieldErrors.name}
               />
             )}
 
@@ -371,24 +535,30 @@ export function CheckoutClient({
                 type="email"
                 value={form.email}
                 onChange={set("email")}
+                error={fieldErrors.email}
               />
               <Field
                 label="Adres *"
                 value={form.address}
                 onChange={set("address")}
+                error={fieldErrors.address}
               />
             </div>
 
             <div className="flex flex-col sm:flex-row gap-6">
               <Field
                 label="Kod pocztowy *"
+                inputMode="numeric"
+                placeholder="00-000"
                 value={form.postal}
                 onChange={set("postal")}
+                error={fieldErrors.postal}
               />
               <Field
                 label="Miasto *"
                 value={form.city}
                 onChange={set("city")}
+                error={fieldErrors.city}
               />
             </div>
           </div>

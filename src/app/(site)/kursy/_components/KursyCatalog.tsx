@@ -23,10 +23,13 @@ const gridContainer: Variants = {
 export function KursyCatalog({
   courses,
   categories,
+  ownedSlugs = [],
 }: {
   courses: Course[];
   categories: string[];
+  ownedSlugs?: string[];
 }) {
+  const owned = useMemo(() => new Set(ownedSlugs), [ownedSlugs]);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Wszystkie");
   const [page, setPage] = useState(1);
@@ -122,7 +125,12 @@ export function KursyCatalog({
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
           >
             {pageItems.map((course, i) => (
-              <CourseCard key={course.id} course={course} index={i} />
+              <CourseCard
+                key={course.id}
+                course={course}
+                index={i}
+                owned={owned.has(course.slug)}
+              />
             ))}
           </motion.div>
         </AnimatePresence>

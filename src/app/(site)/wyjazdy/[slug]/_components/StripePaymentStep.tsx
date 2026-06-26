@@ -34,12 +34,15 @@ interface Props {
   clientSecret: string;
   depositLabel: string;
   returnUrl: string;
+  /** Wstępnie wypełnia pole email w Payment Element (np. z konta kursanta). */
+  email?: string;
 }
 
 export default function StripePaymentStep({
   clientSecret,
   depositLabel,
   returnUrl,
+  email,
 }: Props) {
   return (
     <Elements
@@ -60,7 +63,11 @@ export default function StripePaymentStep({
         },
       }}
     >
-      <PaymentForm depositLabel={depositLabel} returnUrl={returnUrl} />
+      <PaymentForm
+        depositLabel={depositLabel}
+        returnUrl={returnUrl}
+        email={email}
+      />
     </Elements>
   );
 }
@@ -88,9 +95,11 @@ function PaymentElementSkeleton() {
 function PaymentForm({
   depositLabel,
   returnUrl,
+  email,
 }: {
   depositLabel: string;
   returnUrl: string;
+  email?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -131,6 +140,9 @@ function PaymentForm({
         <PaymentElement
           options={{
             layout: { type: "tabs", defaultCollapsed: false },
+            ...(email
+              ? { defaultValues: { billingDetails: { email } } }
+              : {}),
           }}
           onReady={() => setReady(true)}
         />

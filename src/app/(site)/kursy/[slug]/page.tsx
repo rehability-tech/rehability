@@ -11,15 +11,16 @@ import {
   Lightning,
   Devices,
   VideoCamera,
+  LockSimpleOpen,
 } from "@phosphor-icons/react/dist/ssr";
-import { getCourseBySlug, getCourses } from "@/lib/courses-db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth/auth";
+import { getCourseBySlug, getCourses, isUserEnrolled } from "@/lib/courses-db";
 import { formatCourseDuration, DEFAULT_FAQ } from "../_data/courses";
 import { SITE_NAME, absoluteUrl } from "@/lib/seo/site";
 import { CourseTabs } from "../_components/CourseTabs";
 import { CourseViewBeacon } from "./_components/CourseViewBeacon";
 import { Reveal } from "../../blog/[blogSlug]/_components/Reveal";
-
-export const revalidate = 300;
 
 export async function generateStaticParams() {
   const courses = await getCourses();
@@ -63,6 +64,14 @@ export default async function CourseDetailPage({
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
+
+  // Czy zalogowany użytkownik ma już dostęp → zamiast „Otrzymaj dostęp”
+  // pokazujemy „Przejdź do panelu” + status „Odblokowane”.
+  const session = await getServerSession(authOptions);
+  const owned = session?.user?.id
+    ? await isUserEnrolled(session.user.id, slug)
+    : false;
+  const panelHref = `/panel/vod/${course.slug}`;
 
   // Structured data (JSON-LD) — to ono daje rich snippets (gwiazdki, cena,
   // FAQ) i cytowalność przez AI. Pomijamy je dla kursów z noindex. Treść musi
@@ -274,22 +283,35 @@ export default async function CourseDetailPage({
             className="mt-8 flex flex-wrap items-center justify-between gap-5"
           >
             <div className="leading-none">
-              <p className="text-[10px] uppercase tracking-wider text-white/40 font-bold mb-1">
-                Cena dożywotnia
-              </p>
-              <p className="font-jakarta text-[26px] font-bold text-white leading-none">
-                {course.price}{" "}
-                <span className="text-[15px] font-semibold text-white/70">
-                  PLN
+              {owned ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-brand-yellow/30 pl-2.5 pr-4 py-2 font-montserrat font-semibold text-[13px] text-white shadow-[0_4px_15px_0px_rgba(242,217,103,0.25)]">
+                  <LockSimpleOpen
+                    size={16}
+                    weight="fill"
+                    className="text-brand-yellow"
+                  />
+                  Masz już dostęp
                 </span>
-              </p>
+              ) : (
+                <>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 font-bold mb-1">
+                    Cena dożywotnia
+                  </p>
+                  <p className="font-jakarta text-[26px] font-bold text-white leading-none">
+                    {course.price}{" "}
+                    <span className="text-[15px] font-semibold text-white/70">
+                      PLN
+                    </span>
+                  </p>
+                </>
+              )}
             </div>
             <Link
-              href={`/kursy/${course.slug}/checkout`}
+              href={owned ? panelHref : `/kursy/${course.slug}/checkout`}
               className="group relative inline-flex items-center gap-2 bg-white text-brand-secondary font-montserrat font-bold text-[14px] px-5 py-2.5 rounded-2xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_0px_rgba(242,217,103,0.45)] hover:shadow-[0_10px_30px_0px_rgba(242,217,103,0.6)] transition-all overflow-hidden"
             >
               <span className="pointer-events-none absolute -right-2 -bottom-2 size-9 rounded-full bg-brand-yellow/50 blur-[14px]" />
-              Otrzymaj dostęp
+              {owned ? "Przejdź do panelu" : "Otrzymaj dostęp"}
               <ArrowRight
                 size={16}
                 weight="bold"
@@ -423,14 +445,29 @@ export default async function CourseDetailPage({
 
             {/* Przycisk (na dole, pełna szerokość) */}
             <Link
-              href={`/kursy/${course.slug}/checkout`}
+              href={owned ? panelHref : `/kursy/${course.slug}/checkout`}
               className="group relative inline-flex w-full items-center justify-center gap-2 bg-white text-brand-secondary font-montserrat font-bold text-[15px] px-7 py-4 rounded-3xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_0px_rgba(242,217,103,0.45)] hover:shadow-[0_12px_34px_0px_rgba(242,217,103,0.65)] hover:-translate-y-0.5 transition-all overflow-hidden"
             >
               <span className="pointer-events-none absolute -right-2 -bottom-2 size-12 rounded-full bg-brand-yellow/50 blur-[16px]" />
               <span className="relative inline-flex items-center gap-2">
-                Otrzymaj dostęp
-                <span className="text-brand-secondary/40">·</span>
-                <span className="text-brand-primary">{course.price} PLN</span>
+                {owned ? (
+                  <>
+                    <LockSimpleOpen
+                      size={17}
+                      weight="fill"
+                      className="text-brand-primary"
+                    />
+                    Przejdź do panelu
+                  </>
+                ) : (
+                  <>
+                    Otrzymaj dostęp
+                    <span className="text-brand-secondary/40">·</span>
+                    <span className="text-brand-primary">
+                      {course.price} PLN
+                    </span>
+                  </>
+                )}
                 <ArrowRight
                   size={17}
                   weight="bold"
@@ -438,6 +475,14 @@ export default async function CourseDetailPage({
                 />
               </span>
             </Link>
+
+            {/* Status odblokowania — pod przyciskiem */}
+            {owned && (
+              <p className="relative -mt-3 inline-flex items-center justify-center gap-1.5 font-montserrat text-[12.5px] font-semibold text-brand-yellow">
+                <LockSimpleOpen size={14} weight="fill" />
+                Masz już dostęp — kurs odblokowany na Twoim koncie.
+              </p>
+            )}
           </div>
         </div>
       </section>

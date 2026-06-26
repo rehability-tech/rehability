@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Heart,
   VideoCamera,
+  LockSimpleOpen,
 } from "@phosphor-icons/react/dist/ssr";
 import { formatCourseDuration, type Course } from "../_data/courses";
 import { useFavorites } from "@/app/_components/FavoritesProvider";
@@ -17,9 +18,11 @@ import { useFavorites } from "@/app/_components/FavoritesProvider";
 export function CourseCard({
   course,
   index = 0,
+  owned = false,
 }: {
   course: Course;
   index?: number;
+  owned?: boolean;
 }) {
   const { isFavorite, toggle } = useFavorites();
   const liked = isFavorite(course.id);
@@ -109,12 +112,19 @@ export function CourseCard({
             )}
           </div>
 
-          {/* Znacznik: nagrania jeszcze niedostępne */}
-          {course.videoPending && (
-            <span className="absolute bottom-4 right-4 inline-flex items-center gap-1 text-white text-[10px] font-bold bg-amber-500/90 backdrop-blur-md border border-white/20 px-2 py-1 rounded-full">
-              <VideoCamera size={11} weight="fill" />
-              Nagrania wkrótce
+          {/* Znacznik: kurs odblokowany (ma pierwszeństwo) lub nagrania wkrótce */}
+          {owned ? (
+            <span className="absolute bottom-4 right-4 inline-flex items-center gap-1 text-white text-[10px] font-bold bg-emerald-500/90 backdrop-blur-md border border-white/20 px-2 py-1 rounded-full">
+              <LockSimpleOpen size={11} weight="fill" />
+              Odblokowane
             </span>
+          ) : (
+            course.videoPending && (
+              <span className="absolute bottom-4 right-4 inline-flex items-center gap-1 text-white text-[10px] font-bold bg-amber-500/90 backdrop-blur-md border border-white/20 px-2 py-1 rounded-full">
+                <VideoCamera size={11} weight="fill" />
+                Nagrania wkrótce
+              </span>
+            )
           )}
         </div>
 
@@ -129,18 +139,25 @@ export function CourseCard({
             {course.title}
           </h3>
 
-          {/* Cena + CTA */}
-          <div className="mt-auto flex items-end justify-between pt-4 border-t border-brand-secondary/5">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-brand-secondary/40 font-bold">
-                Cena
-              </p>
-              <p className="font-jakarta text-[22px] font-bold text-brand-primary leading-none mt-1">
-                {course.price} <span className="text-[15px]">PLN</span>
-              </p>
-            </div>
+          {/* Cena + CTA (gdy odblokowany — kompaktowy pill „Odblokowane”) */}
+          <div className="mt-auto flex items-center justify-between pt-4 border-t border-brand-secondary/5">
+            {owned ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/70 pl-2 pr-3 py-1 font-montserrat font-bold text-[12px] text-emerald-600">
+                <LockSimpleOpen size={13} weight="fill" />
+                Odblokowane
+              </span>
+            ) : (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-brand-secondary/40 font-bold">
+                  Cena
+                </p>
+                <p className="font-jakarta text-[22px] font-bold text-brand-primary leading-none mt-1">
+                  {course.price} <span className="text-[15px]">PLN</span>
+                </p>
+              </div>
+            )}
             <span className="inline-flex items-center gap-2 text-[13px] font-bold text-brand-primary group-hover:gap-3 transition-all">
-              Poznaj szczegóły
+              {owned ? "Zobacz szczegóły" : "Poznaj szczegóły"}
               <ArrowRight size={16} weight="bold" />
             </span>
           </div>

@@ -530,6 +530,16 @@ export async function isCourseCompleted(
   return !!e?.completedAt;
 }
 
+/** Zbiór slugów kursów, do których użytkownik ma dostęp (oznaczanie „odblokowane”
+ *  w katalogu/na stronie sprzedażowej bez pobierania pełnych danych kursów). */
+export async function getEnrolledSlugs(userId: string): Promise<string[]> {
+  const rows = await prisma.enrollment.findMany({
+    where: { userId },
+    select: { course: { select: { slug: true } } },
+  });
+  return rows.map((r) => r.course.slug);
+}
+
 /** Kursy, do których użytkownik ma dostęp (biblioteka VOD). */
 export async function getEnrolledCourses(userId: string): Promise<Course[]> {
   const rows = await prisma.enrollment.findMany({

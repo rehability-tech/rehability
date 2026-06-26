@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth/auth";
 import { KursyHero } from "./_components/KursyHero";
 import { KursyCatalog } from "./_components/KursyCatalog";
 import { KursySuggestion } from "./_components/KursySuggestion";
-import { getCourses, getCourseCategories } from "@/lib/courses-db";
-
-export const revalidate = 300;
+import {
+  getCourses,
+  getCourseCategories,
+  getEnrolledSlugs,
+} from "@/lib/courses-db";
 
 export const metadata: Metadata = {
   title: "Platforma VOD – Programy treningowe online",
@@ -21,9 +25,11 @@ export const metadata: Metadata = {
 };
 
 export default async function KursyPage() {
-  const [courses, categories] = await Promise.all([
+  const session = await getServerSession(authOptions);
+  const [courses, categories, ownedSlugs] = await Promise.all([
     getCourses(),
     getCourseCategories(),
+    session?.user?.id ? getEnrolledSlugs(session.user.id) : Promise.resolve([]),
   ]);
 
   return (
@@ -35,7 +41,11 @@ export default async function KursyPage() {
         <div className="absolute top-1/3 -right-32 w-[380px] h-[380px] rounded-full bg-brand-yellow/25 blur-[120px]" />
       </div>
       <KursyHero />
-      <KursyCatalog courses={courses} categories={categories} />
+      <KursyCatalog
+        courses={courses}
+        categories={categories}
+        ownedSlugs={ownedSlugs}
+      />
       <KursySuggestion />
     </main>
   );

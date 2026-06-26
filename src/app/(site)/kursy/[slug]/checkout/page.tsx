@@ -25,6 +25,14 @@ export default async function CheckoutPage({
   const isLoggedIn = !!session?.user?.email;
   const loginUrl = `/logowanie?callbackUrl=${encodeURIComponent(`/kursy/${slug}/checkout`)}`;
 
+  // Dane z konta zalogowanego użytkownika — wstępnie wypełniają formularz.
+  const account = isLoggedIn
+    ? {
+        name: session!.user!.name ?? "",
+        email: session!.user!.email ?? "",
+      }
+    : null;
+
   return (
     <main className="relative min-h-screen pt-28 md:pt-32 pb-24 overflow-hidden">
       {/* Dekoracyjne tło — spójne z katalogiem /kursy */}
@@ -65,6 +73,7 @@ export default async function CheckoutPage({
           course={course}
           isLoggedIn={isLoggedIn}
           loginUrl={loginUrl}
+          account={account}
         />
       </section>
     </main>

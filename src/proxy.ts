@@ -11,7 +11,9 @@ export async function proxy(request: NextRequest) {
   // 0. Platforma VOD (/kursy) tymczasowo dostępna TYLKO dla sesji admina.
   //    Każdy inny (niezalogowany lub zwykły user) jest odsyłany na stronę
   //    główną — sekcja nie jest jeszcze publiczna.
+  //    W dev (NODE_ENV !== "production") blokada jest wyłączona — pełny dostęp.
   if (
+    process.env.NODE_ENV === "production" &&
     (pathname === "/kursy" || pathname.startsWith("/kursy/")) &&
     token?.role !== "ADMIN"
   ) {

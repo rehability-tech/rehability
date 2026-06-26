@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,6 +27,7 @@ import {
   Trash,
   CircleNotch,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   COURSE_BENEFITS,
@@ -95,18 +95,22 @@ function ActionButton({
 }
 
 // Formularz opinii kursantki — dodanie/edycja/usunięcie własnej opinii.
+// Po zapisie/usunięciu NIE odświeżamy strony (router.refresh), bo to remontuje
+// odtwarzacz (świeży podpisany HLS = nowy key) — zamiast tego aktualizujemy stan
+// opinii lokalnie przez callbacki onSaved/onDeleted.
 function ReviewForm({
   slug,
   myReview,
-  onDone,
+  onSaved,
+  onDeleted,
   onCancel,
 }: {
   slug: string;
   myReview: { rating: number; text: string } | null;
-  onDone?: () => void;
+  onSaved?: (review: { rating: number; text: string }) => void;
+  onDeleted?: () => void;
   onCancel?: () => void;
 }) {
-  const router = useRouter();
   const editing = !!myReview;
   const [rating, setRating] = useState(myReview?.rating ?? 0);
   const [hover, setHover] = useState(0);
@@ -135,8 +139,7 @@ function ReviewForm({
       const data = await res.json().catch(() => null);
       if (!res.ok)
         throw new Error(data?.error || "Nie udało się zapisać opinii.");
-      onDone?.();
-      router.refresh();
+      onSaved?.({ rating, text: text.trim() });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Błąd zapisu.");
     } finally {
@@ -155,8 +158,7 @@ function ReviewForm({
       }
       setRating(0);
       setText("");
-      onDone?.();
-      router.refresh();
+      onDeleted?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Błąd usuwania.");
     } finally {
@@ -241,33 +243,40 @@ function ReviewForm({
           {error}
         </p>
       )}
+      {/* Akcje — na mobile ikonki (oszczędność miejsca), od sm pełne etykiety. */}
       <div className="relative flex flex-wrap items-center gap-2 mt-3">
         <button
           type="button"
           onClick={submit}
           disabled={saving || deleting}
-          className="inline-flex items-center gap-2 bg-brand-primary text-white font-montserrat font-bold text-[12.5px] px-4 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_10px_26px_0px_rgba(242,217,103,0.45)] transition-all disabled:opacity-60"
+          title={editing ? "Zapisz zmiany" : "Oceń"}
+          aria-label={editing ? "Zapisz zmiany" : "Oceń"}
+          className="inline-flex items-center gap-2 bg-brand-primary text-white font-montserrat font-bold text-[12.5px] px-3 sm:px-4 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_10px_26px_0px_rgba(242,217,103,0.45)] transition-all disabled:opacity-60"
         >
           {saving ? (
             <CircleNotch size={15} weight="bold" className="animate-spin" />
           ) : (
             <Star size={15} weight="fill" />
           )}
-          {editing ? "Zapisz zmiany" : "Oceń"}
+          <span className="hidden sm:inline">
+            {editing ? "Zapisz zmiany" : "Oceń"}
+          </span>
         </button>
         {editing && (
           <button
             type="button"
             onClick={remove}
             disabled={deleting || saving}
-            className="inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-600 font-montserrat font-bold text-[12.5px] px-3.5 py-2.5 rounded-xl rounded-tr-[3px] hover:bg-rose-500 hover:text-white transition-colors disabled:opacity-60"
+            title="Usuń opinię"
+            aria-label="Usuń opinię"
+            className="inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-600 font-montserrat font-bold text-[12.5px] px-3 sm:px-3.5 py-2.5 rounded-xl rounded-tr-[3px] hover:bg-rose-500 hover:text-white transition-colors disabled:opacity-60"
           >
             {deleting ? (
               <CircleNotch size={14} weight="bold" className="animate-spin" />
             ) : (
               <Trash size={14} weight="bold" />
             )}
-            Usuń
+            <span className="hidden sm:inline">Usuń</span>
           </button>
         )}
         {onCancel && (
@@ -275,9 +284,12 @@ function ReviewForm({
             type="button"
             onClick={onCancel}
             disabled={saving || deleting}
-            className="inline-flex items-center gap-1.5 ml-auto bg-white/70 text-brand-secondary/70 font-montserrat font-bold text-[12.5px] px-3.5 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-primary/15 hover:border-brand-primary/40 hover:text-brand-secondary transition-colors disabled:opacity-60"
+            title="Anuluj"
+            aria-label="Anuluj"
+            className="inline-flex items-center gap-1.5 ml-auto bg-white/70 text-brand-secondary/70 font-montserrat font-bold text-[12.5px] px-3 sm:px-3.5 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-primary/15 hover:border-brand-primary/40 hover:text-brand-secondary transition-colors disabled:opacity-60"
           >
-            Anuluj
+            <X size={14} weight="bold" />
+            <span className="hidden sm:inline">Anuluj</span>
           </button>
         )}
       </div>
@@ -289,22 +301,30 @@ export function VodCoursePlayer({
   course,
   allCourses,
   completedLessonIds,
-  myReview,
+  myReview: initialMyReview,
+  viewerName = "Ty",
   initialCompleted = false,
 }: {
   course: PlayerCourse;
   allCourses: Course[];
   completedLessonIds: string[];
   myReview: { rating: number; text: string } | null;
+  viewerName?: string;
   initialCompleted?: boolean;
 }) {
-  const router = useRouter();
   const isSingle = course.format === "single";
 
-  // Opinie kursantów (realne z bazy).
-  const reviews = course.testimonials;
-  const reviewCount = course.reviews;
-  const avgRating = course.rating;
+  // Opinie kursantów — w lokalnym stanie (seed z bazy). Po dodaniu/edycji/usunięciu
+  // własnej opinii aktualizujemy stan tutaj, BEZ router.refresh() — odświeżenie
+  // remontowałoby odtwarzacz (świeży podpisany HLS = nowy key playera).
+  const [reviews, setReviews] = useState<typeof course.testimonials>(
+    course.testimonials,
+  );
+  const [myReview, setMyReview] = useState(initialMyReview);
+  const reviewCount = reviews.length;
+  const avgRating = reviewCount
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+    : 0;
 
   // Wyodrębniamy własną opinię z listy — pokazujemy ją osobno z tagiem
   // „Twoja opinia" i akcjami edycji/usuwania, żeby nie dublowała się w liście.
@@ -322,6 +342,34 @@ export function VodCoursePlayer({
   const [editingReview, setEditingReview] = useState(false);
   const [deletingReview, setDeletingReview] = useState(false);
 
+  // Usuwa własną opinię z lokalnej listy (po potwierdzeniu z API).
+  const applyMyReviewRemoved = () => {
+    setReviews((prev) =>
+      myReview
+        ? prev.filter(
+            (r) => !(r.rating === myReview.rating && r.text === myReview.text),
+          )
+        : prev,
+    );
+    setMyReview(null);
+    setEditingReview(false);
+  };
+
+  // Wstawia/aktualizuje własną opinię na początku lokalnej listy.
+  const applyMyReviewSaved = (review: { rating: number; text: string }) => {
+    setReviews((prev) => {
+      const withoutMine = myReview
+        ? prev.filter(
+            (r) => !(r.rating === myReview.rating && r.text === myReview.text),
+          )
+        : prev;
+      const author = myReview ? myReviewAuthor : viewerName;
+      return [{ author, rating: review.rating, text: review.text }, ...withoutMine];
+    });
+    setMyReview(review);
+    setEditingReview(false);
+  };
+
   const deleteMyReview = async () => {
     if (deletingReview) return;
     setDeletingReview(true);
@@ -330,8 +378,7 @@ export function VodCoursePlayer({
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
-      setEditingReview(false);
-      router.refresh();
+      applyMyReviewRemoved();
     } catch {
       toast.error("Nie udało się usunąć opinii.");
     } finally {
@@ -1227,7 +1274,8 @@ export function VodCoursePlayer({
             <ReviewForm
               slug={course.slug}
               myReview={myReview}
-              onDone={() => setEditingReview(false)}
+              onSaved={applyMyReviewSaved}
+              onDeleted={applyMyReviewRemoved}
               onCancel={
                 myReview ? () => setEditingReview(false) : undefined
               }
