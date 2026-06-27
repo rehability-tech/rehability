@@ -165,7 +165,7 @@ export default function UserSidebar() {
     },
     {
       key: "vod-moje",
-      href: "/panel/vod?widok=moje",
+      href: "/panel/vod/moje",
       label: "Moje kursy",
       icon: GraduationCap,
     },

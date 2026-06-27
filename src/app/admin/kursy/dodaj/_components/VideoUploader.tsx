@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as tus from "tus-js-client";
 import {
@@ -11,7 +11,7 @@ import {
   Warning,
   ArrowsClockwise,
 } from "@phosphor-icons/react/dist/ssr";
-import { useReportUpload } from "./uploadTracker";
+import { UploadTrackerContext } from "./uploadTracker";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,video/x-matroska";
 const MAX_BYTES = 2_000_000_000; // 2 GB
@@ -38,6 +38,7 @@ export function VideoUploader({
   value,
   onChange,
   onDuration,
+  onUploadingChange,
   label = "Wideo kursu",
   hint = "MP4 / MOV / WEBM — przeciągnij plik lub kliknij. Streaming HLS z ochroną Bunny.",
 }: {
@@ -45,6 +46,9 @@ export function VideoUploader({
   onChange: (url: string) => void;
   /** Długość nagrania (sekundy) z Bunny — zgłaszana po zakończeniu kodowania. */
   onDuration?: (seconds: number) => void;
+  /** Zgłasza, czy TRWA przesyłanie pliku (faza „uploading"). Pozwala rodzicowi
+   *  pokazać wskaźnik i zablokować akcje, które przerwałyby upload. */
+  onUploadingChange?: (uploading: boolean) => void;
   label?: string;
   hint?: string;
 }) {
@@ -57,11 +61,28 @@ export function VideoUploader({
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Kodowanie u Bunny trwa nietypowo długo (po progu pokazujemy podpowiedź).
+  const [slowProcessing, setSlowProcessing] = useState(false);
+  // Ręczne „Sprawdź teraz" — bump wymusza natychmiastowy re-poll statusu.
+  const [manualPoll, setManualPoll] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Zgłoś przesyłanie do kreatora (liczy WSZYSTKIE materiały + agreguje postęp;
-  // spinner/licznik w pasku akcji + toast po końcu).
-  useReportUpload(phase === "uploading", progress);
+  // Globalny tracker przesyłań kreatora (licznik + zagregowany postęp w pasku
+  // akcji). Raportujemy WPROST z callbacków TUS — nie przez efekt sprzątany przy
+  // odmontowaniu — żeby postęp był widoczny także po zmianie kroku (np. piszesz
+  // SEO, a nagranie z Programu wciąż się wysyła). Wpis znika dopiero przy
+  // realnym końcu/błędzie/usunięciu, a nie gdy komponent zniknie z ekranu.
+  const report = useContext(UploadTrackerContext);
+  const uploadIdRef = useRef<string | null>(null);
+  const uploadRef = useRef<tus.Upload | null>(null);
+
+  // Zgłoś rodzicowi stan „trwa przesyłanie" (np. modal struktury blokuje na ten
+  // czas „Wygeneruj kurs"). Na odmontowaniu zawsze zwalniamy (false).
+  useEffect(() => {
+    onUploadingChange?.(phase === "uploading");
+    return () => onUploadingChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   // Synchronizacja z zewnętrznym `value` (np. przywrócony szkic z autozapisu):
   // gdy wideo „wpadnie" z zewnątrz, pokaż player; gdy zniknie — wróć do dropzone.
@@ -126,6 +147,12 @@ export function VideoUploader({
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
+    // Reset podpowiedzi „trwa długo" i odpal ją po progu, jeśli wciąż koduje.
+    setSlowProcessing(false);
+    const slowTimer = setTimeout(() => {
+      if (!cancelled) setSlowProcessing(true);
+    }, 45000);
+
     const poll = async () => {
       try {
         const res = await fetch(
@@ -170,8 +197,11 @@ export function VideoUploader({
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(slowTimer);
     };
-  }, [phase, videoId]);
+    // manualPoll w deps → „Sprawdź teraz" restartuje poll i licznik „trwa długo".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, videoId, manualPoll]);
 
   const startUpload = async (file: File) => {
     setError(null);
@@ -204,6 +234,11 @@ export function VideoUploader({
       onChange(data.embedUrl);
       setVideoId(data.videoId);
 
+      // Zarejestruj przesyłanie w globalnym trackerze (stałe id = videoId Bunny).
+      // Raportujemy z callbacków TUS, więc postęp przeżywa zmianę kroku.
+      uploadIdRef.current = data.videoId;
+      report?.(data.videoId, { active: true, progress: 0 });
+
       // 2) Klient wysyła plik bezpośrednio do Bunny (TUS — wznawialny + progres).
       const upload = new tus.Upload(file, {
         endpoint: "https://video.bunnycdn.com/tusupload",
@@ -218,23 +253,29 @@ export function VideoUploader({
         onError: () => {
           // Upload padł — cofnij wcześniejszy zapis URL, żeby w szkicu nie
           // został martwy odnośnik do wideo bez pliku.
+          report?.(data.videoId, { active: false, progress: 0 });
           onChange("");
           setVideoId(null);
           setError("Nie udało się przesłać wideo. Spróbuj ponownie.");
           setPhase("error");
         },
         onProgress: (uploaded, total) => {
-          setProgress(Math.round((uploaded / total) * 100));
+          const pct = Math.round((uploaded / total) * 100);
+          setProgress(pct);
+          // Działa też po odmontowaniu (closure żyje z obiektem TUS).
+          report?.(data.videoId, { active: true, progress: pct });
         },
         onSuccess: () => {
           // Wideo jest już w Bunny — zapisujemy embed URL (autozapis szkicu),
           // ale czekamy z playerem aż Bunny zakończy kodowanie (faza processing).
+          report?.(data.videoId, { active: false, progress: 100 });
           onChange(data.embedUrl);
           setVideoId(data.videoId);
           setEncodeProgress(0);
           setPhase("processing");
         },
       });
+      uploadRef.current = upload;
       upload.start();
     } catch (err) {
       setError(
@@ -250,6 +291,13 @@ export function VideoUploader({
   };
 
   const reset = () => {
+    // Przerwij trwające przesyłanie i zwolnij wpis w globalnym trackerze.
+    uploadRef.current?.abort();
+    uploadRef.current = null;
+    if (uploadIdRef.current) {
+      report?.(uploadIdRef.current, { active: false, progress: 0 });
+      uploadIdRef.current = null;
+    }
     onChange("");
     setPhase("idle");
     setProgress(0);
@@ -272,10 +320,11 @@ export function VideoUploader({
         whileTap={{ scale: 0.94 }}
         onClick={() => inputRef.current?.click()}
         title="Zmień nagranie"
-        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-black/80 text-white text-[11.5px] font-bold shadow-md hover:bg-black"
+        aria-label="Zmień nagranie"
+        className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-black/80 text-white text-[11.5px] font-bold shadow-md hover:bg-black"
       >
         <ArrowsClockwise size={14} weight="bold" />
-        Zmień
+        <span className="hidden sm:inline">Zmień</span>
       </motion.button>
       <motion.button
         type="button"
@@ -283,10 +332,11 @@ export function VideoUploader({
         whileTap={{ scale: 0.94 }}
         onClick={reset}
         title="Usuń nagranie"
-        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-500 text-white text-[11.5px] font-bold shadow-md hover:bg-rose-600"
+        aria-label="Usuń nagranie"
+        className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-rose-500 text-white text-[11.5px] font-bold shadow-md hover:bg-rose-600"
       >
         <Trash size={14} weight="bold" />
-        Usuń
+        <span className="hidden sm:inline">Usuń</span>
       </motion.button>
     </div>
   );
@@ -339,7 +389,7 @@ export function VideoUploader({
   // Bunny koduje wideo po uploadzie — pokazujemy WŁASNY overlay zamiast surowej
   // planszy „Processing" z embeda. Przełączenie na player robi polling statusu.
   const processingCard = () => (
-    <div className="group relative w-full aspect-video flex flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl rounded-tr-none border border-brand-primary/20 bg-brand-primary/[0.05] p-5 text-center">
+    <div className="group relative w-full sm:aspect-video min-h-[16rem] sm:min-h-0 flex flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl rounded-tr-none border border-brand-primary/20 bg-brand-primary/[0.05] px-5 pb-5 pt-14 sm:p-5 text-center">
       <span className="pointer-events-none absolute -right-7 -bottom-7 size-28 rounded-full bg-brand-yellow/20 blur-[40px]" />
       <span className="relative flex items-center justify-center size-12 rounded-2xl rounded-tr-none bg-brand-primary text-white border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)]">
         <CircleNotch size={24} weight="bold" className="animate-spin" />
@@ -359,6 +409,28 @@ export function VideoUploader({
               animate={{ width: `${encodeProgress}%` }}
               transition={{ ease: "easeOut", duration: 0.3 }}
             />
+          </div>
+        )}
+
+        {/* Po progu: uspokój i daj ręczne odświeżenie. Nagranie jest już zapisane,
+            więc twórca może spokojnie pracować dalej — podgląd włączy się sam. */}
+        {slowProcessing && (
+          <div className="mt-3 flex flex-col items-center gap-2">
+            <p className="font-montserrat text-[11px] text-brand-secondary/60 leading-snug">
+              Kodowanie trwa dłużej niż zwykle. Nagranie jest już zapisane —
+              możesz kontynuować, podgląd włączy się automatycznie.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setManualPoll((n) => n + 1);
+              }}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand-primary/10 text-brand-primary text-[11.5px] font-bold hover:bg-brand-primary/15 transition-colors"
+            >
+              <ArrowsClockwise size={14} weight="bold" />
+              Sprawdź teraz
+            </button>
           </div>
         )}
       </div>

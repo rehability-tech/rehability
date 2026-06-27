@@ -120,7 +120,7 @@ export default function HubTripsWidget() {
       <div className="relative overflow-hidden rounded-3xl rounded-tr-none bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[0_20px_60px_-30px_rgba(3,63,99,0.25)] p-6 lg:p-8 h-full min-h-[340px] flex flex-col animate-pulse">
         <div className="flex justify-between items-start mb-6">
           <div className="w-28 h-8 rounded-full bg-gray-200/50" />
-          <div className="w-20 h-20 rounded-2xl rounded-tr-none bg-gray-200/50" />
+          <div className="w-10 h-10 rounded-xl rounded-tr-none bg-gray-200/50" />
         </div>
         <div className="flex-1 mt-4 space-y-3">
           <div className="w-3/4 h-8 bg-gray-200/50 rounded-lg" />
@@ -145,9 +145,9 @@ export default function HubTripsWidget() {
             </span>
           </div>
 
-          <div className="relative w-20 h-20 rounded-2xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.1)] flex items-center justify-center shrink-0">
-            <Tent size={40} weight="duotone" className="text-brand-primary" />
-            <span className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-brand-yellow flex items-center justify-center shadow-[0_4px_15px_0px_rgba(242,217,103,0.55)]">
+          <div className="relative w-10 h-10 rounded-xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.1)] flex items-center justify-center shrink-0">
+            <Tent size={22} weight="duotone" className="text-brand-primary" />
+            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-brand-yellow flex items-center justify-center shadow-[0_4px_15px_0px_rgba(242,217,103,0.55)]">
               <Heart size={14} weight="fill" className="text-white" />
             </span>
           </div>
@@ -216,13 +216,13 @@ export default function HubTripsWidget() {
               </span>
             </div>
 
-            <div className="relative w-20 h-20 rounded-2xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
+            <div className="relative w-10 h-10 rounded-xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
               <Tent
-                size={40}
+                size={22}
                 weight="duotone"
                 className="text-brand-secondary/40"
               />
-              <span className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-sky-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(14,165,233,0.4)]">
+              <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-sky-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(14,165,233,0.4)]">
                 <ClockCounterClockwise
                   size={16}
                   weight="bold"
@@ -265,13 +265,13 @@ export default function HubTripsWidget() {
                 Wymagane działanie
               </span>
             </div>
-            <div className="relative w-20 h-20 rounded-2xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
+            <div className="relative w-10 h-10 rounded-xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
               <Tent
-                size={40}
+                size={22}
                 weight="duotone"
                 className="text-brand-secondary/40"
               />
-              <span className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(245,158,11,0.4)]">
+              <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(245,158,11,0.4)]">
                 <WarningCircle size={16} weight="fill" className="text-white" />
               </span>
             </div>
@@ -337,7 +337,7 @@ export default function HubTripsWidget() {
                   ) : paymentError ? (
                     <div className="flex flex-col items-center justify-center text-center py-6 gap-3">
                       <WarningCircle
-                        size={40}
+                        size={22}
                         className="text-rose-500"
                         weight="duotone"
                       />
@@ -397,9 +397,9 @@ export default function HubTripsWidget() {
             Twój najbliższy wyjazd
           </span>
         </div>
-        <div className="relative w-20 h-20 rounded-2xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
-          <Tent size={40} weight="duotone" className="text-brand-primary" />
-          <span className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(34,197,94,0.4)]">
+        <div className="relative w-10 h-10 rounded-xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
+          <Tent size={22} weight="duotone" className="text-brand-primary" />
+          <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-[0_4px_15px_0px_rgba(34,197,94,0.4)]">
             <CheckCircle size={14} weight="fill" className="text-white" />
           </span>
         </div>

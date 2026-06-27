@@ -24,8 +24,8 @@ export function KursySuggestion() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="relative overflow-hidden rounded-[40px] md:rounded-[63px] bg-gradient-to-br from-brand-primary to-[#76adb6] px-6 py-12 md:px-16 md:py-14 shadow-[0_30px_80px_-40px_rgba(3,63,99,0.6)]"
       >
-        {/* Dekoracyjne poświaty */}
-        <div className="pointer-events-none absolute -right-20 -top-24 w-[420px] h-[420px] rounded-full bg-white/10 blur-[80px]" />
+        {/* Dekoracyjne poświaty — słoneczna żółta (znak rozpoznawczy brandu) */}
+        <div className="pointer-events-none absolute -right-20 -top-24 w-[420px] h-[420px] rounded-full bg-brand-yellow/25 blur-[80px]" />
         <div className="pointer-events-none absolute -left-24 -bottom-28 w-[420px] h-[420px] rounded-full bg-brand-primary/20 blur-[90px]" />
 
         <div className="relative flex flex-col items-center gap-6 text-center">
@@ -33,7 +33,7 @@ export function KursySuggestion() {
             <h2 className="font-jakarta font-semibold text-white text-[30px] md:text-[48px] leading-tight">
               Brakuje Ci konkretnego tematu?
             </h2>
-            <p className="font-jakarta font-medium text-white/90 text-[16px] leading-[1.4]">
+            <p className="font-jakarta font-normal text-white/90 text-[16px] leading-[1.4]">
               Stale rozwijamy naszą bazę VOD, opierając się na realnych
               potrzebach pacjentów. Daj znać, jakiego programu brakuje w
               katalogu, a weźmiemy to pod uwagę przy tworzeniu kolejnych
@@ -55,11 +55,11 @@ export function KursySuggestion() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Jaki program chcesz zobaczyć?"
-                className="flex-1 h-12 px-4 rounded-xl bg-white/80 font-jakarta text-[15px] text-brand-secondary placeholder:text-brand-secondary/40 outline-none focus:bg-white"
+                className="flex-1 min-w-0 w-full !h-22 py-3 px-4 rounded-xl bg-white/80 font-jakarta text-[15px] text-brand-secondary placeholder:text-brand-secondary/40 outline-none focus:bg-white"
               />
               <button
                 type="submit"
-                className="h-12 px-8 rounded-xl rounded-tr-[20px] bg-brand-primary text-white font-jakarta font-semibold text-[15px] tracking-[0.15px] transition-colors hover:bg-brand-secondary"
+                className="h-12 shrink-0 px-8 rounded-xl rounded-tr-[20px] bg-brand-primary text-white font-jakarta font-semibold text-[15px] tracking-[0.15px] transition-colors hover:bg-brand-secondary"
               >
                 Wyślij
               </button>

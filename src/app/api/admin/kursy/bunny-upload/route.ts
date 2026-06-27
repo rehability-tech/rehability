@@ -17,6 +17,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!isAuthorized) return response as NextResponse;
 
   if (!bunnyConfigured()) {
+    console.error(
+      "[bunny-upload] Bunny niezskonfigurowany — sprawdź BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY w .env",
+    );
     return NextResponse.json(
       {
         error:
@@ -28,10 +31,13 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const { title } = (await request.json()) as { title?: string };
+    console.info(`[bunny-upload] start | title="${title ?? "(brak)"}"`);
+
     const videoId = await createBunnyVideo(title || "Wideo kursu");
     const expire = Math.floor(Date.now() / 1000) + 3600; // 1h na upload
     const signature = bunnyTusSignature(videoId, expire);
 
+    console.info(`[bunny-upload] ✓ gotowe | videoId=${videoId}`);
     return NextResponse.json({
       libraryId: BUNNY_LIBRARY_ID,
       videoId,
@@ -41,6 +47,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       hlsUrl: bunnyHlsUrl(videoId),
     });
   } catch (error) {
+    // Pełny log na serwerze (stack + komunikat) — widoczny w konsoli `npm run dev`.
+    console.error("[bunny-upload] BŁĄD inicjalizacji uploadu:", error);
     return NextResponse.json(
       { error: (error as Error).message || "Błąd inicjalizacji uploadu wideo." },
       { status: 500 },

@@ -7,6 +7,7 @@ import {
   CircleNotch,
   VideoCamera,
   Check,
+  ArrowLeft,
 } from "@phosphor-icons/react/dist/ssr";
 import type { SaveSource } from "./useCourseAutosave";
 
@@ -16,6 +17,9 @@ import type { SaveSource } from "./useCourseAutosave";
  */
 export function FloatingSaveBar({
   onAi,
+  aiTitle = "Asystent AI — wygeneruj kurs",
+  aiBusy = false,
+  onBack,
   onSave,
   savingSource,
   showAutosaveTooltip,
@@ -25,8 +29,17 @@ export function FloatingSaveBar({
   uploadingCount = 0,
   uploadProgress = 0,
   uploadDone = false,
+  encoding = false,
+  encodingCount = 0,
 }: {
   onAi: () => void;
+  /** Tooltip przycisku AI (różny dla tworzenia / edycji). */
+  aiTitle?: string;
+  /** Trwa praca asystenta AI (spinner + blokada przycisku). */
+  aiBusy?: boolean;
+  /** Strzałka „wstecz" (tylko mobile — zastępuje dolny pasek nawigacji w kreatorze).
+   *  Powinna otworzyć popup z potwierdzeniem wyjścia. Brak → przycisk się nie pokazuje. */
+  onBack?: () => void;
   onSave: () => void;
   savingSource: SaveSource | null;
   showAutosaveTooltip: boolean;
@@ -40,6 +53,10 @@ export function FloatingSaveBar({
   uploadProgress?: number;
   /** Przesyłanie właśnie się zakończyło (krótko „check", potem ikona znika). */
   uploadDone?: boolean;
+  /** Wideo wgrane, ale Bunny wciąż je koduje (brak miniatury/czasu materiału). */
+  encoding?: boolean;
+  /** Ile nagrań jest jeszcze w trakcie kodowania. */
+  encodingCount?: number;
 }) {
   const saving = savingSource === "auto" || savingSource === "manual";
   const status = saving
@@ -63,69 +80,111 @@ export function FloatingSaveBar({
         ? "bg-amber-400"
         : "bg-gray-300";
 
+  // W kreatorze pasek zastępuje dolną nawigację na mobile (jest tam ukryta), więc
+  // siada w prawym dolnym rogu z zapasem na safe-area; od sm: standardowe bottom-5.
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/80 pl-4 pr-2 py-2 shadow-[0_12px_40px_-8px_rgba(40,125,136,0.35)]"
+      className="fixed right-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-[110] sm:right-5 sm:bottom-5 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/80 pl-2 pr-2 sm:pl-4 py-2 shadow-[0_12px_40px_-8px_rgba(40,125,136,0.35)]"
     >
-      {/* Status przesyłania wideo: spinner + licznik materiałów + zagregowany
-          postęp → check → znika. W trybie modułowym liczy WSZYSTKIE uploady. */}
-      <AnimatePresence>
-        {(uploading || uploadDone) && (
-          <motion.span
-            key="upload-status"
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.25 }}
-            title={
-              uploading
-                ? `Przesyłanie ${uploadingCount} ${
-                    uploadingCount === 1 ? "materiału" : "materiałów"
-                  }… ${uploadProgress}%`
-                : "Materiały przesłane"
-            }
-            className="flex items-center gap-2 shrink-0 pl-0.5"
+      {/* Strzałka „wstecz" — tylko mobile (zastępuje dolny pasek nawigacji w
+          kreatorze). Otwiera popup z potwierdzeniem wyjścia (logika w rodzicu). */}
+      {onBack && (
+        <>
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Wróć"
+            title="Wróć"
+            className="sm:hidden flex items-center justify-center size-10 rounded-full text-brand-secondary/70 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
           >
-            <span className="relative flex items-center justify-center size-9 shrink-0">
-              {/* Pierścień spinnera — kręci się dopóki trwa wysyłka */}
-              {uploading && (
-                <CircleNotch
-                  size={34}
-                  weight="bold"
-                  className="absolute inset-0 m-auto animate-spin text-brand-primary/70"
-                />
-              )}
-              {uploadDone ? (
-                <Check size={18} weight="bold" className="text-emerald-500" />
-              ) : (
-                <VideoCamera
-                  size={17}
-                  weight="fill"
-                  className="text-brand-primary"
-                />
-              )}
-              {/* Badge z liczbą równoległych przesyłań (gdy więcej niż jedno) */}
-              {uploading && uploadingCount > 1 && (
-                <span className="absolute -right-1 -top-1 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-brand-primary text-white text-[10px] font-bold leading-none shadow">
-                  {uploadingCount}
-                </span>
-              )}
-            </span>
+            <ArrowLeft size={19} weight="bold" />
+          </button>
+          <span className="sm:hidden h-5 w-px bg-gray-200" />
+        </>
+      )}
 
-            {/* Tekst postępu (desktop) */}
-            <span className="hidden sm:inline font-montserrat text-[12px] font-semibold text-brand-primary tabular-nums">
-              {uploading
-                ? `Przesyłanie ${
-                    uploadingCount > 1 ? `${uploadingCount} · ` : ""
-                  }${uploadProgress}%`
-                : "Przesłano"}
-            </span>
-          </motion.span>
-        )}
+      {/* Status nagrań: PRZESYŁANIE (spinner + % + licznik) → KODOWANIE na Bunny
+          (spinner „Przetwarzanie…", aż dojdzie miniatura i czas materiału) → check
+          → znika. Kolejność = prawdziwy cykl życia wideo. Tryb modułowy liczy
+          WSZYSTKIE nagrania naraz. */}
+      <AnimatePresence>
+        {(() => {
+          const showUpload = uploading;
+          const showEncoding = !uploading && encoding;
+          const showDone = !uploading && !encoding && uploadDone;
+          if (!showUpload && !showEncoding && !showDone) return null;
+          const spinning = showUpload || showEncoding;
+          const accent = showEncoding ? "text-amber-500" : "text-brand-primary";
+          const badge =
+            showUpload && uploadingCount > 1
+              ? uploadingCount
+              : showEncoding && encodingCount > 1
+                ? encodingCount
+                : null;
+          const text = showUpload
+            ? `Przesyłanie ${uploadingCount > 1 ? `${uploadingCount} · ` : ""}${uploadProgress}%`
+            : showEncoding
+              ? "Przetwarzanie wideo…"
+              : "Przesłano";
+          return (
+            <motion.span
+              key="video-status"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.25 }}
+              title={
+                showUpload
+                  ? `Przesyłanie ${uploadingCount} ${
+                      uploadingCount === 1 ? "materiału" : "materiałów"
+                    }… ${uploadProgress}%`
+                  : showEncoding
+                    ? `Kodowanie wideo na serwerze (${encodingCount}) — czas materiału i miniatura pojawią się po zakończeniu`
+                    : "Materiały przesłane"
+              }
+              className="flex items-center gap-2 shrink-0 pl-0.5"
+            >
+              <span className="relative flex items-center justify-center size-9 shrink-0">
+                {/* Pierścień spinnera — kręci się przy przesyłaniu i kodowaniu */}
+                {spinning && (
+                  <CircleNotch
+                    size={34}
+                    weight="bold"
+                    className={`absolute inset-0 m-auto animate-spin ${
+                      showEncoding ? "text-amber-400/70" : "text-brand-primary/70"
+                    }`}
+                  />
+                )}
+                {showDone ? (
+                  <Check size={18} weight="bold" className="text-emerald-500" />
+                ) : (
+                  <VideoCamera size={17} weight="fill" className={accent} />
+                )}
+                {/* Badge z liczbą równoległych nagrań (gdy więcej niż jedno) */}
+                {badge && (
+                  <span
+                    className={`absolute -right-1 -top-1 flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-white text-[10px] font-bold leading-none shadow ${
+                      showEncoding ? "bg-amber-500" : "bg-brand-primary"
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </span>
+
+              {/* Tekst statusu (desktop) */}
+              <span
+                className={`hidden sm:inline font-montserrat text-[12px] font-semibold tabular-nums ${accent}`}
+              >
+                {text}
+              </span>
+            </motion.span>
+          );
+        })()}
       </AnimatePresence>
 
       {/* Status autozapisu */}
@@ -140,11 +199,16 @@ export function FloatingSaveBar({
       <button
         type="button"
         onClick={onAi}
-        title="Asystent AI — wygeneruj kurs"
-        className="group relative flex items-center justify-center size-10 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-colors overflow-hidden"
+        disabled={aiBusy}
+        title={aiTitle}
+        className="group relative flex items-center justify-center size-10 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-colors overflow-hidden disabled:opacity-60 disabled:cursor-wait"
       >
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-brand-primary/0 to-brand-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Sparkle size={19} weight="fill" className="relative group-hover:animate-pulse" />
+        {aiBusy ? (
+          <CircleNotch size={19} weight="bold" className="relative animate-spin" />
+        ) : (
+          <Sparkle size={19} weight="fill" className="relative group-hover:animate-pulse" />
+        )}
       </button>
 
       {/* Zapis szkicu */}

@@ -11,6 +11,8 @@ const TINTS: Record<Tint, { text: string }> = {
 export type StatItem = {
   icon: React.ElementType;
   value: string | number;
+  /** Mianownik (np. „/4") dopisany szarym obok wartości — np. 1/4 kursów. */
+  sub?: string | number;
   label: string;
   tint: Tint;
   /** Postęp 0–100 dla pierścienia wokół ikony. */
@@ -21,7 +23,7 @@ const CARD_BASE =
   "rounded-[20px] rounded-tr-none bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_14px_40px_-30px_rgba(3,63,99,0.4)]";
 
 export function StatCard({ item }: { item: StatItem }) {
-  const { icon: Icon, value, label, tint, pct } = item;
+  const { icon: Icon, value, sub, label, tint, pct } = item;
   const t = TINTS[tint];
   return (
     <div className={`flex items-center gap-3.5 ${CARD_BASE} p-4`}>
@@ -38,6 +40,11 @@ export function StatCard({ item }: { item: StatItem }) {
       <div className="min-w-0">
         <p className="font-jakarta font-bold text-[20px] text-brand-secondary leading-none">
           {value}
+          {sub !== undefined && (
+            <span className="text-brand-secondary/30 text-[14px] font-semibold">
+              /{sub}
+            </span>
+          )}
         </p>
         <p className="font-montserrat text-[12px] text-brand-secondary/50 mt-1 truncate">
           {label}

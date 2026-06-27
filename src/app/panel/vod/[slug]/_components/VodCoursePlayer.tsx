@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -304,6 +304,9 @@ export function VodCoursePlayer({
   myReview: initialMyReview,
   viewerName = "Ty",
   initialCompleted = false,
+  initialWatchedSec = 0,
+  lessonSeconds = {},
+  ownedProgress = {},
 }: {
   course: PlayerCourse;
   allCourses: Course[];
@@ -311,6 +314,12 @@ export function VodCoursePlayer({
   myReview: { rating: number; text: string } | null;
   viewerName?: string;
   initialCompleted?: boolean;
+  /** Obejrzane sekundy głównego filmu (format „single") — wznowienie pozycji. */
+  initialWatchedSec?: number;
+  /** Obejrzane sekundy per lekcja (kursy z modułami) — wznowienie pozycji. */
+  lessonSeconds?: Record<string, number>;
+  /** Postęp posiadanych kursów (slug → %) — karty „Podobne kursy". */
+  ownedProgress?: Record<string, number>;
 }) {
   const isSingle = course.format === "single";
 
@@ -441,6 +450,35 @@ export function VodCoursePlayer({
   const total = lessons.length;
   const [activeNo, setActiveNo] = useState(1);
   const active = lessons.find((l) => l.no === activeNo) ?? lessons[0];
+
+  // Zapis obejrzanego czasu (throttling ~10 s robi HlsPlayer). „single" → sekundy
+  // na Enrollment (courseId); kursy z modułami → sekundy na LessonProgress
+  // (lessonId aktywnej lekcji). Postęp % po stronie serwera liczony jest z tych
+  // sekund względem długości materiału.
+  const activeLessonId = active.id;
+  const saveWatchSeconds = useCallback(
+    (seconds: number) => {
+      const body = isSingle
+        ? { courseId: course.id, seconds }
+        : activeLessonId
+          ? { lessonId: activeLessonId, seconds }
+          : null;
+      if (!body) return;
+      fetch("/api/panel/vod/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        keepalive: true,
+      }).catch(() => {});
+    },
+    [isSingle, course.id, activeLessonId],
+  );
+
+  // Pozycja wznowienia dla aktywnego materiału: single → sekundy z Enrollment,
+  // lekcja → sekundy z LessonProgress (mapa z serwera).
+  const resumeAt = isSingle
+    ? initialWatchedSec
+    : (lessonSeconds[activeLessonId] ?? 0);
 
   // Realny postęp z ukończonych lekcji (LessonProgress).
   const [doneIds, setDoneIds] = useState<Set<string>>(
@@ -754,9 +792,11 @@ export function VodCoursePlayer({
                 isHls={!!active.videoHls}
                 poster={course.image}
                 autoPlay={playOnLoad}
+                startAt={resumeAt}
                 onPlay={() => setExpanded(true)}
                 onPause={() => setExpanded(false)}
                 onEnded={handleVideoEnded}
+                onProgress={saveWatchSeconds}
                 overlay={showEndPrompt ? endOverlay : null}
               />
             ) : (
@@ -1301,12 +1341,15 @@ export function VodCoursePlayer({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {similar.map((c, idx) => {
-            const owned = idx === 0; // mock: pierwszy „w bibliotece"
+          {similar.map((c) => {
+            // Realne posiadanie + postęp (zamiast wcześniejszej zaślepki).
+            const owned = c.slug in ownedProgress;
+            const prog = owned ? ownedProgress[c.slug] : undefined;
+            const done = (prog ?? 0) >= 100;
             return (
               <Link
                 key={c.id}
-                href={`/panel/vod/${c.slug}`}
+                href={owned ? `/panel/vod/${c.slug}` : `/kursy/${c.slug}`}
                 className="group relative flex flex-col rounded-[20px] rounded-tr-none bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_16px_45px_-28px_rgba(3,63,99,0.35)] overflow-hidden hover:-translate-y-0.5 transition-all"
               >
                 <div className="relative h-[120px] overflow-hidden">
@@ -1331,22 +1374,56 @@ export function VodCoursePlayer({
                   <h4 className="font-jakarta font-bold text-[13.5px] text-brand-secondary leading-snug line-clamp-2 min-h-[36px]">
                     {c.title}
                   </h4>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-montserrat text-brand-secondary/50">
-                      <Clock size={12} weight="duotone" className="text-brand-primary" />
-                      {formatCourseDuration(c.durationMin)}
-                    </span>
-                    {owned ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
-                        <Check size={12} weight="bold" />
-                        W bibliotece
+                  {c.excerpt && (
+                    <p className="font-montserrat text-[12px] leading-relaxed text-brand-secondary/55 line-clamp-2">
+                      {c.excerpt}
+                    </p>
+                  )}
+                  {/* Posiadany kurs → pasek postępu (po czasie); inaczej cena. */}
+                  {owned ? (
+                    <div className="mt-auto">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-montserrat text-brand-secondary/50">
+                          <Clock
+                            size={11}
+                            weight="duotone"
+                            className="text-brand-primary"
+                          />
+                          {formatCourseDuration(c.durationMin)}
+                        </span>
+                        <span
+                          className={`text-[10.5px] font-bold ${
+                            done ? "text-emerald-600" : "text-brand-primary"
+                          }`}
+                        >
+                          {done ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Check size={11} weight="bold" />
+                              Ukończony
+                            </span>
+                          ) : (
+                            `Obejrzano ${prog ?? 0}%`
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-brand-secondary/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-yellow"
+                          style={{ width: `${prog ?? 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-auto flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-montserrat text-brand-secondary/50">
+                        <Clock size={12} weight="duotone" className="text-brand-primary" />
+                        {formatCourseDuration(c.durationMin)}
                       </span>
-                    ) : (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-primary">
                         {c.price} zł
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </Link>
             );

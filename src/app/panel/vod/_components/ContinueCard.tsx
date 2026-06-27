@@ -43,6 +43,11 @@ export function ContinueCard({
           <h3 className="font-jakarta font-bold text-[18px] md:text-[20px] text-brand-secondary leading-tight line-clamp-2">
             {course.title}
           </h3>
+          {course.excerpt && (
+            <p className="font-montserrat text-[13px] leading-relaxed text-brand-secondary/55 line-clamp-2 mt-1.5">
+              {course.excerpt}
+            </p>
+          )}
           <div className="flex items-center gap-3 mt-2 text-[12px] font-montserrat text-brand-secondary/50">
             <span className="inline-flex items-center gap-1">
               <Clock size={14} weight="duotone" className="text-brand-primary" />

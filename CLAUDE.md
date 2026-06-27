@@ -95,4 +95,4 @@ Druga noga produktu obok wyjazdów: sprzedaż i odtwarzanie kursów wideo on-dem
 
 - **`src/lib/courses-db.ts`** — JEDYNE źródło danych kursów (Prisma): katalog, player, statystyki admina, enrollments, postępy, opinie. To tu dodajemy logikę domenową VOD.
 - **`src/app/(site)/kursy/_data/courses.ts`** — już TYLKO typy (`Course`, `CourseModule`…) i statyczne stałe/fallbacki (`COURSE_BENEFITS`, `DEFAULT_FAQ`, `DEFAULT_CURRICULUM`). Tablica `COURSES` jest reliktem — kursy żyją w bazie.
-  ⚠️ Krok „Podsumowanie" w `CourseWizard` wciąż pokazuje stary komunikat o wklejaniu JSON do `courses.ts`, ale `publish()` realnie zapisuje kurs przez `POST /api/admin/kursy`. Przy zmianach UI kreatora warto ten komunikat zaktualizować.
+  Krok „Podsumowanie" w `CourseWizard` poprawnie informuje, że „Opublikuj kurs" zapisuje go w bazie i publikuje (przez `publish()` → `POST /api/admin/kursy`); szkic jest autozapisywany w tle. Brak już komunikatu o wklejaniu JSON do `courses.ts`.

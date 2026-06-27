@@ -596,8 +596,12 @@ model Enrollment {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
   // Ukończenie kursu: single → po obejrzeniu filmu; moduły → po ostatniej lekcji.
   completedAt DateTime?
+  // Postęp oglądania głównego filmu (format „single"; sekundy). Dla kursów
+  // z modułami postęp liczymy z LessonProgress — to pole zostaje 0.
+  watchedSec  Int       @default(0)
 
   @@unique([userId, courseId])
   @@index([userId])

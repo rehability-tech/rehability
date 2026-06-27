@@ -79,6 +79,12 @@ export function LibraryCard({
           {course.title}
         </h3>
 
+        {course.excerpt && (
+          <p className="font-montserrat text-[12.5px] leading-relaxed text-brand-secondary/55 line-clamp-2">
+            {course.excerpt}
+          </p>
+        )}
+
         {owned ? (
           progress !== undefined ? (
             <div className="mt-auto">

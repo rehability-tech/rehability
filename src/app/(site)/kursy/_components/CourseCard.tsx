@@ -139,6 +139,12 @@ export function CourseCard({
             {course.title}
           </h3>
 
+          {course.excerpt && (
+            <p className="font-montserrat text-[13px] leading-relaxed text-brand-secondary/55 line-clamp-2 -mt-1">
+              {course.excerpt}
+            </p>
+          )}
+
           {/* Cena + CTA (gdy odblokowany — kompaktowy pill „Odblokowane”) */}
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-brand-secondary/5">
             {owned ? (

@@ -23,6 +23,7 @@ export const geminiRequestSchema = z.object({
     "generateCourseBlueprint",
     "generateCourseSingleBlock",
     "generateLessonMeta",
+    "generateCourseStructure",
     "generateCourseSeo",
     "analyzeCourseSeo",
     "generateInvitationEmail",

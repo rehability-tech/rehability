@@ -77,6 +77,7 @@ export default async function VodPage({
         locked={locked}
         progressByCourse={overview.progressByCourse}
         lessonsDone={overview.lessonsDone}
+        lessonsTotal={overview.lessonsTotal}
       />
     </Suspense>
   );

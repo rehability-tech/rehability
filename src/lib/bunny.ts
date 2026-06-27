@@ -24,9 +24,13 @@ export function bunnyConfigured(): boolean {
 
 /** Tworzy obiekt wideo w bibliotece i zwraca jego GUID. */
 export async function createBunnyVideo(title: string): Promise<string> {
-  const res = await fetch(
-    `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`,
-    {
+  const endpoint = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`;
+  console.info(
+    `[bunny] createBunnyVideo → POST ${endpoint} | libraryId=${LIBRARY_ID || "(brak)"} | apiKeyLen=${API_KEY.length} | title="${title}"`,
+  );
+  let res: Response;
+  try {
+    res = await fetch(endpoint, {
       method: "POST",
       headers: {
         AccessKey: API_KEY,
@@ -34,12 +38,28 @@ export async function createBunnyVideo(title: string): Promise<string> {
         accept: "application/json",
       },
       body: JSON.stringify({ title: title || "Wideo kursu" }),
-    },
-  );
+    });
+  } catch (err) {
+    // Błąd sieci/DNS (np. brak internetu, zły host) — fetch rzuca zanim dojdzie odpowiedź.
+    console.error("[bunny] createBunnyVideo — fetch rzucił wyjątek:", err);
+    throw new Error(
+      `Bunny: brak połączenia z API (${(err as Error).message}).`,
+    );
+  }
   if (!res.ok) {
-    throw new Error(`Bunny: nie udało się utworzyć wideo (${res.status}).`);
+    // Dołącz treść odpowiedzi Bunny (np. {"Message":"Authentication has been denied..."}).
+    const body = await res.text().catch(() => "");
+    console.error(
+      `[bunny] createBunnyVideo — HTTP ${res.status} ${res.statusText} | body: ${body.slice(0, 500)}`,
+    );
+    throw new Error(
+      `Bunny: nie udało się utworzyć wideo (${res.status} ${res.statusText})${
+        body ? ` — ${body.slice(0, 200)}` : ""
+      }.`,
+    );
   }
   const data = (await res.json()) as { guid: string };
+  console.info(`[bunny] createBunnyVideo ✓ guid=${data.guid}`);
   return data.guid;
 }
 

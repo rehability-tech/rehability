@@ -33,7 +33,10 @@ import {
   PencilSimple,
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
-import CourseAiBriefModal from "./CourseAiBriefModal";
+import CourseAiBriefModal, {
+  type CourseStructureBrief,
+  BRIEF_STORAGE_KEY,
+} from "./CourseAiBriefModal";
 import { VideoUploader } from "./VideoUploader";
 import OgImageCreator from "@/components/admin/seo/OgImageCreator";
 import CoverCropper from "./CoverCropper";
@@ -60,6 +63,10 @@ import Portal from "@/components/ui/Portal";
 import { StartStep } from "./StartStep";
 import { Select } from "./Select";
 import { FloatingSaveBar } from "./FloatingSaveBar";
+import SectionAiModal, {
+  type SectionStep,
+  type TrescPick,
+} from "./SectionAiModal";
 import { UploadTrackerContext } from "./uploadTracker";
 import {
   useCourseAutosave,
@@ -146,6 +153,7 @@ type AutoPhase =
   | "cover"
   | "data"
   | "content"
+  | "contentTab"
   | "seo"
   | "og"
   | "done";
@@ -156,6 +164,7 @@ const AUTO_STEP_DEFS: { id: Exclude<AutoPhase, "idle" | "done">; label: string; 
   { id: "cover", label: "Okładka", detail: "Wybierz okładkę lub pozwól wybrać agentowi." },
   { id: "data", label: "Dane podstawowe", detail: "Uzupełniam tytuł, kategorię, cenę i opis…" },
   { id: "content", label: "Treść „O kursie”", detail: "Copywriter pisze sekcje strony…" },
+  { id: "contentTab", label: "Zawartość", detail: "Opisuję, co kurs zawiera w środku…" },
   { id: "seo", label: "SEO", detail: "Optymalizuję dane pod wyszukiwarki…" },
   { id: "og", label: "Grafika OG", detail: "Złóż grafikę OG i zaakceptuj." },
 ];
@@ -304,11 +313,24 @@ export function CourseWizard({
   const stepIdx = Math.min(Math.max(step, 0), steps.length - 1);
   const currentId = steps[stepIdx];
 
+  // Każde przejście do innego kroku przewija stronę na samą górę.
+  useEffect(() => {
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [stepIdx]);
+
   // ID istniejącego szkicu z URL (?draft=) — restore po odświeżeniu + PATCH zamiast POST.
   const draftIdParam = searchParams.get("draft");
   // Aktualne ID szkicu (z URL lub utworzone w trakcie) — w refie, by setStep
   // i callbacki budowały URL bez zależności od asynchronicznego stanu.
   const draftIdRef = useRef<string | null>(draftIdParam);
+  // Czy kreator OTWARTO z istniejącym kursem/szkicem (?draft= w URL na wejściu) —
+  // tryb EDYCJI/wznowienia. Wtedy wszystkie kroki są dostępne (kurs już istnieje),
+  // a powrót na „Start" (ekran metoda/format, destrukcyjny) wymaga potwierdzenia.
+  // Ref liczony RAZ na mount — autozapis dokłada ?draft= przy tworzeniu, ale to
+  // nie powinno wstecznie włączać trybu edycji w tej samej sesji.
+  const editingRef = useRef(Boolean(draftIdParam));
+  const editing = editingRef.current;
   // Aktualny krok w refie (callback onCourseId nie może użyć starego domknięcia).
   const stepRef = useRef(step);
   stepRef.current = step;
@@ -338,6 +360,36 @@ export function CourseWizard({
     setStepState((cur) => (q !== cur ? q : cur));
   }, [searchParams]);
 
+  // Ostrzeżenie przed powrotem na ekran „Start" w trybie edycji.
+  const [confirmStartOpen, setConfirmStartOpen] = useState(false);
+  // Potwierdzenie wyjścia z kreatora (strzałka „wstecz" w pasku akcji na mobile).
+  const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+
+  // Klik w krok w nawigacji. Przy TWORZENIU obowiązuje progresywne odblokowanie
+  // (tylko kroki ≤ bieżący). Klik w „Start" (gdy nie jesteśmy już na nim) ZACZYNA
+  // NOWY kurs — czyści draft i wszystkie dane — więc najpierw pytamy.
+  const handleStepClick = (i: number) => {
+    if (!editing && i > stepIdx) return;
+    if (steps[i] === "start" && i !== stepIdx) {
+      setConfirmStartOpen(true);
+      return;
+    }
+    setStep(i);
+  };
+
+  // „Świeży start": czyści zapamiętany brief i przeładowuje kreator na czysto.
+  // Pełny remount jest KONIECZNY — autozapis trzyma courseId w stanie (useState),
+  // którego nie da się zresetować in-place; reset wartości groziłby nadpisaniem
+  // istniejącego kursu pustką. Używane przez krok „Start" i link w sidebarze.
+  const resetCreator = () => {
+    try {
+      localStorage.removeItem(BRIEF_STORAGE_KEY);
+    } catch {
+      /* prywatny tryb / brak dostępu — ignorujemy */
+    }
+    window.location.assign("/admin/kursy/dodaj");
+  };
+
   // Start ma dwie fazy: metoda (AI/ręcznie) → format (jeden film/lekcje).
   const [startPhase, setStartPhase] = useState<"method" | "format">("method");
   const startMethodRef = useRef<"ai" | "manual">("manual");
@@ -353,6 +405,13 @@ export function CourseWizard({
   const [loadingField, setLoadingField] = useState<
     "title" | "category" | "price" | "excerpt" | null
   >(null);
+  // Pola „Dane" już ODSŁONIĘTE w autopilocie. Wartość pokazujemy dopiero po
+  // odsłonięciu (shimmer nad pustym polem → wartość „wpada"), żeby reveal
+  // wyglądał jak realna generacja, a nie animacja nad gotowym tekstem. Poza fazą
+  // „data" (i poza autopilotem) pola zawsze widać.
+  const [revealedFields, setRevealedFields] = useState<Set<string>>(
+    () => new Set(),
+  );
   // Shimmer na wszystkich polach SEO podczas generacji metadanych.
   const [seoShimmer, setSeoShimmer] = useState(false);
   // Agent dobiera okładkę (kadr/Pexels) — blokuje przyciski przed dublem.
@@ -386,15 +445,29 @@ export function CourseWizard({
   const [descBlocks, setDescBlocks] = useState<EditorBlock[]>([]);
   const [contentBlocks, setContentBlocks] = useState<EditorBlock[]>([]);
   const [faqItems, setFaqItems] = useState<EditFaq[]>([]);
+  // FAQ generowane wizualnie w autopilocie: dane czekają w refie (ze szkieletu),
+  // a faqItems odsłaniamy po jednym (revealFaq), z shimmerem w karcie FAQ.
+  // draft.faq jest ustawiony już przy szkielecie, więc to czysto wizualne.
+  const pendingFaqRef = useRef<EditFaq[] | null>(null);
+  const [faqGenerating, setFaqGenerating] = useState(false);
   // FAQ na starcie dostaje jeden pusty blok pytania (chyba że restore/AI dało własne).
   const faqSeededRef = useRef(false);
 
   // AI-SEO: auto-generacja po wejściu w krok SEO + ręczna analiza nasycenia.
   const [seoGenerating, setSeoGenerating] = useState(false);
+  // Skeleton zamiast pól pokazujemy TYLKO przy ręcznej generacji („Generuj SEO").
+  // Cicha auto-generacja po wejściu w krok zostawia inputy widoczne — inaczej,
+  // gdy AI jest wolne/niedostępne lokalnie, pola SEO nigdy by się nie pokazały.
+  const [seoFormBusy, setSeoFormBusy] = useState(false);
   const [seoStatusMsg, setSeoStatusMsg] = useState<string | null>(null);
   const seoAutoRef = useRef(false);
-  // GUID-y wideo, dla których już odpytaliśmy Bunny o długość (dedup w sesji).
+  // GUID-y wideo, dla których już odczytaliśmy długość z Bunny (dedup w sesji).
   const durationsCheckedRef = useRef<Set<string>>(new Set());
+  // GUID-y wideo, które Bunny WCIĄŻ koduje (status != Finished). Aktualizowane
+  // pollingiem statusu; podstawa wskaźników „przetwarzanie" i bramki publikacji.
+  const [encodingGuids, setEncodingGuids] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [seoAnalyzing, setSeoAnalyzing] = useState(false);
   const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
 
@@ -577,9 +650,10 @@ export function CourseWizard({
 
   // Generacja SEO przez AI na bazie CAŁEJ treści kursu (auto po wejściu w krok
   // SEO + ręczny przycisk). `auto` = ciche (bez toastów sukcesu).
-  const generateSeo = async (auto = false) => {
+  const generateSeo = async (auto = false, extraNotes = "", onReady?: () => void) => {
     if (seoGenerating) return;
     setSeoGenerating(true);
+    if (!auto) setSeoFormBusy(true);
     setSeoStatusMsg("Łączenie z AI…");
     try {
       const res = await geminiFetch(
@@ -588,7 +662,9 @@ export function CourseWizard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: buildCourseSummary(draft),
+            prompt:
+              buildCourseSummary(draft) +
+              (extraNotes ? `\n\nDodatkowe uwagi do SEO: ${extraNotes}` : ""),
             action: "generateCourseSeo",
           }),
         },
@@ -605,6 +681,7 @@ export function CourseWizard({
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || "Błąd generowania SEO.");
       }
+      onReady?.();
       const seo = (await res.json()) as {
         metaTitle?: string;
         metaDescription?: string;
@@ -621,6 +698,7 @@ export function CourseWizard({
         );
     } finally {
       setSeoGenerating(false);
+      setSeoFormBusy(false);
       setSeoStatusMsg(null);
     }
   };
@@ -682,11 +760,15 @@ export function CourseWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId, loadingDraft]);
 
-  // Odświeżenie czasu materiału po wejściu na krok „Dane" — niezależnie od tego,
-  // czy VideoUploader jest zamontowany (lekcje żyją na kroku „Program"). Dla
-  // wideo bez znanej długości pytamy Bunny i uzupełniamy draft (autozapis utrwali).
+  // Odświeżenie czasu materiału na WSZYSTKICH krokach edycji (poza „Start") —
+  // niezależnie od tego, czy VideoUploader jest zamontowany (lekcje żyją na kroku
+  // „Program"). Dzięki temu wskaźnik kodowania (pasek zapisu, podgląd karty) wie,
+  // czy Bunny skończył już przetwarzać nagrania, nawet gdy user jest na innym kroku.
+  // KLUCZOWE dla autopilota: agent przelatuje przez „Dane", gdy wideo jeszcze się
+  // koduje, więc długość dochodzi dopiero później — tu też musimy pollować, inaczej
+  // „Czas materiału" zostaje na „Liczę z nagrań…".
   useEffect(() => {
-    if (currentId !== "dane" || loadingDraft) return;
+    if (currentId === "start" || loadingDraft) return;
     let cancelled = false;
 
     const guidOf = (url?: string | null) =>
@@ -694,63 +776,37 @@ export function CourseWizard({
         ? (url.match(/\/embed\/[^/]+\/([^/?#]+)/)?.[1] ?? null)
         : null;
 
-    const fetchLen = async (guid: string): Promise<number | null> => {
+    // Pełny status z Bunny: { status, encodeProgress, ready, failed, notFound, length }.
+    // KLUCZOWE: `ready` robi się true już przy PIERWSZEJ rozdzielczości (w trakcie
+    // transkodowania) — to za wcześnie, by uznać wideo za „gotowe". Za zakończone
+    // uznajemy dopiero status === 4 (Finished) [lub błąd, którego nie przeczekamy].
+    const fetchStatus = async (guid: string) => {
       try {
         const res = await fetch(
           `/api/admin/kursy/bunny-status?videoId=${encodeURIComponent(guid)}`,
           { cache: "no-store" },
         );
         if (!res.ok) return null;
-        const data = await res.json();
-        return data.ready &&
-          typeof data.length === "number" &&
-          data.length > 0
-          ? data.length
-          : null;
+        return (await res.json()) as {
+          status?: number;
+          ready?: boolean;
+          failed?: boolean;
+          notFound?: boolean;
+          length?: number;
+        };
       } catch {
         return null;
       }
     };
 
-    // GUID trafia do `durationsCheckedRef` DOPIERO po udanym odczycie długości.
-    // Wideo wciąż przetwarzane (fetchLen === null) zostawiamy do ponowienia —
-    // pollujemy co POLL_MS, aż wszystkie lekcje zgłoszą swoją długość.
-    const POLL_MS = 5000;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const run = async () => {
-      if (cancelled) return;
-
+    // Zapis długości lekcji/filmu (czas materiału) — pokazujemy go, gdy tylko Bunny
+    // zna długość, nawet zanim skończy kodować wyższe rozdzielczości.
+    const applyDuration = (guid: string, len: number) => {
+      if (durationsCheckedRef.current.has(guid)) return;
+      durationsCheckedRef.current.add(guid);
       if (draft.format === "single") {
-        if ((draft.videoDurationSec ?? 0) > 0) return;
-        const guid = guidOf(draft.video);
-        if (!guid) return;
-        const len = await fetchLen(guid);
-        if (cancelled) return;
-        if (len) {
-          durationsCheckedRef.current.add(guid);
-          set("videoDurationSec", len);
-          return;
-        }
-        timer = setTimeout(run, POLL_MS); // wciąż przetwarzane — ponów
-        return;
-      }
-
-      // sections — dociągnij brakujące długości WSZYSTKICH lekcji (po GUID).
-      const lessons = draft.curriculum.flatMap((m) => m.lessons);
-      let pending = false;
-      for (const lesson of lessons) {
-        if (cancelled) return;
-        if ((lesson.durationSec ?? 0) > 0) continue;
-        const guid = guidOf(lesson.video);
-        if (!guid || durationsCheckedRef.current.has(guid)) continue;
-        const len = await fetchLen(guid);
-        if (cancelled) return;
-        if (!len) {
-          pending = true; // wideo wciąż przetwarzane — spróbujemy ponownie
-          continue;
-        }
-        durationsCheckedRef.current.add(guid);
+        set("videoDurationSec", len);
+      } else {
         setDraft((d) => ({
           ...d,
           curriculum: d.curriculum.map((m) => ({
@@ -761,6 +817,54 @@ export function CourseWizard({
           })),
         }));
       }
+    };
+
+    const currentGuids = () =>
+      (draft.format === "single"
+        ? [guidOf(draft.video)]
+        : draft.curriculum.flatMap((m) => m.lessons.map((l) => guidOf(l.video)))
+      ).filter((g): g is string => !!g);
+
+    const sameSet = (a: Set<string>, b: Set<string>) =>
+      a.size === b.size && [...a].every((x) => b.has(x));
+
+    const POLL_MS = 5000;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const run = async () => {
+      if (cancelled) return;
+      const guids = currentGuids();
+      if (!guids.length) {
+        setEncodingGuids((prev) => (prev.size ? new Set() : prev));
+        return;
+      }
+
+      const stillEncoding = new Set<string>();
+      let pending = false;
+      for (const guid of guids) {
+        if (cancelled) return;
+        const data = await fetchStatus(guid);
+        if (cancelled) return;
+        if (!data) {
+          // Brak statusu (sieć/limit) — traktujemy jako wciąż przetwarzane i ponawiamy.
+          stillEncoding.add(guid);
+          pending = true;
+          continue;
+        }
+        if (typeof data.length === "number" && data.length > 0) {
+          applyDuration(guid, data.length);
+        }
+        const finished = data.status === 4;
+        const broken = data.failed || data.notFound;
+        if (!finished && !broken) {
+          stillEncoding.add(guid);
+          pending = true;
+        }
+      }
+      if (cancelled) return;
+      setEncodingGuids((prev) =>
+        sameSet(prev, stillEncoding) ? prev : stillEncoding,
+      );
       if (pending && !cancelled) timer = setTimeout(run, POLL_MS);
     };
 
@@ -771,7 +875,7 @@ export function CourseWizard({
       if (timer) clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentId, loadingDraft]);
+  }, [currentId, loadingDraft, videoSig]);
 
   const lessonCount = draft.curriculum.reduce(
     (s, m) => s + m.lessons.filter((l) => l.title.trim()).length,
@@ -791,6 +895,30 @@ export function CourseWizard({
   const totalDurationMin =
     totalDurationSec > 0 ? Math.max(1, Math.round(totalDurationSec / 60)) : 0;
 
+  // Lista trwających przesyłań (id wideo → etykieta lekcji) do podglądu na
+  // podsumowaniu — pokazujemy każde nagranie z jego postępem, po kolei.
+  const guidFromEmbed = (url?: string | null) =>
+    url && url.includes("iframe.mediadelivery.net")
+      ? (url.match(/\/embed\/[^/]+\/([^/?#]+)/)?.[1] ?? null)
+      : null;
+  const uploadingList = [...activeUploads.entries()].map(([vid, pct]) => {
+    let label = "Wideo";
+    if (guidFromEmbed(draft.video) === vid) label = "Wideo kursu";
+    else
+      draft.curriculum.forEach((m, mi) =>
+        m.lessons.forEach((l, li) => {
+          if (guidFromEmbed(l.video) === vid)
+            label = `Moduł ${mi + 1} · ${l.title?.trim() || `Lekcja ${li + 1}`}`;
+        }),
+      );
+    return { vid, pct, label };
+  });
+
+  // Wartość pola „Dane" pokazywana dopiero po odsłonięciu w autopilocie (faza
+  // „data"); poza tym zawsze realna wartość z draftu.
+  const revealVal = <T,>(key: string, val: T): T | "" =>
+    autoPhase === "data" && !revealedFields.has(key) ? "" : val;
+
   // Miniatura do podglądu karty — automatyczna miniatura Bunny z wgranego wideo
   // (single: główne; lekcje: pierwsze nagranie). Tak jak na froncie.
   const previewVideoUrl =
@@ -804,6 +932,22 @@ export function CourseWizard({
     ? `/api/admin/kursy/thumbnail?guid=${encodeURIComponent(previewGuid)}`
     : "";
   const [thumbBroken, setThumbBroken] = useState(false);
+
+  // Ile nagrań Bunny WCIĄŻ koduje (status != Finished) — z pollingu statusu
+  // (`encodingGuids`), z wykluczeniem tych, które dopiero LECĄ (faza uploadu w
+  // `activeUploads`, bo te mają osobny wskaźnik „Przesyłanie"). Podstawa loaderów
+  // i bramki publikacji: nie kończymy na „ready" (pierwsza rozdzielczość), tylko
+  // czekamy na pełne zakończenie kodowania.
+  const encodingCount = useMemo(() => {
+    if (!encodingGuids.size) return 0;
+    const uploadingGuids = new Set(activeUploads.keys());
+    let n = 0;
+    encodingGuids.forEach((g) => {
+      if (!uploadingGuids.has(g)) n++;
+    });
+    return n;
+  }, [encodingGuids, activeUploads]);
+  const isEncoding = encodingCount > 0;
 
   // Kandydaci na kadr-okładkę: główne wideo (single) + każda lekcja z nagraniem
   // (moduły). Miniatury z publicznego CDN Bunny — wyświetlalne wprost w <img>.
@@ -875,10 +1019,15 @@ export function CourseWizard({
   const goToStep = (id: StepId) =>
     setStep(stepsFor(formatRef.current).indexOf(id));
 
-  // Treść „O kursie" blok po bloku: plan (blueprint) → każdy blok osobno, z
-  // shimmerem i scrollem do generowanego elementu (jak w edytorze bloga).
-  const runContentBlocks = async () => {
-    const ctx = autoPromptRef.current;
+  // Generacja bloków treści blok po bloku: plan (blueprint) → każdy blok osobno,
+  // z shimmerem i scrollem do generowanego elementu (jak w edytorze bloga).
+  // Parametryczna: `ctx` = brief + ewentualny zawężający kontekst sekcji,
+  // `setBlocks` = docelowy edytor (O kursie / Zawartość).
+  const generateBlocksInto = async (
+    ctx: string,
+    setBlocks: (b: EditorBlock[]) => void,
+    onReady?: () => void,
+  ) => {
     setAutoLiveMsg("Układam sekcje strony…");
     const VALID: BlockKind[] = [
       "heading",
@@ -908,9 +1057,11 @@ export function CourseWizard({
     } catch {
       /* brak planu — fallback niżej */
     }
+    // Blueprint gotowy → od teraz generacja jest WIDOCZNA w edytorze (zamykamy popup).
+    onReady?.();
     if (!blueprint.length) {
       // Fallback: jeden akapit z excerptu, żeby krok nie został pusty.
-      setDescBlocks([
+      setBlocks([
         { _key: genKey(), type: "paragraph", content: { text: draft.excerpt || "" } },
       ]);
       return;
@@ -926,7 +1077,7 @@ export function CourseWizard({
         ...blocks,
         { _key: key, type: step.type, content: base, isGenerating: step.type !== "spacer" },
       ];
-      setDescBlocks(blocks);
+      setBlocks(blocks);
       setAutoLiveMsg(`Piszę sekcję ${i + 1}/${blueprint.length}…`);
       await sleep(120);
       document
@@ -988,7 +1139,7 @@ export function CourseWizard({
         blocks = blocks.map((b) =>
           b._key === key ? { ...b, content: mapped, isGenerating: false } : b,
         );
-        setDescBlocks(blocks);
+        setBlocks(blocks);
       } catch {
         blocks = blocks.map((b) =>
           b._key === key
@@ -999,11 +1150,329 @@ export function CourseWizard({
               }
             : b,
         );
-        setDescBlocks(blocks);
+        setBlocks(blocks);
       }
       // Oddech między blokami — żeby generacja nie „przelatywała" za szybko.
       await sleep(550);
     }
+  };
+
+  // „O kursie" (sekcja sprzedażowa) — brief bez dodatkowego zawężenia.
+  const runContentBlocks = (onReady?: () => void) =>
+    generateBlocksInto(autoPromptRef.current, setDescBlocks, onReady);
+
+  // „Zawartość" (co jest w środku) — brief wzbogacony o realny program kursu,
+  // z wyraźnym poleceniem, by NIE powielać sekcji „O kursie".
+  const runContentTab = (onReady?: () => void) => {
+    const program =
+      draft.format === "sections" && draft.curriculum.length
+        ? "\n\nProgram kursu (moduły i lekcje):\n" +
+          draft.curriculum
+            .map(
+              (m, mi) =>
+                `Moduł ${mi + 1}: ${m.title || ""}\n` +
+                m.lessons
+                  .map(
+                    (l) =>
+                      `  • ${l.title || ""}${l.description ? ` — ${l.description}` : ""}`,
+                  )
+                  .join("\n"),
+            )
+            .join("\n")
+        : "";
+    const ctx =
+      `${autoPromptRef.current}${program}\n\n` +
+      'SEKCJA DO ZAPLANOWANIA: zakładka „Zawartość" kursu — opisz KONKRETNIE, ' +
+      "co kursant znajdzie w środku: przegląd programu, czego nauczy się krok po " +
+      "kroku, co przećwiczy/zobaczy i jak z tego skorzysta. NIE powielaj " +
+      'sekcji sprzedażowej „O kursie".';
+    return generateBlocksInto(ctx, setContentBlocks, onReady);
+  };
+
+  // FAQ „wizualnie generowane": odsłaniamy pytania po jednym (dane już w refie ze
+  // szkieletu), z shimmerem w karcie FAQ i scrollem do sekcji. Czysto wizualne —
+  // draft.faq jest kompletny od szkieletu.
+  const revealFaq = async () => {
+    const pending = pendingFaqRef.current;
+    pendingFaqRef.current = null;
+    if (!pending || !pending.length) return;
+    setFaqGenerating(true);
+    setAutoLiveMsg("Spisuję najczęstsze pytania…");
+    document
+      .getElementById("course-faq-section")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    await sleep(300);
+    const revealed: EditFaq[] = [];
+    for (let i = 0; i < pending.length; i++) {
+      revealed.push(pending[i]);
+      setFaqItems([...revealed]);
+      setAutoLiveMsg(`Spisuję pytanie ${i + 1}/${pending.length}…`);
+      await sleep(120);
+      document
+        .getElementById("course-faq-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      await sleep(480);
+    }
+    setFaqGenerating(false);
+  };
+
+  // ── Asystent AI w pasku: generuje treść dla BIEŻĄCEJ sekcji (nie całego kursu).
+  // Pusta sekcja → generuje od razu; wypełniona → pyta o nadpisanie (confirmRegen).
+  // Kontekst bierzemy z danych kursu (buildCtxFromCourse) — działa też po
+  // przeładowaniu, bez zapamiętanego briefu.
+  const [sectionBusy, setSectionBusy] = useState(false);
+  // Który krok ma otwarty popup AI (brief + uwagi sekcji). null = zamknięty.
+  const [sectionAiStep, setSectionAiStep] = useState<SectionStep | null>(null);
+
+  const buildCtxFromCourse = () => {
+    const blocksText = (blocks: EditorBlock[]) =>
+      blocks
+        .map((b) => {
+          const c = b.content as { text?: string; items?: { text?: string }[] };
+          if (c.items?.length)
+            return c.items.map((i) => i.text).filter(Boolean).join("; ");
+          return c.text ?? "";
+        })
+        .filter(Boolean)
+        .join("\n");
+    const parts: string[] = [];
+    if (draft.title) parts.push(`Tytuł kursu: ${draft.title}`);
+    if (draft.category) parts.push(`Kategoria: ${draft.category}`);
+    if (draft.excerpt) parts.push(`Krótki opis: ${draft.excerpt}`);
+    const desc = blocksText(descBlocks);
+    if (desc) parts.push(`Sekcja „O kursie":\n${desc}`);
+    if (draft.format === "sections" && draft.curriculum.length) {
+      parts.push(
+        "Program kursu:\n" +
+          draft.curriculum
+            .map(
+              (m, mi) =>
+                `Moduł ${mi + 1}: ${m.title || ""}\n` +
+                m.lessons
+                  .map(
+                    (l) =>
+                      `  • ${l.title || ""}${l.description ? ` — ${l.description}` : ""}`,
+                  )
+                  .join("\n"),
+            )
+            .join("\n"),
+      );
+    }
+    return parts.join("\n\n");
+  };
+
+  const SECTION_LABEL: Record<string, string> = {
+    dane: "Dane podstawowe",
+    program: "Program",
+    tresc: "Treść",
+    seo: "SEO",
+  };
+
+  // Regeneracja danych podstawowych (tytuł/kategoria/cena/excerpt) z briefu+kontekstu.
+  const regenerateBasicData = async (ctx: string, onReady?: () => void) => {
+    const res = await geminiFetch(
+      "/api/admin/gemini",
+      {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ prompt: ctx, action: "generateCourse" }),
+      },
+      { onStatus: autoRateStatus("Generuję dane podstawowe…") },
+    );
+    if (!res.ok) throw new Error("basic");
+    onReady?.();
+    const gen = (await res.json()) as {
+      title?: string;
+      category?: string;
+      price?: number;
+      excerpt?: string;
+    };
+    const reveal = async (
+      key: "title" | "category" | "price" | "excerpt",
+      apply: () => void,
+    ) => {
+      setLoadingField(key);
+      await sleep(450);
+      apply();
+      setLoadingField(null);
+      await sleep(180);
+    };
+    if (gen.title?.trim())
+      await reveal("title", () => set("title", gen.title!.trim()));
+    if (gen.category?.trim())
+      await reveal("category", () => set("category", gen.category!.trim()));
+    if (typeof gen.price === "number" && gen.price >= 0)
+      await reveal("price", () => set("price", gen.price!));
+    if (gen.excerpt?.trim())
+      await reveal("excerpt", () => set("excerpt", gen.excerpt!.trim()));
+  };
+
+  // Regeneracja tytułów/opisów programu (1:1) z briefu+kontekstu i aktualnej struktury.
+  const regenerateProgram = async (ctx: string, onReady?: () => void) => {
+    if (!draft.curriculum.length) return;
+    const payload = draft.curriculum.map((m) => ({
+      opisModulu: m.title,
+      lekcje: m.lessons.map((l) => l.description || l.title || ""),
+    }));
+    const res = await geminiFetch(
+      "/api/admin/gemini",
+      {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({
+          prompt: `${ctx}\n\nRozpisz tytuły i opisy DOKŁADNIE dla tej struktury (zachowaj liczbę i kolejność modułów oraz lekcji):\n${JSON.stringify(payload)}`,
+          action: "generateCourseStructure",
+        }),
+      },
+      { onStatus: autoRateStatus("Rozpisuję program…") },
+    );
+    if (!res.ok) throw new Error("program");
+    onReady?.();
+    const sgen = (await res.json()) as {
+      modules?: { title?: string; lessons?: { title?: string; description?: string }[] }[];
+    };
+    if (!Array.isArray(sgen.modules)) return;
+    setDraft((d) => ({
+      ...d,
+      curriculum: d.curriculum.map((m, mi) => {
+        const am = sgen.modules?.[mi];
+        return {
+          ...m,
+          title: am?.title?.trim() || m.title,
+          lessons: m.lessons.map((l, li) => {
+            const al = am?.lessons?.[li];
+            return {
+              ...l,
+              title: al?.title?.trim() || l.title,
+              description: al?.description?.trim() || l.description,
+            };
+          }),
+        };
+      }),
+    }));
+  };
+
+  // FAQ per-sekcja: bierzemy faq z generateCourse (z kontekstu) i odsłaniamy je
+  // po jednym (jak w autopilocie). draft.faq aktualizujemy na bieżąco (updateFaq).
+  const regenerateFaq = async (ctx: string, onReady?: () => void) => {
+    const res = await geminiFetch(
+      "/api/admin/gemini",
+      {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ prompt: ctx, action: "generateCourse" }),
+      },
+      { onStatus: autoRateStatus("Generuję FAQ…") },
+    );
+    if (!res.ok) throw new Error("faq");
+    onReady?.();
+    const gen = (await res.json()) as { faq?: unknown };
+    const faqEdit = toEditFaq(
+      (Array.isArray(gen.faq) ? gen.faq : null) as Parameters<typeof toEditFaq>[0],
+    );
+    if (!faqEdit.length) return;
+    setFaqGenerating(true);
+    document
+      .getElementById("course-faq-section")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const revealed: EditFaq[] = [];
+    for (const item of faqEdit) {
+      revealed.push(item);
+      updateFaq([...revealed]);
+      await sleep(420);
+    }
+    setFaqGenerating(false);
+  };
+
+  // Generuje TĘ sekcję z briefu (popup) + danych kursu + uwag, z live-shimmerem.
+  // Dla „Treść" generuje WYBRANE cele (opis/zawartość/FAQ), każdy z własnymi uwagami.
+  const generateSectionWith = async (
+    id: SectionStep,
+    briefPrompt: string,
+    sectionNotes: string,
+    trescPicks?: TrescPick[],
+  ) => {
+    if (sectionBusy) return;
+    setSectionBusy(true);
+    // Popup zostaje OTWARTY (ze stanem „Generuję…") aż blueprint/dane będą gotowe
+    // — wtedy zamykamy go RAZ i widoczna generacja toczy się w edytorze.
+    let closed = false;
+    const closeWhenReady = () => {
+      if (!closed) {
+        closed = true;
+        setSectionAiStep(null);
+      }
+    };
+    const courseCtx = buildCtxFromCourse();
+    const baseCtx = [briefPrompt, courseCtx].filter(Boolean).join("\n\n");
+    const withNotes = (notes: string) =>
+      notes ? `${baseCtx}\n\nDodatkowe uwagi do tej sekcji: ${notes}` : baseCtx;
+    try {
+      if (id === "tresc") {
+        const picks: TrescPick[] = trescPicks?.length
+          ? trescPicks
+          : [{ target: "opis", notes: "" }];
+        for (const p of picks) {
+          if (p.target === "opis") {
+            autoPromptRef.current = withNotes(p.notes);
+            await runContentBlocks(closeWhenReady);
+          } else if (p.target === "zawartosc") {
+            autoPromptRef.current = withNotes(p.notes);
+            await runContentTab(closeWhenReady);
+          } else if (p.target === "faq") {
+            await regenerateFaq(withNotes(p.notes), closeWhenReady);
+          }
+        }
+      } else if (id === "seo") {
+        setSeoShimmer(true);
+        await generateSeo(true, sectionNotes, closeWhenReady);
+        setSeoShimmer(false);
+      } else if (id === "dane") {
+        await regenerateBasicData(withNotes(sectionNotes), closeWhenReady);
+      } else if (id === "program") {
+        await regenerateProgram(withNotes(sectionNotes), closeWhenReady);
+      }
+      await saveNowRef.current();
+      toast.success(`Wygenerowano: ${SECTION_LABEL[id] ?? "sekcja"} ✨`);
+    } catch {
+      toast.error("Nie udało się wygenerować sekcji.");
+    } finally {
+      // Domknij popup także, gdy błąd zdarzył się PRZED gotowością blueprintu.
+      closeWhenReady();
+      setSeoShimmer(false);
+      setLoadingField(null);
+      setFaqGenerating(false);
+      setSectionBusy(false);
+    }
+  };
+
+  // DEV: wyczyść TREŚĆ bieżącej sekcji (nie strukturę/nagrań) — do szybkich testów
+  // ponownej generacji. Wołane z popupu AI (przycisk „Wyczyść treść (dev)").
+  const clearSectionContent = (id: SectionStep) => {
+    if (id === "dane") {
+      set("title", "");
+      set("category", "");
+      set("price", "");
+      set("excerpt", "");
+    } else if (id === "program") {
+      setDraft((d) => ({
+        ...d,
+        curriculum: d.curriculum.map((m) => ({
+          ...m,
+          title: "",
+          lessons: m.lessons.map((l) => ({ ...l, title: "", description: "" })),
+        })),
+      }));
+    } else if (id === "tresc") {
+      setDescBlocks([]);
+      setContentBlocks([]);
+      updateFaq([]);
+    } else if (id === "seo") {
+      set("metaTitle", "");
+      set("metaDescription", "");
+      set("focusKeyword", "");
+    }
+    toast.success(`Wyczyszczono treść: ${SECTION_LABEL[id] ?? "sekcja"} (dev)`);
   };
 
   // Zakończenie autopilota — przejście na podsumowanie, panel znika po chwili.
@@ -1013,6 +1482,12 @@ export function CourseWizard({
     setLoadingField(null);
     setAutoPhase("done");
     setAutoLiveMsg(undefined);
+    // Awaryjnie domknij FAQ, gdyby nie zostało odsłonięte (np. błąd przed revealFaq).
+    if (pendingFaqRef.current) {
+      setFaqItems(pendingFaqRef.current);
+      pendingFaqRef.current = null;
+    }
+    setFaqGenerating(false);
     goToStep("podsumowanie");
     // Utrwal finalny stan (m.in. ogImage) zanim agent zniknie.
     saveNowRef.current();
@@ -1023,14 +1498,17 @@ export function CourseWizard({
   // „Ogon" generacji (bez przerw na akcję usera): Dane → Treść → SEO → OG.
   const runGenerationTail = async () => {
     try {
-      // Dane podstawowe — wartości już w draft (ze szkieletu), odsłaniamy z shimmerem.
+      // Dane podstawowe — wartości są już w draft (ze szkieletu), ale ukrywamy je
+      // i odsłaniamy POJEDYNCZO: shimmer nad pustym polem → wartość „wpada".
       setAutoPhase("data");
       goToStep("dane");
+      setRevealedFields(new Set());
       await sleep(500);
       for (const f of ["title", "category", "price", "excerpt"] as const) {
         setLoadingField(f);
         await sleep(750);
         setLoadingField(null);
+        setRevealedFields((prev) => new Set(prev).add(f));
         await sleep(300);
       }
       // Treść „O kursie" — blok po bloku.
@@ -1038,6 +1516,16 @@ export function CourseWizard({
       goToStep("tresc");
       await sleep(350);
       await runContentBlocks();
+      // „Zawartość" — co dokładnie jest w środku (na bazie briefu + programu).
+      // Tylko dla kursów z programem (moduły/lekcje); dla jednego filmu zakładka
+      // dublowałaby „O kursie", więc ją pomijamy. `formatRef` jest zawsze aktualny
+      // (w przeciwieństwie do `draft` w domknięciu autopilota).
+      if (formatRef.current === "sections") {
+        setAutoPhase("contentTab");
+        await runContentTab();
+      }
+      // FAQ — odsłaniane wizualnie (pytanie po pytaniu) w karcie FAQ.
+      await revealFaq();
       // SEO — wygeneruj metadane z całej treści. Ustaw flagę PRZED nawigacją,
       // żeby efekt auto-SEO (na wejściu w krok) nie odpalił drugiej generacji.
       seoAutoRef.current = true;
@@ -1201,7 +1689,9 @@ export function CourseWizard({
   };
 
   // Start autopilota (z modala AI): generuje szkielet i przechodzi do wideo.
-  const startAutopilot = async (p: string) => {
+  // `structure` (tylko „sections") to brief modułów/lekcji z ekranu struktury —
+  // jego liczność jest ŹRÓDŁEM PRAWDY; AI tylko rozpisuje tytuły i opisy.
+  const startAutopilot = async (p: string, structure?: CourseStructureBrief) => {
     const format = chosenFormatRef.current;
     const userPrompt = [
       format === "single"
@@ -1241,10 +1731,76 @@ export function CourseWizard({
         }[];
       };
 
-      // Format „sections": program budujemy modułowo w popupie wideo (lekcja po
-      // lekcji, z generacją tytułu/opisu z promptu), więc startujemy od jednego
-      // pustego modułu — nie z programu wymyślonego przez generateCourse.
-      const curriculum: Module[] = [newModule("Moduł 1")];
+      // Format „sections": jeśli twórca podał strukturę na ekranie briefu, to
+      // ONA jest źródłem prawdy dla liczby modułów/lekcji. AI (osobny agent)
+      // rozpisuje tylko tytuły i opisy; przy braku struktury albo błędzie AI
+      // budujemy szkielet wprost z briefów (tytuł = opis), a w ostateczności
+      // startujemy od jednego pustego modułu (stare zachowanie).
+      let curriculum: Module[] = [newModule("Moduł 1")];
+      if (format === "sections" && structure && structure.modules.length > 0) {
+        let aiModules: {
+          title?: string;
+          lessons?: { title?: string; description?: string }[];
+        }[] = [];
+        try {
+          const structurePrompt = [
+            `Kontekst kursu: ${userPrompt}`,
+            gen.title ? `Tytuł kursu: ${gen.title}` : "",
+            "",
+            "Rozpisz tytuły i opisy DOKŁADNIE dla tej struktury (zachowaj liczbę i kolejność modułów oraz lekcji):",
+            JSON.stringify(
+              structure.modules.map((m) => ({
+                opisModulu: m.about,
+                lekcje: m.lessons.map((l) => l.about),
+              })),
+            ),
+          ]
+            .filter(Boolean)
+            .join("\n");
+          const sres = await geminiFetch(
+            "/api/admin/gemini",
+            {
+              method: "POST",
+              headers: JSON_HEADERS,
+              body: JSON.stringify({
+                prompt: structurePrompt,
+                action: "generateCourseStructure",
+              }),
+            },
+            { onStatus: autoRateStatus("AI rozpisuje program…") },
+          );
+          if (sres.ok) {
+            const sgen = (await sres.json()) as {
+              modules?: {
+                title?: string;
+                lessons?: { title?: string; description?: string }[];
+              }[];
+            };
+            if (Array.isArray(sgen.modules)) aiModules = sgen.modules;
+          }
+        } catch {
+          // AI nie rozpisało — zbudujemy szkielet z samych briefów (poniżej).
+        }
+        // Liczność ZAWSZE z briefu twórcy; AI tylko wzbogaca (po indeksie).
+        curriculum = structure.modules.map((m, mi) => {
+          const aiM = aiModules[mi];
+          return {
+            _key: genKey(),
+            title: aiM?.title?.trim() || m.about.trim() || `Moduł ${mi + 1}`,
+            lessons: m.lessons.map((l, li) => {
+              const aiL = aiM?.lessons?.[li];
+              return {
+                _key: genKey(),
+                title: aiL?.title?.trim() || l.about.trim() || `Lekcja ${li + 1}`,
+                description: aiL?.description?.trim() || "",
+                // Wideo i długość wgrane już na ekranie struktury (jeśli były).
+                video: l.video || "",
+                ...(l.durationSec ? { durationSec: l.durationSec } : {}),
+              };
+            }),
+          };
+        });
+      }
 
       setDraft({
         ...EMPTY,
@@ -1256,17 +1812,36 @@ export function CourseWizard({
         faq: Array.isArray(gen.faq) ? gen.faq : null,
         curriculum,
       });
-      setFaqItems(toEditFaq(Array.isArray(gen.faq) ? gen.faq : null));
+      // Wyczyść edytory treści ze STAREJ generacji — inaczej po wejściu na krok
+      // „Treść" widać poprzednią treść, zanim ruszy live-generacja blok-po-bloku.
+      setDescBlocks([]);
+      setContentBlocks([]);
+      // FAQ odsłonimy wizualnie w fazie treści (revealFaq) — dane trzymamy w
+      // refie, a edytor startuje pusty, by „spisywanie" było widoczne. draft.faq
+      // (powyżej) ma już komplet, więc publikacja/autozapis są bezpieczne.
+      pendingFaqRef.current = toEditFaq(Array.isArray(gen.faq) ? gen.faq : null);
+      setFaqItems([]);
       faqSeededRef.current = true;
       // Dołóż tytuł do kontekstu — bogatszy brief dla treści i SEO.
       autoPromptRef.current = `${userPrompt}\n\nTytuł kursu: ${gen.title ?? ""}`;
 
       setLessonPrompt("");
       setAiOpen(false);
-      setAutoPhase("video");
-      // Pod spodem ustawiamy krok „Dane" (modal wgrywania wideo go zakrywa).
+
+      // Gdy program zbudowano ze struktury (modal AI), lekcje i ich nagrania są
+      // już gotowe — pomijamy fazę „wgraj wideo" i idziemy prosto do okładki.
+      const builtFromStructure =
+        format === "sections" && !!structure && structure.modules.length > 0;
+
+      // Pod spodem ustawiamy krok „Dane" (modale autopilota go zakrywają).
       goToStep("dane");
-      setAutoLiveMsg("Wgraj nagranie(a), a potem kliknij „Gotowe”.");
+      if (builtFromStructure) {
+        setAutoPhase("cover");
+        setAutoLiveMsg("Wybierz okładkę lub pozwól wybrać agentowi.");
+      } else {
+        setAutoPhase("video");
+        setAutoLiveMsg("Wgraj nagranie(a), a potem kliknij „Gotowe”.");
+      }
       // Utwórz szkic na serwerze OD RAZU (POST). Autozapis jest debounce'owany
       // 30 s i resetuje się przy każdej zmianie draftu w trakcie generacji, więc
       // bez wymuszenia kurs mógłby nie zapisać się wcale.
@@ -1281,8 +1856,12 @@ export function CourseWizard({
     }
   };
 
-  // Status kroków agenta dla panelu (pochodna autoPhase).
-  const autoStepsLive: (NeonStep & { status: StepStatus })[] = AUTO_STEP_DEFS.map(
+  // Status kroków agenta dla panelu (pochodna autoPhase). Krok „Zawartość"
+  // (contentTab) dotyczy tylko kursów z programem — dla jednego filmu go pomijamy,
+  // by nie pokazywać fantomowego kroku, który nigdy nie biegnie.
+  const autoStepsLive: (NeonStep & { status: StepStatus })[] = AUTO_STEP_DEFS.filter(
+    (s) => s.id !== "contentTab" || formatRef.current === "sections",
+  ).map(
     (s) => {
       const i = AUTO_ORDER.indexOf(s.id);
       const cur = AUTO_ORDER.indexOf(autoPhase);
@@ -1364,11 +1943,9 @@ export function CourseWizard({
       label: "Meta opis (SEO)",
       step: "seo" as StepId,
     },
-    (draft.durationMin === "" || Number(draft.durationMin) <= 0) &&
-      totalDurationMin <= 0 && {
-        label: "Czas trwania kursu",
-        step: "dane" as StepId,
-      },
+    // Czas trwania NIE jest osobnym ostrzeżeniem: nie ma ręcznego pola (liczy się
+    // automatycznie z długości nagrań po zakończeniu kodowania), a brak nagrań to
+    // już osobny blocker. Odsyłka do „Dane podstawowe" byłaby bez sensu.
   ].filter(Boolean) as { label: string; step: StepId }[];
 
   // Publikacja: domyka szkic statusem PUBLISHED (POST jeśli szkic nie istniał,
@@ -1404,6 +1981,12 @@ export function CourseWizard({
                 setAutoLiveMsg(undefined);
                 setLoadingField(null);
                 setSeoShimmer(false);
+                // Nie zostawiaj pustego FAQ, jeśli przerwano przed odsłonięciem.
+                if (pendingFaqRef.current) {
+                  setFaqItems(pendingFaqRef.current);
+                  pendingFaqRef.current = null;
+                }
+                setFaqGenerating(false);
               }}
             />
           </Portal>
@@ -1787,8 +2370,8 @@ export function CourseWizard({
             <button
               key={id}
               type="button"
-              onClick={() => i <= stepIdx && setStep(i)}
-              disabled={i > stepIdx}
+              onClick={() => handleStepClick(i)}
+              disabled={!editing && i > stepIdx}
               className="relative z-10 flex flex-1 flex-col items-center gap-2"
             >
               <span
@@ -1797,7 +2380,9 @@ export function CourseWizard({
                     ? "bg-brand-primary border-brand-primary text-white"
                     : current
                       ? "bg-white border-brand-primary text-brand-primary scale-110"
-                      : "bg-white border-gray-200 text-gray-300"
+                      : editing
+                        ? "bg-white border-brand-primary/35 text-brand-primary/60"
+                        : "bg-white border-gray-200 text-gray-300"
                 }`}
               >
                 {showSpinner ? (
@@ -1814,7 +2399,13 @@ export function CourseWizard({
               </span>
               <span
                 className={`hidden sm:flex items-center gap-1 font-montserrat text-[12px] font-semibold whitespace-nowrap ${
-                  current ? "text-brand-primary" : done ? "text-[#0B3B4C]" : "text-gray-400"
+                  current
+                    ? "text-brand-primary"
+                    : done
+                      ? "text-[#0B3B4C]"
+                      : editing
+                        ? "text-brand-secondary/60"
+                        : "text-gray-400"
                 }`}
               >
                 {STEP_META[id].name}
@@ -1868,7 +2459,7 @@ export function CourseWizard({
             <Field label="Tytuł kursu *">
               <div className="relative z-0">
                 <input
-                  value={draft.title}
+                  value={revealVal("title", draft.title)}
                   onChange={(e) => set("title", e.target.value)}
                   placeholder="np. Zdrowy i silny kręgosłup"
                   className={inputCls}
@@ -1882,7 +2473,7 @@ export function CourseWizard({
             <Field label="Kategoria">
               <div className="relative z-30">
               <Select
-                value={draft.category}
+                value={revealVal("category", draft.category)}
                 onChange={(v) => set("category", v)}
                 options={
                   draft.category && !categoryOptions.includes(draft.category)
@@ -1905,7 +2496,7 @@ export function CourseWizard({
                   type="number"
                   min={0}
                   inputMode="numeric"
-                  value={draft.price}
+                  value={revealVal("price", draft.price)}
                   onChange={(e) =>
                     set("price", e.target.value === "" ? "" : Number(e.target.value))
                   }
@@ -1938,7 +2529,7 @@ export function CourseWizard({
             <Field label="Krótki opis (excerpt)">
               <div className="relative z-0">
                 <textarea
-                  value={draft.excerpt}
+                  value={revealVal("excerpt", draft.excerpt)}
                   onChange={(e) => set("excerpt", e.target.value)}
                   placeholder="Jedno–dwa zdania zachęcające do kursu…"
                   className={`${inputCls} h-auto py-3 min-h-[110px] resize-none`}
@@ -2108,6 +2699,7 @@ export function CourseWizard({
 
           {/* Sekcja FAQ — osobna karta */}
           <motion.div
+            id="course-faq-section"
             variants={stepItem}
             className="rounded-3xl rounded-tr-none border border-gray-200 bg-white shadow-[0_20px_55px_-40px_rgba(3,63,99,0.4)] overflow-hidden"
           >
@@ -2119,9 +2711,19 @@ export function CourseWizard({
                 <p className="font-jakarta font-bold text-[14px] text-brand-secondary leading-none">
                   Najczęstsze pytania (FAQ)
                 </p>
-                <p className="font-montserrat text-[11.5px] text-gray-400 mt-1">
-                  Min. jedno pytanie z odpowiedzią (wymagane do publikacji)
-                </p>
+                {faqGenerating ? (
+                  <motion.p
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+                    className="font-montserrat font-semibold text-[11.5px] text-brand-primary mt-1 [text-shadow:0_0_10px_rgba(40,125,136,0.45)]"
+                  >
+                    Spisuję pytania…
+                  </motion.p>
+                ) : (
+                  <p className="font-montserrat text-[11.5px] text-gray-400 mt-1">
+                    Min. jedno pytanie z odpowiedzią (wymagane do publikacji)
+                  </p>
+                )}
               </div>
             </div>
             <div className="p-4 sm:p-5">
@@ -2207,7 +2809,7 @@ export function CourseWizard({
           {/* Podgląd SERP + pola meta — w trakcie generowania AI pokazujemy
               animowane szkielety zamiast pustych pól (stan ładowania). */}
           <AnimatePresence mode="wait" initial={false}>
-            {seoGenerating || seoShimmer ? (
+            {seoFormBusy || seoShimmer ? (
               <SeoLoadingSkeleton key="seo-skeleton" />
             ) : (
               <motion.div
@@ -2603,7 +3205,14 @@ export function CourseWizard({
               <SummaryTile
                 icon={Clock}
                 label="Czas materiału"
-                value={formatCourseDuration(totalDurationMin)}
+                value={
+                  totalDurationMin > 0
+                    ? formatCourseDuration(totalDurationMin)
+                    : videoReady
+                      ? "Liczę z nagrań…"
+                      : "—"
+                }
+                loading={totalDurationMin === 0 && videoReady}
               />
             </div>
 
@@ -2779,9 +3388,21 @@ export function CourseWizard({
                   </>
                 ) : (
                   <>
-                    <PlayCircle size={40} weight="fill" className="text-white/80" />
+                    {isEncoding ? (
+                      <CircleNotch
+                        size={36}
+                        weight="bold"
+                        className="text-white/80 animate-spin"
+                      />
+                    ) : (
+                      <PlayCircle size={40} weight="fill" className="text-white/80" />
+                    )}
                     <span className="absolute bottom-2 right-3 text-[10px] font-montserrat text-white/60">
-                      {previewVideoUrl ? "miniatura w przygotowaniu" : "brak nagrania"}
+                      {isEncoding
+                        ? "wideo się przetwarza…"
+                        : previewVideoUrl
+                          ? "miniatura w przygotowaniu"
+                          : "brak nagrania"}
                     </span>
                   </>
                 )}
@@ -2810,6 +3431,81 @@ export function CourseWizard({
                 </p>
               </div>
             </div>
+
+            {/* Trwające przesyłanie nagrań — po kolei każde wideo z postępem */}
+            {uploadingList.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 rounded-[20px] rounded-tr-none border border-brand-primary/15 bg-brand-primary/[0.04] p-4"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <CircleNotch
+                    size={15}
+                    weight="bold"
+                    className="text-brand-primary animate-spin shrink-0"
+                  />
+                  <p className="font-jakarta font-bold text-[12.5px] text-brand-secondary">
+                    Przesyłanie nagrań ({uploadingList.length})
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  <AnimatePresence initial={false}>
+                    {uploadingList.map((u) => (
+                      <motion.div
+                        key={u.vid}
+                        layout
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-montserrat text-[11.5px] text-brand-secondary/80 truncate">
+                            {u.label}
+                          </span>
+                          <span className="font-montserrat font-semibold text-[11px] text-brand-primary shrink-0">
+                            {u.pct}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-brand-primary/10 overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-yellow"
+                            animate={{ width: `${u.pct}%` }}
+                            transition={{ ease: "easeOut", duration: 0.4 }}
+                          />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Kodowanie na Bunny — po zakończeniu przesyłania wideo wciąż się
+                przetwarza; dopóki trwa, nie ma miniatury ani czasu materiału,
+                a publikacja jest zablokowana. */}
+            {uploadingList.length === 0 && isEncoding && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 rounded-[20px] rounded-tr-none border border-amber-200 bg-amber-50/60 p-4"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <CircleNotch
+                    size={15}
+                    weight="bold"
+                    className="text-amber-600 animate-spin shrink-0"
+                  />
+                  <p className="font-jakarta font-bold text-[12.5px] text-amber-700">
+                    Przetwarzanie wideo na serwerze ({encodingCount})
+                  </p>
+                </div>
+                <p className="font-montserrat text-[12px] text-amber-700/80 leading-snug pl-[23px]">
+                  Czas materiału i miniatura pojawią się, gdy Bunny zakończy
+                  kodowanie. Publikacja będzie możliwa po jego zakończeniu.
+                </p>
+              </motion.div>
+            )}
           </div>
         </div>
       )}
@@ -2849,25 +3545,37 @@ export function CourseWizard({
             <button
               type="button"
               onClick={publish}
-              disabled={autosave.savingSource !== null || !canPublish}
+              disabled={autosave.savingSource !== null || !canPublish || isEncoding}
+              title={
+                isEncoding
+                  ? "Poczekaj, aż wszystkie nagrania zostaną przetworzone (kodowanie wideo)."
+                  : undefined
+              }
               className="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-montserrat font-bold text-[13px] text-white bg-brand-primary border border-brand-yellow/30 shadow-[0_6px_18px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_8px_22px_0px_rgba(242,217,103,0.45)] disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-hidden"
             >
               <span className="pointer-events-none absolute -right-2 -bottom-2 size-8 rounded-full bg-brand-yellow/50 blur-[12px]" />
               <span className="relative inline-flex items-center gap-2">
-                {autosave.savingSource === "publish" ? (
+                {autosave.savingSource === "publish" || isEncoding ? (
                   <CircleNotch size={15} weight="bold" className="animate-spin" />
                 ) : (
                   <Check size={15} weight="bold" />
                 )}
-                {autosave.savingSource === "publish"
-                  ? baseStatus === "PUBLISHED"
-                    ? "Zapisuję…"
-                    : "Publikuję…"
-                  : baseStatus === "PUBLISHED"
-                    ? "Zapisz zmiany"
-                    : "Opublikuj kurs"}
+                {isEncoding
+                  ? "Przetwarzanie wideo…"
+                  : autosave.savingSource === "publish"
+                    ? baseStatus === "PUBLISHED"
+                      ? "Zapisuję…"
+                      : "Publikuję…"
+                    : baseStatus === "PUBLISHED"
+                      ? "Zapisz zmiany"
+                      : "Opublikuj kurs"}
               </span>
             </button>
+            {isEncoding && (
+              <span className="text-[12px] font-montserrat text-amber-600">
+                Czekam na zakończenie kodowania nagrań ({encodingCount})…
+              </span>
+            )}
             {autosave.error && (
               <span className="text-[12px] font-montserrat text-rose-500">
                 {autosave.error}
@@ -2885,7 +3593,18 @@ export function CourseWizard({
           currentId === "tresc" ||
           currentId === "seo") && (
         <FloatingSaveBar
-          onAi={() => setAiOpen(true)}
+          onAi={() => {
+            if (
+              currentId === "dane" ||
+              currentId === "program" ||
+              currentId === "tresc" ||
+              currentId === "seo"
+            )
+              setSectionAiStep(currentId);
+          }}
+          aiTitle={`Asystent AI — wygeneruj „${SECTION_LABEL[currentId] ?? "sekcję"}”`}
+          aiBusy={sectionBusy}
+          onBack={() => setConfirmExitOpen(true)}
           onSave={autosave.saveDraft}
           savingSource={autosave.savingSource}
           showAutosaveTooltip={autosave.showAutosaveTooltip}
@@ -2895,6 +3614,8 @@ export function CourseWizard({
           uploadingCount={uploadCount}
           uploadProgress={uploadProgress}
           uploadDone={uploadJustDone}
+          encoding={isEncoding}
+          encodingCount={encodingCount}
         />
       )}
 
@@ -2902,7 +3623,150 @@ export function CourseWizard({
       <CourseAiBriefModal
         isOpen={aiOpen}
         onClose={() => setAiOpen(false)}
+        format={draft.format}
         onSubmit={startAutopilot}
+        onRestore={(fmt) => {
+          // Po refreshu z niedokończonym briefem: otwórz modal i przywróć format.
+          // W trybie edycji nie używamy tego modala (treść generuje się per-sekcja
+          // z paska akcji).
+          if (editing) return;
+          set("format", fmt);
+          chosenFormatRef.current = fmt;
+          formatRef.current = fmt;
+          startMethodRef.current = "ai";
+          setAiOpen(true);
+        }}
+      />
+
+      {/* OSTRZEŻENIE: powrót na ekran „Start" w trybie edycji (destrukcyjny) */}
+      <AnimatePresence>
+        {confirmStartOpen && (
+          <Portal>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setConfirmStartOpen(false)}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brand-secondary/40 backdrop-blur-md"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 24, scale: 0.97 }}
+                transition={{ type: "spring", damping: 26, stiffness: 280 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-md bg-white rounded-[24px] rounded-tr-none p-6 shadow-[0_20px_60px_-15px_rgba(3,63,99,0.4)]"
+              >
+                <span className="relative inline-flex items-center justify-center size-12 rounded-2xl rounded-tr-none bg-amber-400/15 text-amber-500 mb-4">
+                  <WarningCircle size={24} weight="fill" />
+                </span>
+                <h3 className="font-jakarta font-bold text-[18px] text-[#0B3B4C]">
+                  Zacząć nowy kurs?
+                </h3>
+                <p className="font-montserrat text-[13.5px] text-gray-500 leading-relaxed mt-2">
+                  Ekran startowy zaczyna kurs <strong>od zera</strong> — bieżący
+                  draft i wszystkie dane zostaną wyczyszczone z kreatora. Zapisany
+                  szkic/kurs pozostaje na liście („Wszystkie kursy"), więc zawsze do
+                  niego wrócisz.
+                </p>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmStartOpen(false)}
+                    className="px-5 py-2.5 rounded-xl font-montserrat font-semibold text-[13px] text-gray-500 hover:bg-gray-100 transition-colors"
+                  >
+                    Zostań
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmStartOpen(false);
+                      resetCreator();
+                    }}
+                    className="px-5 py-2.5 rounded-xl font-montserrat font-bold text-[13px] text-white bg-amber-500 border border-amber-300 shadow-[0_6px_18px_-6px_rgba(245,158,11,0.5)] hover:bg-amber-600 transition-colors"
+                  >
+                    Zacznij nowy
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </Portal>
+        )}
+      </AnimatePresence>
+
+      {/* POTWIERDZENIE WYJŚCIA Z KREATORA (strzałka „wstecz" w pasku akcji) */}
+      <AnimatePresence>
+        {confirmExitOpen && (
+          <Portal>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setConfirmExitOpen(false)}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brand-secondary/40 backdrop-blur-md"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 24, scale: 0.97 }}
+                transition={{ type: "spring", damping: 26, stiffness: 280 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-md bg-white rounded-[24px] rounded-tr-none p-6 shadow-[0_20px_60px_-15px_rgba(3,63,99,0.4)]"
+              >
+                <span className="relative inline-flex items-center justify-center size-12 rounded-2xl rounded-tr-none bg-brand-primary/10 text-brand-primary mb-4">
+                  <CaretLeft size={24} weight="bold" />
+                </span>
+                <h3 className="font-jakarta font-bold text-[18px] text-[#0B3B4C]">
+                  Wyjść z kreatora?
+                </h3>
+                <p className="font-montserrat text-[13.5px] text-gray-500 leading-relaxed mt-2">
+                  Wracasz do listy kursów. Bieżący szkic jest zapisywany
+                  automatycznie, więc nic nie przepada — wrócisz do niego w każdej
+                  chwili z „Wszystkie kursy".
+                </p>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmExitOpen(false)}
+                    className="px-5 py-2.5 rounded-xl font-montserrat font-semibold text-[13px] text-gray-500 hover:bg-gray-100 transition-colors"
+                  >
+                    Zostań
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmExitOpen(false);
+                      router.push("/admin/kursy");
+                    }}
+                    className="px-5 py-2.5 rounded-xl font-montserrat font-bold text-[13px] text-white bg-brand-primary border border-brand-yellow/30 shadow-[0_6px_18px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_8px_22px_0px_rgba(242,217,103,0.45)] transition-all"
+                  >
+                    Wyjdź z kreatora
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </Portal>
+        )}
+      </AnimatePresence>
+
+      {/* POPUP AI per-sekcja: brief (zapamiętywany) + uwagi do sekcji */}
+      <SectionAiModal
+        isOpen={sectionAiStep !== null}
+        step={sectionAiStep ?? "dane"}
+        label={SECTION_LABEL[sectionAiStep ?? "dane"] ?? "sekcja"}
+        busy={sectionBusy}
+        onClose={() => setSectionAiStep(null)}
+        onClearSection={() => {
+          if (sectionAiStep) clearSectionContent(sectionAiStep);
+        }}
+        onGenerate={(briefPrompt, sectionNotes, trescPicks) => {
+          // NIE zamykamy popupu tutaj — zamknie się sam, gdy blueprint będzie
+          // gotowy (closeWhenReady w generateSectionWith).
+          if (sectionAiStep)
+            generateSectionWith(sectionAiStep, briefPrompt, sectionNotes, trescPicks);
+        }}
       />
 
       {/* KREATOR OG IMAGE + PICKER (krok SEO) */}
@@ -3275,10 +4139,13 @@ function SummaryTile({
   icon: Icon,
   label,
   value,
+  loading = false,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
+  /** Wartość jeszcze się „liczy" (np. czas z kodujących się nagrań) — glow shimmer. */
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-2xl rounded-tr-none border border-gray-100 bg-white p-3">
@@ -3286,9 +4153,19 @@ function SummaryTile({
         <Icon size={14} weight="duotone" className="text-brand-primary" />
         {label}
       </span>
-      <p className="font-jakarta font-bold text-[15px] text-brand-secondary mt-1 truncate">
-        {value}
-      </p>
+      {loading ? (
+        <motion.p
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+          className="font-jakarta font-bold text-[15px] text-brand-primary mt-1 truncate [text-shadow:0_0_12px_rgba(40,125,136,0.5)]"
+        >
+          {value}
+        </motion.p>
+      ) : (
+        <p className="font-jakarta font-bold text-[15px] text-brand-secondary mt-1 truncate">
+          {value}
+        </p>
+      )}
     </div>
   );
 }

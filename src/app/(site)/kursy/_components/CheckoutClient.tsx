@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   Check,
@@ -193,24 +194,36 @@ function Field({
       <span className="font-montserrat font-medium text-[12px] tracking-[-0.2px] text-brand-secondary/70">
         {label}
       </span>
-      <input
+      <motion.input
         type={type}
         inputMode={inputMode}
         value={value}
         placeholder={placeholder}
         aria-invalid={!!error}
         onChange={(e) => onChange(e.target.value)}
-        className={`h-12 px-4 rounded-2xl border bg-white/80 font-montserrat text-[14px] text-brand-secondary placeholder:text-brand-secondary/35 outline-none transition-all focus:bg-white focus:ring-4 ${
+        // Subtelne „potrząśnięcie" pola, gdy pojawi się błąd.
+        animate={error ? { x: [0, -5, 5, -3, 3, 0] } : { x: 0 }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className={`h-12 px-4 rounded-2xl border bg-white/80 font-montserrat text-[14px] text-brand-secondary placeholder:text-brand-secondary/35 outline-none transition-colors focus:bg-white focus:ring-4 ${
           error
             ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
             : "border-brand-primary/15 focus:border-brand-primary focus:ring-brand-primary/10"
         }`}
       />
-      {error && (
-        <span className="font-montserrat text-[11.5px] font-medium text-rose-600">
-          {error}
-        </span>
-      )}
+      <AnimatePresence initial={false}>
+        {error && (
+          <motion.span
+            key={error}
+            initial={{ opacity: 0, height: 0, y: -4 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden font-montserrat text-[11.5px] font-medium text-rose-600"
+          >
+            {error}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </label>
   );
 }
@@ -563,12 +576,21 @@ export function CheckoutClient({
             </div>
           </div>
 
-          {error && (
-            <p className="inline-flex items-center gap-2 self-start font-montserrat text-[13px] font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2">
-              <WarningCircle size={16} weight="fill" className="shrink-0" />
-              {error}
-            </p>
-          )}
+          <AnimatePresence initial={false}>
+            {error && (
+              <motion.p
+                key={error}
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="inline-flex items-center gap-2 self-start font-montserrat text-[13px] font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2"
+              >
+                <WarningCircle size={16} weight="fill" className="shrink-0" />
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <button
             type="submit"

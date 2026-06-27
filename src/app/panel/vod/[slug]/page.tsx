@@ -5,9 +5,11 @@ import {
   getCourseForPlayer,
   getCourses,
   isUserEnrolled,
-  isCourseCompleted,
   getCompletedLessonIds,
+  getCourseLessonSeconds,
   getUserCourseReview,
+  getCourseWatchState,
+  getVodOverview,
 } from "@/lib/courses-db";
 import { VodCoursePlayer } from "./_components/VodCoursePlayer";
 
@@ -43,22 +45,38 @@ export default async function VodCoursePage({
     redirect(`/kursy/${slug}/checkout`);
   }
 
-  const [allCourses, completedLessonIds, myReview, courseCompleted] =
-    await Promise.all([
-      getCourses(),
-      getCompletedLessonIds(session.user.id, course.id),
-      getUserCourseReview(session.user.id, course.id),
-      isCourseCompleted(session.user.id, course.id),
-    ]);
+  const [
+    allCourses,
+    completedLessonIds,
+    lessonSeconds,
+    myReview,
+    watchState,
+    overview,
+  ] = await Promise.all([
+    getCourses(),
+    getCompletedLessonIds(session.user.id, course.id),
+    getCourseLessonSeconds(session.user.id, course.id),
+    getUserCourseReview(session.user.id, course.id),
+    getCourseWatchState(session.user.id, course.id),
+    getVodOverview(session.user.id),
+  ]);
+
+  // Mapa slug → postęp dla posiadanych kursów (karty „Podobne kursy").
+  const ownedProgress: Record<string, number> = Object.fromEntries(
+    overview.courses.map((c) => [c.slug, overview.progressByCourse[c.id] ?? 0]),
+  );
 
   return (
     <VodCoursePlayer
       course={course}
       allCourses={allCourses}
       completedLessonIds={completedLessonIds}
+      lessonSeconds={lessonSeconds}
       myReview={myReview}
       viewerName={session.user.name ?? "Ty"}
-      initialCompleted={courseCompleted}
+      initialCompleted={watchState.completed}
+      initialWatchedSec={watchState.watchedSec}
+      ownedProgress={ownedProgress}
     />
   );
 }

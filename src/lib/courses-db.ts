@@ -18,11 +18,19 @@ import type {
 
 const FALLBACK_IMAGE = "/images/kursy/kurs-1.png";
 
+/** Okładka kursu: własna miniatura albo kadr z głównego wideo (Bunny), z fallbackiem. */
+function courseCover(image: string | null, video: string | null): string {
+  if (image) return image;
+  const guid = bunnyGuidFromEmbed(video);
+  return guid ? bunnyThumbnailUrl(guid) : FALLBACK_IMAGE;
+}
+
 type DbLesson = {
   id: string;
   title: string;
   description: string | null;
   video: string | null;
+  durationSec: number;
 };
 type DbModule = { id: string; title: string; lessons: DbLesson[] };
 type DbCourse = {
@@ -218,6 +226,8 @@ export type PlayerCourse = {
   format: string;
   video: string | null;
   videoHls: string | null;
+  /** Długość głównego filmu w sekundach (format „single") — baza % postępu. */
+  videoDurationSec: number;
   modules: PlayerModule[];
   /** Realne opinie kursantów (puste, gdy brak). */
   testimonials: CourseReview[];
@@ -234,6 +244,7 @@ export async function getCourseForPlayer(
     | (DbCourse & {
         format: string;
         video: string | null;
+        videoDurationSec: number;
         courseReviews: DbReview[];
       })
     | null;
@@ -256,6 +267,7 @@ export async function getCourseForPlayer(
     format: c.format,
     video: c.video,
     videoHls: toHls(c.video),
+    videoDurationSec: c.videoDurationSec ?? 0,
     modules: c.modules.map((m) => ({
       title: m.title,
       lessons: m.lessons.map((l) => ({
@@ -518,6 +530,22 @@ export async function isUserEnrolled(
   return !!e;
 }
 
+/** Stan oglądania kursu „single”: obejrzane sekundy + czy ukończony.
+ *  Służy do wznowienia odtwarzania od ostatniej pozycji. */
+export async function getCourseWatchState(
+  userId: string,
+  courseId: string,
+): Promise<{ watchedSec: number; completed: boolean }> {
+  const e = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+    select: { watchedSec: true, completedAt: true },
+  });
+  return {
+    watchedSec: e?.watchedSec ?? 0,
+    completed: !!e?.completedAt,
+  };
+}
+
 /** Czy użytkownik ukończył kurs (Enrollment.completedAt ustawione). */
 export async function isCourseCompleted(
   userId: string,
@@ -568,6 +596,19 @@ export async function getCompletedLessonIds(
     select: { lessonId: true },
   });
   return rows.map((r) => r.lessonId);
+}
+
+/** Obejrzane sekundy per lekcja w danym kursie — do wznawiania odtwarzania od
+ *  ostatniej pozycji (mapa lessonId → seconds; tylko lekcje z postępem > 0). */
+export async function getCourseLessonSeconds(
+  userId: string,
+  courseId: string,
+): Promise<Record<string, number>> {
+  const rows = await prisma.lessonProgress.findMany({
+    where: { userId, seconds: { gt: 0 }, lesson: { module: { courseId } } },
+    select: { lessonId: true, seconds: true },
+  });
+  return Object.fromEntries(rows.map((r) => [r.lessonId, r.seconds]));
 }
 
 // ===== STATYSTYKI ADMINA (realne dane z Enrollment) =====
@@ -628,44 +669,134 @@ export async function getCourseAdminStats(): Promise<CourseAdminStats> {
 /** Kurs do „Kontynuuj" — ostatnio oglądany, a gdy brak postępu: ostatnio kupiony. */
 export async function getContinueCourse(
   userId: string,
-): Promise<{ title: string; slug: string } | null> {
+): Promise<{ title: string; slug: string; cover: string } | null> {
   const last = await getLastWatchedCourse(userId);
   if (last) return last;
   const enr = await prisma.enrollment.findFirst({
     where: { userId },
     orderBy: { createdAt: "desc" },
-    select: { course: { select: { title: true, slug: true } } },
+    select: {
+      course: { select: { title: true, slug: true, image: true, video: true } },
+    },
   });
   return enr?.course
-    ? { title: enr.course.title, slug: enr.course.slug }
+    ? {
+        title: enr.course.title,
+        slug: enr.course.slug,
+        cover: courseCover(enr.course.image, enr.course.video),
+      }
     : null;
 }
 
-/** Ostatnio oglądany kurs (po najświeższym postępie lekcji) — do skrótu w menu. */
+/** Ostatnio oglądany kurs — do skrótu w menu. Bierze pod uwagę zarówno postęp
+ *  lekcji (kursy z modułami), jak i oglądanie głównego filmu (kursy „single”,
+ *  postęp na Enrollment) i wybiera świeższy z dwóch. */
 export async function getLastWatchedCourse(
   userId: string,
-): Promise<{ slug: string; title: string } | null> {
-  const last = await prisma.lessonProgress.findFirst({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      lesson: {
-        select: {
-          module: {
-            select: { course: { select: { slug: true, title: true } } },
+): Promise<{ slug: string; title: string; cover: string } | null> {
+  const [lastLesson, lastSingle] = await Promise.all([
+    prisma.lessonProgress.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        updatedAt: true,
+        lesson: {
+          select: {
+            module: {
+              select: {
+                course: {
+                  select: {
+                    slug: true,
+                    title: true,
+                    image: true,
+                    video: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
-    },
-  });
-  const course = last?.lesson?.module?.course;
-  return course ? { slug: course.slug, title: course.title } : null;
+    }),
+    prisma.enrollment.findFirst({
+      where: { userId, watchedSec: { gt: 0 } },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        updatedAt: true,
+        course: {
+          select: { slug: true, title: true, image: true, video: true },
+        },
+      },
+    }),
+  ]);
+
+  const lessonCourse = lastLesson?.lesson?.module?.course;
+  const lessonAt = lessonCourse ? lastLesson!.updatedAt.getTime() : -1;
+  const singleAt = lastSingle ? lastSingle.updatedAt.getTime() : -1;
+  if (lessonAt < 0 && singleAt < 0) return null;
+
+  const course = singleAt > lessonAt ? lastSingle!.course : lessonCourse!;
+  return {
+    slug: course.slug,
+    title: course.title,
+    cover: courseCover(course.image, course.video),
+  };
+}
+
+/** Procent postępu kursu „single" (jeden film): ukończony → 100, w trakcie →
+ *  watchedSec / videoDurationSec zaokrąglone i ograniczone do 99% (pełne 100%
+ *  daje dopiero realne ukończenie odtwarzania). */
+export function singleProgress(
+  completedAt: Date | null,
+  watchedSec: number,
+  videoDurationSec: number,
+): number {
+  if (completedAt) return 100;
+  if (!videoDurationSec || videoDurationSec <= 0) return 0;
+  const pct = Math.round(((watchedSec || 0) / videoDurationSec) * 100);
+  if (!Number.isFinite(pct)) return 0;
+  return Math.max(0, Math.min(99, pct));
+}
+
+/** Procent postępu kursu z modułami liczony po obejrzanym CZASIE.
+ *  Lekcja `completed` = pełny czas; w trakcie = min(obejrzane, długość lekcji).
+ *  Lekcje bez długości (brak nagrania) są pomijane w mianowniku. Gdy żadna
+ *  lekcja nie ma `durationSec`, wracamy do liczenia po ukończonych lekcjach. */
+export function lessonsTimeProgress(
+  lessons: { id: string; durationSec: number }[],
+  progressByLesson: Map<string, { completed: boolean; seconds: number }>,
+  completedAt: Date | null,
+): number {
+  if (completedAt) return 100;
+
+  let totalSec = 0;
+  let watchedSec = 0;
+  for (const l of lessons) {
+    const dur = l.durationSec ?? 0;
+    if (dur <= 0) continue;
+    totalSec += dur;
+    const lp = progressByLesson.get(l.id);
+    watchedSec += lp?.completed ? dur : Math.min(lp?.seconds ?? 0, dur);
+  }
+
+  if (totalSec > 0) {
+    return Math.max(0, Math.min(100, Math.round((watchedSec / totalSec) * 100)));
+  }
+
+  // Fallback: brak danych o długości lekcji → liczymy po ukończonych lekcjach.
+  if (lessons.length === 0) return 0;
+  const done = lessons.filter(
+    (l) => progressByLesson.get(l.id)?.completed,
+  ).length;
+  return Math.round((done / lessons.length) * 100);
 }
 
 export type VodOverview = {
   courses: Course[];
   progressByCourse: Record<string, number>;
   lessonsDone: number;
+  /** Łączna liczba lekcji w posiadanych kursach (mianownik „ukończone lekcje”). */
+  lessonsTotal: number;
   hoursTotal: number;
 };
 
@@ -680,16 +811,60 @@ export async function getVodOverview(userId: string): Promise<VodOverview> {
     mapCourse(e.course as unknown as DbCourse),
   );
 
-  const completed = await getCompletedLessonIds(userId);
-  const doneSet = new Set(completed);
+  // Pełny postęp lekcji (completed + obejrzane sekundy) — baza % po CZASIE.
+  const progressRows = await prisma.lessonProgress.findMany({
+    where: { userId },
+    select: { lessonId: true, completed: true, seconds: true },
+  });
+  const progressByLesson = new Map(
+    progressRows.map((r) => [
+      r.lessonId,
+      { completed: r.completed, seconds: r.seconds },
+    ]),
+  );
+  const doneSet = new Set(
+    progressRows.filter((r) => r.completed).map((r) => r.lessonId),
+  );
 
+  // Jednostki nauki (baza XP i „ukończonych lekcji"): lekcja = 1 jednostka,
+  // a kurs „single" (jeden film) liczymy jako 1 jednostkę (ukończony film = 1).
+  // POSTĘP % liczymy po obejrzanym CZASIE (nie liczbie lekcji): lekcja
+  // ukończona = pełny czas, w trakcie = min(obejrzane, długość). XP zostaje na
+  // ukończonych jednostkach (nagroda za zrobione, nie za minuty).
   const progressByCourse: Record<string, number> = {};
+  let lessonsTotal = 0;
+  let lessonsDone = 0;
   for (const e of enrollments) {
-    const c = e.course as unknown as DbCourse;
-    const lessonIds = c.modules.flatMap((m) => m.lessons.map((l) => l.id));
-    const total = lessonIds.length || 1;
-    const done = lessonIds.filter((id) => doneSet.has(id)).length;
-    progressByCourse[c.id] = Math.round((done / total) * 100);
+    const c = e.course as unknown as DbCourse & {
+      format: string;
+      video: string | null;
+      videoDurationSec: number;
+    };
+    const lessons = c.modules.flatMap((m) => m.lessons) as {
+      id: string;
+      durationSec: number;
+      video: string | null;
+    }[];
+    // Kurs „single" (jeden film, brak lekcji): postęp z Enrollment —
+    // ukończony → 100%, w trakcie → watchedSec / videoDurationSec (cap 99%).
+    if (c.format === "single" || lessons.length === 0) {
+      lessonsTotal += 1;
+      if (e.completedAt) lessonsDone += 1;
+      progressByCourse[c.id] = singleProgress(
+        e.completedAt,
+        e.watchedSec,
+        c.videoDurationSec,
+      );
+      continue;
+    }
+
+    lessonsTotal += lessons.length;
+    lessonsDone += lessons.filter((l) => doneSet.has(l.id)).length;
+    progressByCourse[c.id] = lessonsTimeProgress(
+      lessons,
+      progressByLesson,
+      e.completedAt,
+    );
   }
 
   const hoursTotal = Math.round(
@@ -699,7 +874,8 @@ export async function getVodOverview(userId: string): Promise<VodOverview> {
   return {
     courses,
     progressByCourse,
-    lessonsDone: completed.length,
+    lessonsDone,
+    lessonsTotal,
     hoursTotal,
   };
 }

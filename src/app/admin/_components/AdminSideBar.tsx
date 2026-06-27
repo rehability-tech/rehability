@@ -46,14 +46,16 @@ function NavLink({
   label,
   icon: Icon,
   active,
+  onClick,
 }: {
   href: string;
   label: string;
   icon: IconType;
   active: boolean;
+  onClick?: (e: { preventDefault: () => void }) => void;
 }) {
   return (
-    <Link href={href}>
+    <Link href={href} onClick={onClick}>
       <div
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
@@ -826,6 +828,21 @@ export default function AdminSidebar() {
               label="Kreator kursu"
               icon={Sparkle}
               active={isCreatingCourse}
+              onClick={(e) => {
+                // „Kreator kursu" zaczyna NOWY kurs — czyścimy zapamiętany brief
+                // (klucz BRIEF_STORAGE_KEY z CourseAiBriefModal). Gdy już jesteśmy
+                // w kreatorze, wymuszamy świeży mount (autozapis trzyma courseId
+                // w stanie, więc bez remountu zostałby kontekst poprzedniego kursu).
+                try {
+                  localStorage.removeItem("rehability:courseAiBrief");
+                } catch {
+                  /* ignore */
+                }
+                if (pathname.startsWith("/admin/kursy/dodaj")) {
+                  e.preventDefault();
+                  window.location.assign("/admin/kursy/dodaj");
+                }
+              }}
             />
             {isCreatingCourse && (
               <StepsBox title="Kreator kursu">

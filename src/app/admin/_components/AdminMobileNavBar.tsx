@@ -269,6 +269,14 @@ export default function AdminMobileNavBar() {
   const isChatPage = pathname?.includes("/chat");
   if (isChatPage) return null;
 
+  // W kreatorze/edytorze kursu dolny pasek zastępuje pływający pasek akcji
+  // (AI + zapis) z własną strzałką „wstecz" — chowamy nawigację, żeby się nie
+  // nakładały i żeby AI było dostępne na mobile.
+  const isCourseCreator =
+    pathname?.startsWith("/admin/kursy/dodaj") ||
+    /\/admin\/kursy\/[^/]+\/edytuj/.test(pathname ?? "");
+  if (isCourseCreator) return null;
+
   return (
     <div
       className="fixed inset-x-0 z-[100] md:hidden flex justify-center pointer-events-none px-4 max-[400px]:px-1"

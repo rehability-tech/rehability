@@ -36,7 +36,7 @@ export function KursyCatalog({
 
   const filtered = useMemo<Course[]>(() => {
     const q = query.trim().toLowerCase();
-    return courses.filter((c) => {
+    const matched = courses.filter((c) => {
       const matchesCategory =
         activeCategory === "Wszystkie" || c.category === activeCategory;
       const matchesQuery =
@@ -45,7 +45,13 @@ export function KursyCatalog({
         c.category.toLowerCase().includes(q);
       return matchesCategory && matchesQuery;
     });
-  }, [query, activeCategory, courses]);
+    // Kursy już wykupione (odblokowane) lądują na końcu listy — najpierw
+    // pokazujemy te do kupienia. Sort stabilny zachowuje kolejność w grupach.
+    return matched
+      .map((c, i) => ({ c, i, owned: owned.has(c.slug) }))
+      .sort((a, b) => Number(a.owned) - Number(b.owned) || a.i - b.i)
+      .map((x) => x.c);
+  }, [query, activeCategory, courses, owned]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);

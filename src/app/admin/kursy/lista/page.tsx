@@ -40,7 +40,7 @@ export default async function AdminKursyListaPage() {
 
         <Link
           href="/admin/kursy/dodaj"
-          className="group relative inline-flex shrink-0 items-center gap-2 bg-brand-primary text-white font-montserrat font-bold text-[13px] px-4 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_10px_26px_0px_rgba(242,217,103,0.45)] hover:-translate-y-0.5 transition-all overflow-hidden"
+          className="group relative inline-flex self-center sm:self-auto shrink-0 items-center gap-2 bg-brand-primary text-white font-montserrat font-bold text-[13px] px-4 py-2.5 rounded-xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_10px_26px_0px_rgba(242,217,103,0.45)] hover:-translate-y-0.5 transition-all overflow-hidden"
         >
           <span className="pointer-events-none absolute -right-2 -bottom-2 size-8 rounded-full bg-brand-yellow/50 blur-[12px]" />
           <span className="relative inline-flex items-center gap-2">

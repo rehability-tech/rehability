@@ -874,7 +874,7 @@ export default async function AdminKursyPage() {
           <h3 className="font-jakarta font-bold text-[14px] text-brand-secondary mb-4">
             W pigułce
           </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+          <div className="grid grid-cols-2 gap-3 flex-1">
             <div className="rounded-xl rounded-tr-none bg-brand-primary/[0.04] border border-brand-primary/5 p-3">
               <Clock size={18} weight="duotone" className="text-brand-primary mb-1.5" />
               <p className="font-jakarta font-bold text-[18px] text-brand-secondary leading-none">

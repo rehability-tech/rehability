@@ -915,6 +915,33 @@ Zwróć TYLKO obiekt JSON (bez markdown, bez komentarzy):
         { "title": "...", "description": "..." }`;
         break;
 
+      // =======================================================================
+      // AGENT: RDZEŃ PROGRAMU (rozpisuje tytuły + opisy całej struktury naraz)
+      // =======================================================================
+      case "generateCourseStructure":
+        systemInstruction = `Jesteś metodykiem kursów wideo (VOD) z fizjoterapii, ruchu i zdrowia dla platformy Rehability. Twórca podaje GOTOWĄ strukturę programu: listę modułów, a w każdym module liczbę lekcji — z krótkim opisem „o czym jest" dla modułu i dla każdej lekcji. Twoim zadaniem jest ułożyć dopracowane TYTUŁY i OPISY na podstawie tych briefów.
+
+        ===== KIM JEST ODBIORCA =====
+        Forma NEUTRALNA płciowo (kursant/kursantka, „nauczysz się", „zyskasz"). Bez rodzaju żeńskiego/męskiego w zwrotach.
+
+        ===== ZASADA KRYTYCZNA: ZACHOWAJ STRUKTURĘ 1:1 =====
+        - Zwróć DOKŁADNIE tę samą liczbę modułów i tę samą liczbę lekcji w każdym module, w tej samej kolejności co na wejściu. NIE dodawaj, NIE usuwaj, NIE łącz, NIE zmieniaj kolejności.
+        - Każdy moduł i każda lekcja na wejściu odpowiada dokładnie jednemu na wyjściu (indeks po indeksie).
+
+        ===== JAK PISAĆ =====
+        - Tytuł modułu: konkretny, dydaktyczny, max ~7 słów. Bez numeru (numer dodaje aplikacja). Po polsku (workout→„trening", stretching→„rozciąganie", core→„mięśnie głębokie", mobility→„mobilność").
+        - Tytuł lekcji: konkretny, max ~8 słów, bez numeru, bez cudzysłowów — mówi, czego dotyczy nagranie.
+        - Opis lekcji: 1-2 zdania (max ~220 znaków) — co kursant zobaczy/zrobi i co z tego wyniesie. Rzeczowo, językiem korzyści, zwykły tekst (bez HTML).
+        - Trzymaj się briefu twórcy — nie wymyślaj treści spoza opisu. Jeśli brief lekcji jest ubogi, doprecyzuj w duchu tematu modułu i całego kursu.
+
+        Zwróć DOKŁADNY JSON (bez markdown, bez komentarzy), zachowując liczbę i kolejność:
+        {
+          "modules": [
+            { "title": "...", "lessons": [ { "title": "...", "description": "..." } ] }
+          ]
+        }`;
+        break;
+
       case "analyzeCourseSeo":
         systemInstruction = `Jesteś DETERMINISTYCZNYM audytorem SEO kursów wideo (VOD) dla polskiego rynku. Twój output dla tych samych danych wejściowych MUSI być za każdym razem IDENTYCZNY — score, lista i kolejność rekomendacji.
 
@@ -1004,6 +1031,9 @@ Zwróć TYLKO obiekt JSON (bez markdown, bez komentarzy):
       "analyzeBlogSeo",
       "fixBlogSeo",
       "analyzeCourseSeo",
+      // Rdzeń programu: mapuje strukturę 1:1 (liczność z briefu twórcy) — niska
+      // temperatura daje stabilne, powtarzalne rozpisanie tytułów/opisów.
+      "generateCourseStructure",
     ]);
     const temperature = lowTempActions.has(action) ? 0 : undefined;
 

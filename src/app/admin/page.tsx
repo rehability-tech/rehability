@@ -59,17 +59,17 @@ export default function AdminHubPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
               <Link
                 href="/admin/wyjazdy"
-                className="group inline-flex items-center justify-center gap-2 px-5 h-12 rounded-[16px] bg-white/15 backdrop-blur-md text-white font-bold text-[13.5px] border border-white/25 hover:bg-white/25 transition-all duration-300 shrink-0"
+                className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 h-12 rounded-[16px] bg-white/15 backdrop-blur-md text-white font-bold text-[13.5px] border border-white/25 hover:bg-white/25 transition-all duration-300 shrink-0"
               >
                 <Suitcase size={18} weight="bold" />
                 Wyjazdy
               </Link>
               <Link
                 href="/admin/kursy"
-                className="group relative inline-flex items-center justify-center gap-2 px-6 h-12 rounded-[16px] bg-white text-brand-secondary font-bold text-[13.5px] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden shrink-0 border border-white/40"
+                className="group relative inline-flex w-full sm:w-auto items-center justify-center gap-2 px-6 h-12 rounded-[16px] bg-white text-brand-secondary font-bold text-[13.5px] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.45)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden shrink-0 border border-white/40"
               >
                 <div className="absolute -bottom-4 -right-3 w-14 h-14 bg-brand-yellow/40 rounded-full blur-lg pointer-events-none" />
                 <span className="relative z-10 flex items-center gap-2">

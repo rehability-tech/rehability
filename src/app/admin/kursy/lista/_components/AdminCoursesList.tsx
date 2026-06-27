@@ -20,6 +20,7 @@ import {
   Archive,
   Trash,
   CaretLeft,
+  CaretDown,
   DotsThree,
   X,
   ImageBroken,
@@ -282,7 +283,29 @@ export function AdminCoursesList({ courses }: { courses: AdminCourse[] }) {
     <div className="flex flex-col gap-4">
       {/* Pasek narzędzi: kategorie + szukaj + przełącznik widoku */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* MOBILE: kategorie jako dropdown (mniej miejsca niż pasek pigułek) */}
+        <div className="relative lg:hidden">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            aria-label="Filtr kategorii"
+            className="w-full h-11 appearance-none rounded-full bg-white/70 backdrop-blur-md border border-white/60 pl-4 pr-10 font-montserrat font-semibold text-[13px] text-brand-secondary outline-none focus:border-brand-primary/40 focus:ring-4 focus:ring-brand-primary/10 transition-all shadow-sm"
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <CaretDown
+            size={15}
+            weight="bold"
+            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-brand-secondary/45"
+          />
+        </div>
+
+        {/* DESKTOP: pigułki kategorii (od lg) */}
+        <div className="hidden lg:flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categories.map((cat) => {
             const isActive = cat === category;
             return (

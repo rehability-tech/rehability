@@ -52,9 +52,11 @@ export function HlsPlayer({
   isHls,
   poster,
   autoPlay = false,
+  startAt = 0,
   onPlay,
   onPause,
   onEnded,
+  onProgress,
   overlay,
 }: {
   src: string;
@@ -62,15 +64,23 @@ export function HlsPlayer({
   poster?: string;
   /** Czy po załadowaniu od razu odtwarzać. Zmiana lekcji ładuje wideo bez autoplaya. */
   autoPlay?: boolean;
+  /** Sekunda, od której wznowić odtwarzanie (postęp single). 0 = od początku. */
+  startAt?: number;
   onPlay?: () => void;
   onPause?: () => void;
   onEnded?: () => void;
+  /** Throttlowany postęp oglądania (sekundy, długość) — do zapisu postępu single. */
+  onProgress?: (seconds: number, duration: number) => void;
   /** Nakładka renderowana WEWNĄTRZ playera (widoczna też w pełnym ekranie). */
   overlay?: React.ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Wznowienie pozycji następuje raz (po wczytaniu metadanych).
+  const seekedRef = useRef(false);
+  // Throttle zapisu postępu — ostatnia raportowana sekunda.
+  const lastReportRef = useRef(0);
 
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -131,10 +141,32 @@ export function HlsPlayer({
       setPlaying(false);
       onEnded?.();
     };
-    const onTime = () => setCur(v.currentTime);
+    const onTime = () => {
+      setCur(v.currentTime);
+      // Raport postępu nie częściej niż co 10 s (oraz przy cofnięciu czasu).
+      const t = Math.floor(v.currentTime);
+      if (onProgress && (t >= lastReportRef.current + 10 || t < lastReportRef.current)) {
+        lastReportRef.current = t;
+        onProgress(t, v.duration || 0);
+      }
+    };
     const onMeta = () => {
       setDur(v.duration || 0);
       setReady(true);
+      // Wznowienie pozycji (postęp single) — raz, jeśli sensowne.
+      if (
+        !seekedRef.current &&
+        startAt > 1 &&
+        v.duration &&
+        startAt < v.duration - 2
+      ) {
+        seekedRef.current = true;
+        try {
+          v.currentTime = startAt;
+        } catch {
+          /* niektóre źródła nie pozwalają seekować przed buforowaniem */
+        }
+      }
     };
     const onVol = () => {
       setMuted(v.muted);
@@ -156,7 +188,7 @@ export function HlsPlayer({
       v.removeEventListener("durationchange", onMeta);
       v.removeEventListener("volumechange", onVol);
     };
-  }, [onPlay, onPause, onEnded]);
+  }, [onPlay, onPause, onEnded, onProgress, startAt]);
 
   // Stan pełnego ekranu (Fullscreen API) + sterowanie orientacją.
   // Wejście w pełny ekran → blokada landscape; wyjście → powrót do pionu.

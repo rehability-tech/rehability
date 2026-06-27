@@ -30,6 +30,7 @@ import { PopularThisWeek } from "./PopularThisWeek";
 import { CertificatesCard } from "./CertificatesCard";
 import { LibraryCard } from "./LibraryCard";
 import { Locked } from "./Locked";
+import { ComingSoon } from "./ComingSoon";
 
 const OWNED_FILTER = "Twoje kursy";
 
@@ -39,6 +40,7 @@ export function VodClient({
   locked = false,
   progressByCourse,
   lessonsDone,
+  lessonsTotal = 0,
 }: {
   /** Kursy, do których użytkownik ma dostęp (biblioteka). */
   courses: Course[];
@@ -47,6 +49,8 @@ export function VodClient({
   locked?: boolean;
   progressByCourse: Record<string, number>;
   lessonsDone: number;
+  /** Łączna liczba lekcji w posiadanych kursach (mianownik liczników/celu). */
+  lessonsTotal?: number;
 }) {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -121,14 +125,6 @@ export function VodClient({
     [catalog, courses.length],
   );
 
-  // Średni postęp w posiadanej bibliotece (0 gdy brak kursów).
-  const avgProgress = courses.length
-    ? Math.round(
-        courses.reduce((s, c) => s + (progressByCourse[c.id] ?? 0), 0) /
-          courses.length,
-      )
-    : 0;
-
   const achievements = useMemo(
     () => buildAchievements(g.lessonsDone, certificatesCount, courses.length),
     [g.lessonsDone, certificatesCount, courses.length],
@@ -141,20 +137,27 @@ export function VodClient({
       courses.reduce((s, c) => s + c.durationMin, 0) / 60,
     );
     const xpPct = g.xpToNext ? Math.round((g.xp / g.xpToNext) * 100) : 0;
+    const catalogTotal = catalog.length;
     return [
       {
         icon: GraduationCap,
         value: courses.length,
+        sub: catalogTotal, // np. 1/4 dostępnych kursów
         label: "Twoje kursy",
         tint: "primary",
-        pct: courses.length ? 100 : 0,
+        pct: catalogTotal
+          ? Math.round((courses.length / catalogTotal) * 100)
+          : 0,
       },
       {
         icon: PlayCircle,
         value: g.lessonsDone,
+        sub: lessonsTotal || undefined, // mianownik tylko gdy są lekcje
         label: "Ukończone lekcje",
         tint: "emerald",
-        pct: avgProgress,
+        pct: lessonsTotal
+          ? Math.round((g.lessonsDone / lessonsTotal) * 100)
+          : 0,
       },
       {
         icon: Clock,
@@ -166,6 +169,7 @@ export function VodClient({
       {
         icon: Trophy,
         value: certificatesCount,
+        sub: courses.length || undefined, // np. 0/1 ukończonych kursów
         label: "Ukończone kursy",
         tint: "rose",
         pct: courses.length
@@ -180,7 +184,7 @@ export function VodClient({
         pct: xpPct,
       },
     ];
-  }, [courses, g, avgProgress, certificatesCount]);
+  }, [courses, catalog.length, g, lessonsTotal, certificatesCount]);
 
   const filtered = useMemo(
     () =>
@@ -274,7 +278,10 @@ export function VodClient({
               <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary px-1">
                 Aktywność
               </h2>
-              <WeeklyGoalCard done={g.lessonsDone} goal={WEEKLY.goal} />
+              <WeeklyGoalCard
+                done={g.lessonsDone}
+                goal={lessonsTotal > 0 ? lessonsTotal : WEEKLY.goal}
+              />
             </div>
           </div>
         </Locked>
@@ -288,7 +295,13 @@ export function VodClient({
           </h2>
           <div className="flex flex-col gap-5 flex-1 justify-between">
             <AchievementsCard g={g} achievements={achievements} />
-            <CertificatesCard certified={certified} count={g.certificates} />
+            {/* Certyfikaty — moduł w przygotowaniu (overlay „już wkrótce”). */}
+            <ComingSoon
+              active
+              label="Certyfikaty ukończenia będą dostępne wkrótce."
+            >
+              <CertificatesCard certified={certified} count={g.certificates} />
+            </ComingSoon>
           </div>
         </div>
         <div className="flex flex-col gap-3 h-full">

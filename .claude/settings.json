@@ -135,7 +135,25 @@
       "mcp__claude_ai_ClickUp__clickup_create_list",
       "mcp__claude_ai_ClickUp__clickup_create_task",
       "mcp__claude_ai_ClickUp__clickup_update_task",
-      "Bash(node -e \"const e=require\\('@tiptap/extensions'\\); console.log\\('Placeholder' in e ? 'OK @tiptap/extensions has Placeholder' : 'NO'\\)\")"
+      "Bash(node -e \"const e=require\\('@tiptap/extensions'\\); console.log\\('Placeholder' in e ? 'OK @tiptap/extensions has Placeholder' : 'NO'\\)\")",
+      "Bash(git merge *)",
+      "mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo",
+      "mcp__claude_ai_Atlassian_Rovo__getAccessibleAtlassianResources",
+      "PowerShell(git -C \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\" --no-pager diff --stat HEAD)",
+      "PowerShell(git -C \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\" --no-pager diff HEAD -- src/app/admin/kursy/dodaj/_components/CourseWizard.tsx src/app/api/admin/gemini/route.ts src/lib/zod/geminiValidators.ts src/app/admin/kursy/dodaj/_components/FloatingSaveBar.tsx src/app/admin/kursy/dodaj/_components/VideoUploader.tsx 2>$null)",
+      "PowerShell(cd \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\"; npx tsc --noEmit 2>&1 | Select-Object -First 40; \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/admin/kursy/dodaj\" -MaximumRedirection 0 -UseBasicParsing -TimeoutSec 60 } catch { $r = $_.Exception.Response }; \"dodaj -> status: $\\($r.StatusCode\\)\")",
+      "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
+      "mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian_Rovo__getJiraProjectIssueTypesMetadata",
+      "mcp__claude_ai_Atlassian_Rovo__createJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__createIssueLink",
+      "mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__addCommentToJiraIssue",
+      "PowerShell(\\(Get-Command stripe -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(stripe listen --forward-to localhost:3000/api/webhooks/stripe)",
+      "PowerShell(cd \"c:\\\\Users\\\\mkoci\\\\Desktop\\\\piotr_siemaszko\\\\rehability\"; npx tsc --noEmit 2>&1 | Select-Object -First 30; \"EXIT:$LASTEXITCODE\")"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\app\\admin\\kursy\\dodaj\\_components"

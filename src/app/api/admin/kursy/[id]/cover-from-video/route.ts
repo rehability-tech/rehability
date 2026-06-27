@@ -89,9 +89,12 @@ export async function POST(
     }
 
     if (!imgRes.ok) {
+      // Najczęściej: wideo wciąż się koduje, więc kadr (miniatura) jeszcze nie
+      // istnieje. To nie błąd serwera — sygnalizujemy „jeszcze nie teraz" (409),
+      // a klient ma fallback (Pexels / okładka ręczna).
       return NextResponse.json(
-        { error: "Nie udało się pobrać kadru z wideo (Bunny)." },
-        { status: 502 },
+        { error: "Kadr jeszcze niegotowy — wideo się koduje. Spróbuj później." },
+        { status: 409 },
       );
     }
 

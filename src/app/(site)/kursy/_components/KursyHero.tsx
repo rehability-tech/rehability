@@ -44,11 +44,11 @@ export function KursyHero() {
         className="container relative grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
       >
         {/* === LEWA KOLUMNA: TEKST === */}
-        <div className="flex flex-col gap-7 max-w-[592px]">
+        <div className="flex flex-col gap-7 max-w-[592px] items-center text-center mx-auto md:items-start md:text-left md:mx-0">
           {/* Badge oceny */}
           <motion.div
             variants={fadeUp}
-            className="inline-flex items-center gap-2 self-start"
+            className="inline-flex items-center gap-2 self-center md:self-start"
           >
             <span className="flex items-center justify-center size-7 rounded-full border border-brand-primary text-brand-primary">
               <Star size={15} weight="fill" />
@@ -90,7 +90,7 @@ export function KursyHero() {
 
           <motion.p
             variants={fadeUp}
-            className="font-montserrat text-gray-500 text-[16px] leading-[1.7] max-w-[460px]"
+            className="font-montserrat text-gray-500 text-[16px] leading-[1.7] max-w-[460px] mx-auto md:mx-0"
           >
             Autorskie programy ruchowe od fizjoterapeutów. Ćwicz we własnym
             tempie, z dowolnego miejsca.
@@ -99,7 +99,7 @@ export function KursyHero() {
           {/* Liczniki */}
           <motion.div
             variants={fadeUp}
-            className="grid grid-cols-3 gap-4 max-w-[460px] pt-5 mt-1 "
+            className="grid grid-cols-3 gap-4 max-w-[460px] pt-5 mt-1 mx-auto md:mx-0"
           >
             {STATS.map((s) => (
               <div key={s.label}>
@@ -153,7 +153,7 @@ export function KursyHero() {
           </div>
 
           {/* Tagi (prawy górny róg) */}
-          <div className="absolute right-3 top-3 lg:right-0 lg:-top-3 lg:translate-x-1/3 flex flex-col items-end gap-2">
+          <div className="absolute right-3 top-[112px] lg:right-0 lg:top-[88px] lg:translate-x-1/3 flex flex-col items-end gap-2">
             {["Dożywotni dostęp", "Ćwicz w domu"].map((label) => (
               <span
                 key={label}
