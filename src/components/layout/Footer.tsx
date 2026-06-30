@@ -1,7 +1,42 @@
 "use client";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+const FOOTER_LINK_CLASS =
+  "font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors";
+
+// Link do sekcji na /gabinet. Gdy jesteśmy już na /gabinet, zwykła nawigacja
+// do tego samego hasha nic nie robi (brak hashchange), więc wysyłamy zdarzenie
+// `gabinet:goto` — GabinetServices zawsze wtedy przewinie/otworzy daną sekcję.
+function GabinetAnchorLink({
+  hash,
+  children,
+}: {
+  hash: string;
+  children: React.ReactNode;
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname === "/gabinet"
+    ) {
+      e.preventDefault();
+      window.history.replaceState(null, "", `/gabinet#${hash}`);
+      window.dispatchEvent(new CustomEvent("gabinet:goto", { detail: hash }));
+    }
+  };
+  return (
+    <Link
+      href={`/gabinet#${hash}`}
+      onClick={handleClick}
+      className={FOOTER_LINK_CLASS}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function Footer() {
   const path = usePathname();
@@ -57,32 +92,23 @@ export function Footer() {
             </h4>
             <ul className="flex flex-col gap-4 max-[768px]:gap-3">
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="fizjoterapia">
                   Terapia Manualna
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
-                  Diagnostyka Ortopedyczna
-                </Link>
+                <GabinetAnchorLink hash="fizjoterapia">
+                  Diagnostyka Funkcjonalna
+                </GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="masaze">
                   Masaż i Relaks
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/kursy"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Platforma Kursów VOD
@@ -90,7 +116,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/wyjazdy"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Wyjazdy Wellness
@@ -106,44 +132,30 @@ export function Footer() {
             </h4>
             <ul className="flex flex-col gap-4 max-[768px]:gap-3">
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="fizjoterapia">
                   Umów Wizytę
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="fizjoterapia">
                   Cennik Gabinetu
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="faq-wizyta">
                   Jak przygotować się do wizyty?
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
-                  FAQ
-                </Link>
+                <GabinetAnchorLink hash="faq">FAQ</GabinetAnchorLink>
               </li>
               <li>
-                <Link
-                  href="#"
+                <a
+                  href="mailto:biuro@kocikdev.com"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Pomoc techniczna (VOD)
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
@@ -157,7 +169,7 @@ export function Footer() {
             <ul className="flex flex-col gap-4 max-[768px]:gap-3">
               <li>
                 <Link
-                  href="#"
+                  href="/o-nas"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   O Rehability
@@ -165,23 +177,20 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/blog"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Baza Wiedzy
                 </Link>
               </li>
               <li>
-                <Link
-                  href="#"
-                  className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
-                >
+                <GabinetAnchorLink hash="kontakt">
                   Kontakt i Dojazd
-                </Link>
+                </GabinetAnchorLink>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/regulamin"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Regulamin Świadczenia Usług
@@ -189,7 +198,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/polityka-prywatnosci"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
                   Polityka Prywatności
@@ -209,7 +218,7 @@ export function Footer() {
           </p>
 
           <a
-            href="https://kocikdev.pl"
+            href="https://kocikdev.com"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 font-montserrat font-medium text-white/70 text-[13px] max-[1078px]:text-[12px] hover:text-white transition-colors group"

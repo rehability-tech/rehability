@@ -1,0 +1,186 @@
+[
+  {
+    "name": "Maks",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-06-30",
+    "text": "Świetna i niezawodna pomoc. Nie raz zespół uratował mnie przed dużymi kontuzjami. Pełen profesjonalizm, polecam!"
+  },
+  {
+    "name": "Anna",
+    "service": "Japoński masaż twarzy Kobido",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-06-26",
+    "text": "Wspaniała obsługa, można naprawdę się zrelaksować, a dodatkowo dać swojej skórze i mięśniom sposób na regenerację i rozluźnienie. Dodatkowo polepsza owal twarzy. Pani Natalia ma indywidualne podejście do klienta i dostosowuje sposób masażu do problemu. Polecam!"
+  },
+  {
+    "name": "Alicja",
+    "service": "Masaż Tkanek Głębokich",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-06-05",
+    "text": "Jestem bardzo zadowolona z terapii. Duże zaangażowanie, profesjonalne podejście i ogrom wiedzy. Czuć, że pacjent jest traktowany indywidualnie, a nie „taśmowo”. Efekty wymagają czasu i współpracy, ale zdecydowanie warto. Wracam na kolejne wizyty z chęcią i mogę polecić tę specjalistkę."
+  },
+  {
+    "name": "Patrycja",
+    "service": "Masaż pleców i kręgosłupa",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-05-22",
+    "text": "Pani Natalia świetnie masuje, ma moc w dłoniach, jest bardzo sympatyczna i uprzejma. Relaks, a przy tym dokładność i wiedza od Pani — rewelacja. Do zobaczenia!"
+  },
+  {
+    "name": "Patrycja",
+    "service": "Japoński masaż twarzy Kobido",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-05-22",
+    "text": "Rewelacyjny masaż. Pani Natalia bardzo profesjonalna i zdolna. Pełen relaks przy muzyce i świecach. Polecam każdemu, kto się jeszcze zastanawia, bo warto. Zwłaszcza, że to specjalność Pani Natalii."
+  },
+  {
+    "name": "Julita",
+    "service": "Wizyta Fizjoterapeutyczna",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-05-21",
+    "text": "Konkretnie, profesjonalnie i przede wszystkim skutecznie… polecam pana Piotra."
+  },
+  {
+    "name": "Patrycja Mirek",
+    "service": "Wizyta Fizjoterapeutyczna",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-05-21",
+    "text": "Pan bardzo profesjonalny."
+  },
+  {
+    "name": "Joanna",
+    "service": "Masaż Tkanek Głębokich",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-05-19",
+    "text": "Rewelacja :):)"
+  },
+  {
+    "name": "Natalka",
+    "service": "Masaż pleców i kręgosłupa",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-05-18",
+    "text": "Bardzo polecam masaż u Natalki 🥰 pełen profesjonalizm, można się super zrelaksować ❤️"
+  },
+  {
+    "name": "Betina",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-15",
+    "text": "Miałam przyjemność korzystać z usług Pauliny. Pełen profesjonalizm, wiedza i podejście do klienta. Na pewno wrócę :)"
+  },
+  {
+    "name": "Katarzyna",
+    "service": "Wizyta Fizjoterapeutyczna",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-05-13",
+    "text": "Córka po wyjściu powiedziała, że „chce powtórzyć tą wizytę” — pacjentka zadowolona 😀"
+  },
+  {
+    "name": "Patrycja",
+    "service": "Masaż Tkanek Głębokich",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-11",
+    "text": "Polecam wizytę u Pauliny!! Solidny masaż, który owszem, bolał, ale przyniósł ogromną ulgę. To dziewczyna, która pracuje z pasją i wie, co robi."
+  },
+  {
+    "name": "Agnieszka",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-11",
+    "text": "Gorąco polecam Panią Paulinę! Zna się na rzeczy, atmosfera super i problem z bolącym barkiem rozwiązany."
+  },
+  {
+    "name": "Joanna",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-10",
+    "text": "Z całego serca polecam Paulinę! Trafiłam do niej podczas treningów trójboju siłowego z dolegliwościami w obrębie biodrowo-lędźwiowym. Okazało się, że potrafi pomóc również z napięciami i bólem związanym z bruksizmem. Wszystko tłumaczy dokładnie i zrozumiale — widać, że zależy jej na znalezieniu przyczyny problemu, a nie tylko chwilowym złagodzeniu objawów. Ćwiczenia i zalecenia były idealnie dobrane i faktycznie przyniosły realną poprawę. Lepiej trafić nie można!"
+  },
+  {
+    "name": "Maja",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-10",
+    "text": "Najpierw byłam u Pani Pauliny na masażu, który był absolutnie rewelacyjny — pełen profesjonalizmu, dokładności i niesamowitego wyczucia. Po tej wizycie zdecydowałam się również na terapię fizjoterapeutyczną i to była najlepsza decyzja! Pani Paulina ma ogromną wiedzę, indywidualne podejście i potrafi stworzyć bardzo komfortową atmosferę. Już po pierwszej wizycie czułam ogromną ulgę i poprawę. Z całego serca polecam!"
+  },
+  {
+    "name": "Wiktoria",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-05-09",
+    "text": "Polecam wizytę u Pauliny z całego serca! Profesjonalne podejście, wszystko jasno wytłumaczone i super atmosfera 😊 Widać, że ma ogromną wiedzę i wie, co robić."
+  },
+  {
+    "name": "Adrianna",
+    "service": "Wizyta Fizjoterapeutyczna",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-05-06",
+    "text": "Miła, przyjazna i profesjonalna atmosfera. Polecam serdecznie."
+  },
+  {
+    "name": "Patrycja",
+    "service": "Terapia manualna",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-04-23",
+    "text": "Rzeczowo, wytłumaczono przyczyny, skutki i zalecone ćwiczenia. Polecam."
+  },
+  {
+    "name": "Ewa",
+    "service": "Japoński masaż twarzy Kobido",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-04-22",
+    "text": "Po 17 zabiegach u Pani Natalii czuję ogromną różnicę „przed” i „po” masażach Kobido. Cera promienna, aksamitna, ujędrniona."
+  },
+  {
+    "name": "Nikola",
+    "service": "USG-RUSI",
+    "worker": "Piotr Siemaszko",
+    "rating": 5,
+    "date": "2026-04-21",
+    "text": "Wszystko bardzo sprawnie. Szybko i skutecznie rozwiązany problem, z którym przyszłam 😊"
+  },
+  {
+    "name": "Rafał",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-04-19",
+    "text": "Do Pauliny trafiłem z problemem z kolanem i to była najlepsza decyzja. Ma dużą wiedzę, wszystko jasno tłumaczy i dobiera ćwiczenia tak, żeby naprawdę pomagały. Do tego jest bardzo miła i kontaktowa, więc wizyty przebiegają w super atmosferze. A kolano jak nowe!"
+  },
+  {
+    "name": "Nicola",
+    "service": "Wizyta fizjoterapeutyczna",
+    "worker": "Paulina Adamska",
+    "rating": 5,
+    "date": "2026-04-19",
+    "text": "Chciałabym polecić mgr Paulinę — wielokrotnie korzystałam z masaży i treningów medycznych przez nią prowadzonych. Terminy zawsze do dogadania, a mój problem z odcinkiem lędźwiowym kręgosłupa całkowicie zniknął! Wizyty prowadzone z pasją, widać wiedzę Pauliny. Bardzo polecam."
+  },
+  {
+    "name": "Anna",
+    "service": "Japoński masaż twarzy Kobido",
+    "worker": "Natalia Głód",
+    "rating": 5,
+    "date": "2026-04-15",
+    "text": "Pani Natalia jak zawsze miła, cierpliwa i profesjonalna. Cudne ręce, polecam masaż Kobido u Natalii."
+  }
+]

@@ -79,7 +79,7 @@ export function AppPresentation() {
             </motion.p>
 
             <motion.div variants={fadeUpVariants}>
-              <Button showArrow href="/w-budowie">
+              <Button showArrow href="/logowanie">
                 Otrzymaj dostęp
               </Button>
             </motion.div>

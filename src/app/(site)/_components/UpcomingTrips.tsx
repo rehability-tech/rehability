@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import {
   CalendarCheck,
   MapPin,
@@ -328,9 +327,7 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
                 isFilled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
               }`}
             >
-              <Link href={tripLink}>
-                <Button>Poznaj szczegóły</Button>
-              </Link>
+              <Button href={tripLink}>Poznaj szczegóły</Button>
             </div>
           </div>
 
@@ -364,9 +361,7 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
 
             {/* === PRZYCISK MOBILE === */}
             <div className="flex md:hidden flex-col items-center mt-4 w-full">
-              <Link href={tripLink}>
-                <Button>Poznaj szczegóły</Button>
-              </Link>
+              <Button href={tripLink}>Poznaj szczegóły</Button>
             </div>
           </div>
         </div>

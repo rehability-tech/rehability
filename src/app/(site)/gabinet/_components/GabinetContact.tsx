@@ -10,6 +10,7 @@ import {
   InstagramLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import { motion, Variants } from "framer-motion";
+import { SOCIAL_LINKS, GOOGLE_MAPS_URL } from "@/lib/seo/site";
 
 // === DEFINICJE ANIMACJI ===
 const containerVariants: Variants = {
@@ -144,8 +145,12 @@ export function GabinetContact() {
               </motion.div>
 
               {/* Adres */}
-              <motion.div
+              <motion.a
                 variants={fadeUpVariants}
+                href={GOOGLE_MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Otwórz adres w Google Maps"
                 className="flex items-center gap-4 bg-white/10 rounded-[24px] px-6 py-4 max-[1024px]:p-4 hover:bg-white/20 transition-colors cursor-pointer group"
               >
                 <MapPin
@@ -161,7 +166,7 @@ export function GabinetContact() {
                     Piastowska 30, Prudnik, 48-200
                   </span>
                 </div>
-              </motion.div>
+              </motion.a>
             </motion.div>
 
             {/* Linia oddzielająca */}
@@ -174,19 +179,27 @@ export function GabinetContact() {
               </span>
               <div className="flex items-center justify-center min-[901px]:justify-start gap-4">
                 <a
-                  href="#"
+                  href={SOCIAL_LINKS.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
                   className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center text-white bg-white/10 hover:bg-white hover:text-[#287D88] transition-all shadow-sm"
                 >
                   <FacebookLogo size={24} weight="fill" />
                 </a>
                 <a
-                  href="#"
+                  href={SOCIAL_LINKS.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
                   className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center text-white bg-white/10 hover:bg-white hover:text-[#287D88] transition-all shadow-sm"
                 >
                   <InstagramLogo size={24} weight="fill" />
                 </a>
                 <a
-                  href="#"
+                  href={SOCIAL_LINKS.booksy}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white transition-all group shadow-sm"
                   aria-label="Booksy"
                 >

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/Button";
+import { BOOKSY_URL } from "@/lib/booksy";
 import {
   Bus as BusIcon,
   FlowerLotus as FlowerLotusIcon,
@@ -24,7 +25,7 @@ const HeaderBlock = () => (
       Nowoczesna <span className="text-brand-primary">fizjoterapia</span> w
       Prudniku.
     </h1>
-    <Button showArrow href="/wyjazdy">
+    <Button showArrow href={BOOKSY_URL} newTab>
       Zobacz terminy
     </Button>
   </div>
@@ -130,8 +131,7 @@ const BottomTextBlock = () => (
       Poznaj autorskie metody diagnostyki i terapii. Rozwiń swój warsztat dzięki
       kursom VOD i wyjazdom stacjonarnym.
     </p>
-    {/* Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia. */}
-    <Button variant="primary" showArrow href="/w-budowie">
+    <Button variant="primary" showArrow href="/kursy">
       Dołącz do platformy
     </Button>
   </div>

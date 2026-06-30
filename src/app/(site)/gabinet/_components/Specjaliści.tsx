@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { SealCheckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import { BOOKSY_URL, booksyServiceUrl } from "@/lib/booksy";
 
 interface SpecjalisciProps {
   activeTab: "fizjoterapia" | "masaze";
@@ -275,8 +276,11 @@ export function SpecjalisciSection({ activeTab }: SpecjalisciProps) {
                 {/* BOTTOM: Karty Usług */}
                 <div className="flex flex-row max-[1024px]:flex-col justify-center max-[1024px]:items-center gap-6 mt-16 max-[1024px]:mt-12 items-stretch">
                   {spec.services.map((service, idx) => (
-                    <motion.div
+                    <motion.a
                       key={idx}
+                      href={booksyServiceUrl(service.title)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       variants={fadeUpItem}
                       className="flex-1 min-w-[280px] max-w-[640px] w-full bg-[#ECF6F6] rounded-[28px] overflow-hidden flex flex-col shadow-sm border border-[#287D88]/5 relative group cursor-pointer transition-shadow hover:shadow-md"
                     >
@@ -308,7 +312,7 @@ export function SpecjalisciSection({ activeTab }: SpecjalisciProps) {
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </motion.a>
                   ))}
                 </div>
 
@@ -317,7 +321,9 @@ export function SpecjalisciSection({ activeTab }: SpecjalisciProps) {
                   variants={fadeUpItem}
                   className="mt-12 flex justify-center"
                 >
-                  <Button showArrow>{spec.ctaText}</Button>
+                  <Button showArrow href={BOOKSY_URL} newTab>
+                    {spec.ctaText}
+                  </Button>
                 </motion.div>
               </motion.div>
             );

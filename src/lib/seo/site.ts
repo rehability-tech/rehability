@@ -62,6 +62,10 @@ export const BUSINESS_NAP = {
   taxId: "7551941564", // NIP
 } as const;
 
+// Link do wizytówki gabinetu w Google Maps (otwierany po kliknięciu adresu przy mapie).
+export const GOOGLE_MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Rehability+Piotr+Siemaszko%2C+ul.+Piastowska+30%2C+48-200+Prudnik";
+
 export const SOCIAL_LINKS = {
   facebook:
     "https://www.facebook.com/profile.php?id=61555623812761",

@@ -9,6 +9,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { Session } from "next-auth";
+import { SOCIAL_LINKS } from "@/lib/seo/site";
 import {
   CaretDown,
   SignOut,
@@ -520,24 +521,30 @@ export function Navbar({ session }: NavbarProps) {
             </div>
 
             <div className="pb-4 flex items-center justify-between text-[14px] font-montserrat font-medium text-gray-400 px-4">
-              <Link
-                href="#"
+              <a
+                href={SOCIAL_LINKS.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-brand-primary transition-colors"
               >
                 Facebook
-              </Link>
-              <Link
-                href="#"
+              </a>
+              <a
+                href={SOCIAL_LINKS.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-brand-primary transition-colors"
               >
                 Instagram
-              </Link>
-              <Link
-                href="#"
+              </a>
+              <a
+                href={SOCIAL_LINKS.booksy}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-brand-primary transition-colors"
               >
-                Twitter
-              </Link>
+                Booksy
+              </a>
             </div>
           </motion.div>
             )}

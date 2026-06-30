@@ -10,24 +10,29 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import React from "react";
 import { motion, Variants } from "framer-motion";
+import reviewsData from "../_data/booksy-reviews.json";
 
-// --- TYPY PRISMA ---
+// --- TYP OPINII (z profilu Booksy) ---
 export interface Review {
   id: string;
   name: string;
   text: string;
   rating: number;
-  createdAt: Date;
+  service?: string;
 }
 
-// --- DANE MOCKOWANE ---
-const REVIEWS: Review[] = Array.from({ length: 6 }).map((_, index) => ({
-  id: `ck-${Math.random().toString(36).substr(2, 9)}`,
-  name: "Krzysztof Sz",
-  text: "Od szczegółowego wywiadu i analizy, poprzez skuteczne złagodzenie dolegliwości bólowych, aż do dokładnego zidentyfikowania źródła problemu i przedstawienia zestawu ćwiczeń.",
-  rating: 5,
-  createdAt: new Date(),
+// Prawdziwe opinie z Booksy — źródło: src/app/(site)/_data/booksy-reviews.json
+const REVIEWS: Review[] = reviewsData.map((r, index) => ({
+  id: `booksy-${index}`,
+  name: r.name,
+  text: r.text,
+  rating: r.rating,
+  service: r.service,
 }));
+
+// Dzielimy opinie naprzemiennie na dwie kolumny, by każda przewijała inną treść.
+const REVIEWS_COL_1 = REVIEWS.filter((_, i) => i % 2 === 0);
+const REVIEWS_COL_2 = REVIEWS.filter((_, i) => i % 2 === 1);
 
 // --- DEFINICJE ANIMACJI (Framer Motion) ---
 const containerVariants: Variants = {
@@ -111,7 +116,9 @@ export function SocialProofSection() {
                 <StatBadge
                   value="5.0"
                   label="Średnia ocena na Booksy"
-                  imageSrc="/images/hero/fizjoterapia_hero.jpg"
+                  imageSrc={
+                    "https://images.pexels.com/photos/20860585/pexels-photo-20860585.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop"
+                  }
                   icon="/logotypy/booksy-logotype.svg"
                 />
               </motion.div>
@@ -119,7 +126,9 @@ export function SocialProofSection() {
                 <StatBadge
                   value="500+"
                   label="Przeszkolonych fizjoterapeutów"
-                  imageSrc="/images/hero/campy_hero.jpg"
+                  imageSrc={
+                    "https://images.pexels.com/photos/20860622/pexels-photo-20860622.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop"
+                  }
                   icon={GraduationCap}
                 />
               </motion.div>
@@ -138,9 +147,7 @@ export function SocialProofSection() {
                 platformie VOD, czy intensywny trening na żywo podczas naszych
                 Wyjazdów – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
               </p>
-              {/* Strefa edukacji = VOD + Wyjazdy. Brak /platforma-vod —
-                  placeholder /w-budowie do czasu uruchomienia. */}
-              <Button showArrow variant="primary" href="/w-budowie">
+              <Button showArrow variant="primary" href="/kursy">
                 Poznaj strefę edukacji
               </Button>
             </motion.div>
@@ -166,17 +173,17 @@ export function SocialProofSection() {
                 <div className="relative h-full w-full overflow-hidden">
                   <div
                     className="flex flex-col w-full animate-scroll-y"
-                    style={{ "--duration": "35s" } as React.CSSProperties}
+                    style={{ "--duration": "75s" } as React.CSSProperties}
                   >
                     {/* Paczka 1 */}
                     <div className="flex flex-col gap-4 pb-4 w-full">
-                      {REVIEWS.map((r) => (
+                      {REVIEWS_COL_1.map((r) => (
                         <ReviewCard key={`c1-org-${r.id}`} review={r} />
                       ))}
                     </div>
                     {/* Paczka 2 (Klon) */}
                     <div className="flex flex-col gap-4 pb-4 w-full">
-                      {REVIEWS.map((r) => (
+                      {REVIEWS_COL_1.map((r) => (
                         <ReviewCard key={`c1-dup-${r.id}`} review={r} />
                       ))}
                     </div>
@@ -187,17 +194,17 @@ export function SocialProofSection() {
                 <div className="relative h-full w-full overflow-hidden hidden sm:block">
                   <div
                     className="flex flex-col w-full animate-scroll-y-reverse"
-                    style={{ "--duration": "45s" } as React.CSSProperties}
+                    style={{ "--duration": "95s" } as React.CSSProperties}
                   >
                     {/* Paczka 1 */}
                     <div className="flex flex-col gap-4 pb-4 w-full">
-                      {REVIEWS.map((r) => (
+                      {REVIEWS_COL_2.map((r) => (
                         <ReviewCard key={`c2-org-${r.id}`} review={r} />
                       ))}
                     </div>
                     {/* Paczka 2 (Klon) */}
                     <div className="flex flex-col gap-4 pb-4 w-full">
-                      {REVIEWS.map((r) => (
+                      {REVIEWS_COL_2.map((r) => (
                         <ReviewCard key={`c2-dup-${r.id}`} review={r} />
                       ))}
                     </div>
@@ -216,7 +223,9 @@ export function SocialProofSection() {
               <StatBadge
                 value="5.0"
                 label="Średnia ocena na Booksy"
-                imageSrc="/images/hero/fizjoterapia_hero.jpg"
+                imageSrc={
+                  "https://images.pexels.com/photos/20860585/pexels-photo-20860585.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop"
+                }
                 icon="/logotypy/booksy-logotype.svg"
               />
             </motion.div>
@@ -224,7 +233,9 @@ export function SocialProofSection() {
               <StatBadge
                 value="500+"
                 label="Przeszkolonych fizjoterapeutów"
-                imageSrc="/images/hero/campy_hero.jpg"
+                imageSrc={
+                  "https://images.pexels.com/photos/20860622/pexels-photo-20860622.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop"
+                }
                 icon={GraduationCap}
               />
             </motion.div>
@@ -243,7 +254,7 @@ export function SocialProofSection() {
               VOD, czy intensywny trening na żywo podczas naszych Wyjazdów –
               przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
             </p>
-            <Button showArrow variant="primary" href="/w-budowie">
+            <Button showArrow variant="primary" href="/kursy">
               Poznaj strefę edukacji
             </Button>
           </motion.div>
@@ -311,11 +322,18 @@ function StatBadge({
 function ReviewCard({ review }: { review: Review }) {
   return (
     <div className="bg-white rounded-[24px] p-[20px] w-full h-fit shadow-sm flex flex-col gap-[10px] pointer-events-auto">
-      <span className="font-montserrat font-bold text-brand-secondary text-[16px]">
-        {review.name}
-      </span>
+      <div className="flex flex-col">
+        <span className="font-montserrat font-bold text-brand-secondary text-[16px]">
+          {review.name}
+        </span>
+        {review.service && (
+          <span className="font-montserrat font-medium text-[11px] text-brand-primary/80">
+            {review.service}
+          </span>
+        )}
+      </div>
       <Quotes weight="fill" className="text-brand-primary -mt-1" size={32} />
-      <p className="font-montserrat font-regular text-[12px] leading-[159%] text-brand-secondary/80 whitespace-normal break-words">
+      <p className="font-montserrat font-regular text-[12px] leading-[159%] text-brand-secondary/80 whitespace-normal break-words line-clamp-[10]">
         {review.text}
       </p>
       <div className="flex gap-1 mt-1">

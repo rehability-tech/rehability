@@ -78,9 +78,7 @@ export const CTASection = () => {
               podtrzymaniu efektów terapii? Zyskaj dostęp do autorskich
               programów treningowych i dbaj o ciało z dowolnego miejsca.
             </p>
-            {/* Brak trasy /platforma-vod — kierujemy na placeholder „w-budowie",
-                aż VOD pojawi się w app routerze. */}
-            <Button showArrow href="/w-budowie">
+            <Button showArrow href="/kursy">
               Odkryj platformę VOD
             </Button>
           </motion.div>

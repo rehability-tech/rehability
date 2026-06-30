@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import ImageWithLoader from "@/components/ui/ImageWithLoader";
 import {
   ArrowUpRight,
@@ -247,6 +248,16 @@ export function KnowledgeBase({ posts }: { posts: KnowledgePost[] }) {
               <ArrowRight size={24} weight="regular" />
             </button>
           </div>
+        </motion.div>
+
+        {/* === PRZYCISK „ZOBACZ WSZYSTKIE" → BLOG === */}
+        <motion.div
+          variants={fadeUpVariants}
+          className="flex justify-center mt-12 max-[800px]:mt-10"
+        >
+          <Button showArrow href="/blog">
+            Zobacz wszystkie
+          </Button>
         </motion.div>
       </motion.div>
     </section>

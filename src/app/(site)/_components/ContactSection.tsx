@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import { motion, Variants } from "framer-motion";
+import { SOCIAL_LINKS, GOOGLE_MAPS_URL } from "@/lib/seo/site";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -71,7 +72,7 @@ export function ContactSection() {
   };
 
   return (
-    <section className="-mb-60 overflow-hidden">
+    <section id="kontakt" className="-mb-60 overflow-hidden scroll-mt-28">
       <motion.div
         className="container mx-auto px-4 max-[1024px]:px-6 flex flex-col items-center"
         variants={containerVariants}
@@ -171,7 +172,13 @@ export function ContactSection() {
                 </div>
 
                 {/* Adres */}
-                <div className="flex items-center gap-4 bg-white/15 rounded-[24px] px-6 py-4 max-[1024px]:p-4 hover:bg-[#3d919a] transition-colors cursor-pointer">
+                <a
+                  href={GOOGLE_MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Otwórz adres w Google Maps"
+                  className="flex items-center gap-4 bg-white/15 rounded-[24px] px-6 py-4 max-[1024px]:p-4 hover:bg-[#3d919a] transition-colors cursor-pointer"
+                >
                   <MapPin
                     size={32}
                     weight="regular"
@@ -185,7 +192,7 @@ export function ContactSection() {
                       Piastowska 30, Prudnik, Poland, 48-200
                     </span>
                   </div>
-                </div>
+                </a>
               </div>
 
               <div className="w-full h-[1px] bg-white/15 mb-6" />
@@ -197,19 +204,27 @@ export function ContactSection() {
                 </span>
                 <div className="flex items-center justify-around">
                   <a
-                    href="#"
+                    href={SOCIAL_LINKS.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Facebook"
                     className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-[#1b646c] transition-all"
                   >
                     <FacebookLogo size={38} weight="light" />
                   </a>
                   <a
-                    href="#"
+                    href={SOCIAL_LINKS.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
                     className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-[#1b646c] transition-all"
                   >
                     <InstagramLogo size={38} weight="light" />
                   </a>
                   <a
-                    href="#"
+                    href={SOCIAL_LINKS.booksy}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-12 h-12 max-[1024px]:w-10 max-[1024px]:h-10 rounded-full flex items-center justify-center text-white hover:bg-white transition-all group"
                     aria-label="Booksy"
                   >

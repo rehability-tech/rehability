@@ -5,6 +5,7 @@ import { useCallback, useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import useEmblaCarousel from "embla-carousel-react";
 import { Tag } from "@/components/ui/Tag";
+import { Button } from "@/components/ui/Button";
 import { motion, Variants } from "framer-motion";
 
 // --- DEFINICJE ANIMACJI ---
@@ -292,6 +293,11 @@ export function AboutSection() {
                 <ArrowRight size={24} weight="regular" />
               </button>
             </div>
+
+            {/* CTA do strony gabinetu */}
+            <Button showArrow href="/gabinet" className="mt-2">
+              Przejdź do gabinetu
+            </Button>
           </div>
         </motion.div>
       </motion.div>

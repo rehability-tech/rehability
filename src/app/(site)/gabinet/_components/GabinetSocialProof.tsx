@@ -3,6 +3,8 @@
 import React from "react";
 import { Clock, Users, Star, Trophy } from "@phosphor-icons/react/dist/ssr";
 import { motion, Variants } from "framer-motion";
+import { Button } from "@/components/ui/Button";
+import { BOOKSY_URL } from "@/lib/booksy";
 
 // === DEFINICJE ANIMACJI ===
 const containerVariants: Variants = {
@@ -41,6 +43,16 @@ export function GabinetSocialProof() {
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
       >
+        {/* CTA rezerwacji — pod galerią, nad nagłówkiem; prowadzi do Booksy */}
+        <motion.div
+          variants={fadeUpVariants}
+          className="flex justify-center -mt-[100px] mb-16 max-[768px]:-mt-[60px] max-[768px]:mb-12"
+        >
+          <Button showArrow href={BOOKSY_URL} newTab>
+            Zobacz dostępne terminy
+          </Button>
+        </motion.div>
+
         {/* === NAGŁÓWEK I KOLUMNY === */}
         <motion.h2
           variants={fadeUpVariants}

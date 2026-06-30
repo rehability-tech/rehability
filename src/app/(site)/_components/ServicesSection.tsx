@@ -14,7 +14,7 @@ const SERVICES = [
       "Zastosowanie nowoczesnych metod, w tym osteopatii i treningu medycznego.",
     ],
     buttonText: "Umów wizytę",
-    buttonHref: "/gabinet",
+    buttonHref: "/gabinet#fizjoterapia",
   },
   {
     title: "Masaże i Terapia Manualna",
@@ -25,7 +25,7 @@ const SERVICES = [
       "Holistyczne podejście do ciała, poprawiające ogólne samopoczucie.",
     ],
     buttonText: "Sprawdź ofertę zabiegów",
-    buttonHref: "/gabinet",
+    buttonHref: "/gabinet#masaze",
   },
   {
     title: "Szkolenia VOD",
@@ -36,8 +36,7 @@ const SERVICES = [
       "Nowoczesne techniki terapii tłumaczone krok po kroku przez ekspertów",
     ],
     buttonText: "Poznaj platformę VOD",
-    // Brak trasy /platforma-vod — placeholder /w-budowie do czasu uruchomienia.
-    buttonHref: "/w-budowie",
+    buttonHref: "/kursy",
   },
   {
     title: "Wyjazdy",

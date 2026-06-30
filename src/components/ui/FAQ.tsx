@@ -14,16 +14,32 @@ interface FAQProps {
   titlePrefix: string;
   titleHighlight: string;
   items: FAQItemData[];
+  // Tryb kontrolowany (opcjonalny) — rodzic może wymusić otwarte pytanie,
+  // np. po wejściu z deep-linku „/gabinet#faq-wizyta".
+  openIndex?: number | null;
+  onToggle?: (index: number) => void;
 }
 
 // === REUŻYWALNY KOMPONENT FAQ ===
 // Ten komponent zajmuje się tylko wyświetlaniem i logiką otwierania.
 // Nie "wie" nic o konkretnych danych gabinetu.
-export function FAQ({ titlePrefix, titleHighlight, items }: FAQProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+export function FAQ({
+  titlePrefix,
+  titleHighlight,
+  items,
+  openIndex: controlledOpenIndex,
+  onToggle,
+}: FAQProps) {
+  const [internalOpenIndex, setInternalOpenIndex] = useState<number | null>(0);
+  const isControlled = controlledOpenIndex !== undefined;
+  const openIndex = isControlled ? controlledOpenIndex : internalOpenIndex;
 
   const toggleFAQ = (index: number) => {
-    setOpenIndex((prevIndex) => (prevIndex === index ? null : index));
+    if (isControlled) {
+      onToggle?.(index);
+    } else {
+      setInternalOpenIndex((prevIndex) => (prevIndex === index ? null : index));
+    }
   };
 
   const hasHeading = Boolean(titlePrefix || titleHighlight);
