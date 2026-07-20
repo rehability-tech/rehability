@@ -8,7 +8,7 @@
 // - emailTemplates   → /admin/klienci/szablony-maili (model EmailTemplate)
 // - mailingCampaigns → /admin/klienci/kampanie (moduł mailingowy src/lib/mailer)
 export const FEATURES = {
-  customerBase: true,
+  customerBase: false,
   emailTemplates: true,
   mailingCampaigns: true,
 } as const;

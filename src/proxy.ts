@@ -50,6 +50,8 @@ export async function proxy(request: NextRequest) {
 
     // D: Funkcje tymczasowo wyłączone (wlecą w kolejnym patchu).
     // Strony przekierowujemy na /admin; API odda 503 we własnym handlerze.
+    // Do celu doklejamy ?niedostepne=<sekcja> — panel główny pokazuje z tego
+    // toast i sam czyści parametr z URL-a (FeatureDisabledToast).
     if (isAdmin && pathname.startsWith("/admin/klienci")) {
       const onTemplates = pathname.startsWith("/admin/klienci/szablony-maili");
       // szablony-maili są pod-sekcją bazy klientów → wymagają obu flag.
@@ -57,7 +59,9 @@ export async function proxy(request: NextRequest) {
         ? FEATURES.customerBase && FEATURES.emailTemplates
         : FEATURES.customerBase;
       if (!allowed) {
-        return NextResponse.redirect(new URL("/admin", request.url));
+        const target = new URL("/admin", request.url);
+        target.searchParams.set("niedostepne", "crm");
+        return NextResponse.redirect(target);
       }
     }
   }

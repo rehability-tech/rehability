@@ -15,6 +15,7 @@ import StatsGrid from "./_components/StatsGrid";
 import FinancialChart from "./_components/FinancialChart";
 import RecentActivity from "./_components/RecentActivity";
 import BlogWeeklySchedule from "./_components/BlogWeeklySchedule";
+import FeatureDisabledToast from "./_components/FeatureDisabledToast";
 
 // Wspólny styl "kropli" zgodny z resztą paneli admina.
 const CARD =
@@ -23,6 +24,12 @@ const CARD =
 export default function AdminHubPage() {
   return (
     <div className="relative min-h-screen font-montserrat">
+      {/* Toast po odbiciu z wyłączonej sekcji (?niedostepne=…). Suspense jest
+          wymagany — komponent czyta useSearchParams. */}
+      <React.Suspense fallback={null}>
+        <FeatureDisabledToast />
+      </React.Suspense>
+
       {/* --- BRANDOWE ROZMYTE AKCENTY W TLE --- */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-brand-primary/5 rounded-full blur-[120px]" />
