@@ -21,6 +21,8 @@ import {
   Clock,
   CaretLeft,
   CaretRight,
+  Hourglass,
+  Trash,
 } from "@phosphor-icons/react/dist/ssr";
 
 // Paginacja zamiast scrolla — inna liczba na stronę zależnie od wysokości widoku.
@@ -39,6 +41,8 @@ interface ActivityEntry {
     | "POST_PUBLISHED"
     | "HEALTH_FILLED"
     | "SIGNUP"
+    | "BOOKING_ABANDONED"
+    | "BOOKING_REMOVED"
     | "SERVICE_BOUGHT"
     | "CHECK_IN";
   who: string;
@@ -79,6 +83,18 @@ const KIND_VISUAL: Record<
     icon: UserPlus,
     bg: "bg-brand-primary/10",
     color: "text-brand-primary",
+  },
+  // Rezerwacje zamknięte bez wpłaty — wyszarzone, żeby nie mieszały się
+  // wizualnie ze zdarzeniami, przy których pojawiły się pieniądze.
+  BOOKING_ABANDONED: {
+    icon: Hourglass,
+    bg: "bg-slate-100",
+    color: "text-slate-400",
+  },
+  BOOKING_REMOVED: {
+    icon: Trash,
+    bg: "bg-red-50",
+    color: "text-red-400",
   },
   SERVICE_BOUGHT: {
     icon: Sparkle,

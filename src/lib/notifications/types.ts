@@ -43,7 +43,9 @@ export type CampEventKind =
   | "HEALTH_FILLED"
   | "HEALTH_UPDATED"
   | "SERVICE_BOUGHT"
-  | "SIGNUP"
+  | "SIGNUP" // rozpoczęta rezerwacja (jeszcze BEZ wpłaty)
+  | "BOOKING_ABANDONED" // cron anulował porzuconą rezerwację
+  | "BOOKING_REMOVED" // admin ręcznie skasował nieopłaconą rezerwację
   | "CHECK_IN";
 
 export interface LogCampEventInput {

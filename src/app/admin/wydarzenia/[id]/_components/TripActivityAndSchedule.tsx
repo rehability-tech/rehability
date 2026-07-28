@@ -19,6 +19,8 @@ import {
   CircleNotch,
   Star,
   User,
+  Hourglass,
+  Trash,
 } from "@phosphor-icons/react/dist/ssr";
 import * as PhosphorIcons from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
@@ -109,6 +111,20 @@ function getActivityStyling(kind: string) {
         icon: CheckCircle,
         color: "text-[#0B3B4C]",
         bg: "bg-gray-100 border-gray-200",
+      };
+    // Domknięcia nieopłaconych rezerwacji — wyszarzone, żeby na pierwszy rzut
+    // oka odróżniały się od zdarzeń, przy których pojawiły się pieniądze.
+    case "BOOKING_ABANDONED":
+      return {
+        icon: Hourglass,
+        color: "text-slate-400",
+        bg: "bg-slate-50 border-slate-200",
+      };
+    case "BOOKING_REMOVED":
+      return {
+        icon: Trash,
+        color: "text-red-400",
+        bg: "bg-red-50 border-red-100",
       };
     default:
       return {

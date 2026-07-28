@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { runCron } from "@/lib/cron/runCron";
+import { logCampEvent } from "@/lib/notifications/send";
 
 // GET/POST /api/cron/bookings/cleanup
 // 1. Zwalnia zablokowane terminy SPA (ServiceOrder w PENDING starsze niż 15 min).
@@ -36,7 +37,15 @@ export async function GET(req: Request) {
         amountPaid: 0,
         depositPaidAt: null,
       },
-      select: { id: true },
+      // Nazwa + wydarzenie potrzebne do wpisu w logu — inaczej w historii
+      // zostaje samotne „rozpoczęta rezerwacja" bez ciągu dalszego.
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        tripId: true,
+        trip: { select: { title: true } },
+      },
     });
     const staleIds = stale.map((b) => b.id);
 
@@ -57,6 +66,22 @@ export async function GET(req: Request) {
       ]);
       cancelledBookings = bookers.count;
       cancelledInvitations = invites.count;
+
+      // Domykamy historię: każda porzucona rezerwacja dostaje wpis w logu
+      // wydarzenia (kanał ACTIVITY, bez pusha). Log jest efektem ubocznym —
+      // jego błąd nie może wywalić crona, dlatego allSettled + catch.
+      await Promise.allSettled(
+        stale.map((b) =>
+          logCampEvent({
+            kind: "BOOKING_ABANDONED",
+            tripId: b.tripId,
+            tripTitle: b.trip?.title,
+            userName: b.name || b.email || "Nieznana osoba",
+          }).catch((err) =>
+            console.error("[CRON] cleanup: log porzuconej rezerwacji", err),
+          ),
+        ),
+      );
     }
 
     console.log(

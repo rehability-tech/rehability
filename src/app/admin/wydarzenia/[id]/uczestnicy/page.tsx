@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, memo } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import {
   MagnifyingGlass,
@@ -10,8 +11,10 @@ import {
   CaretRight,
   SortAscending,
   UsersThree,
+  Trash,
 } from "@phosphor-icons/react/dist/ssr";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { ParticipantCard } from "./_components/ParticipantCard";
 import {
   groupIntoPackages,
@@ -24,9 +27,13 @@ import {
 function PackageGroupCard({
   members,
   tripId,
+  now,
+  onRequestRemove,
 }: {
   members: any[];
   tripId: string;
+  now: number;
+  onRequestRemove: (participant: any) => void;
 }) {
   const allPaid = members.every((m) => isPaidBookingStatus(m.status));
   return (
@@ -55,6 +62,8 @@ function PackageGroupCard({
             participant={m}
             tripId={tripId}
             index={idx}
+            now={now}
+            onRequestRemove={onRequestRemove}
           />
         ))}
       </div>
@@ -223,6 +232,50 @@ export default function ParticipantsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Usuwanie nieopłaconych rezerwacji: jeden zegar na całą listę odlicza
+  // 30-minutową karencję, więc kosze odblokowują się same, bez odświeżania.
+  const [now, setNow] = useState(() => Date.now());
+  const [pendingRemoval, setPendingRemoval] = useState<any | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleConfirmRemove = async () => {
+    if (!pendingRemoval) return;
+    setIsRemoving(true);
+    try {
+      const res = await fetch(
+        `/api/admin/wydarzenia/${tripId}/uczestnicy/${pendingRemoval.id}`,
+        { method: "DELETE" },
+      );
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(result.error || "Nie udało się usunąć rezerwacji");
+      }
+
+      const removed: string[] = result.removedIds || [pendingRemoval.id];
+      setParticipants((prev) => prev.filter((p) => !removed.includes(p.id)));
+      toast.success(
+        result.removedGuests > 0
+          ? `Usunięto rezerwację (+${result.removedGuests} os. z pakietu)`
+          : "Rezerwacja usunięta",
+      );
+      setPendingRemoval(null);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Nie udało się usunąć rezerwacji",
+      );
+      // Serwer mógł odmówić, bo w międzyczasie wpłata przeszła — odświeżamy
+      // listę, żeby karta pokazała aktualny stan.
+      setNow(Date.now());
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   useEffect(() => {
     if (!tripId) return;
 
@@ -355,7 +408,8 @@ export default function ParticipantsListPage() {
               Uczestnicy
             </h1>
             <p className="text-sm text-slate-500 font-medium max-w-xs sm:max-w-none">
-              Panel zarządzania statusem, finansami i rezerwacjami na wydarzenie.
+              Panel zarządzania statusem, finansami i rezerwacjami na
+              wydarzenie.
             </p>
           </div>
         </div>
@@ -400,6 +454,8 @@ export default function ParticipantsListPage() {
                 key={`pkg-${unit.members[0].id}`}
                 members={unit.members}
                 tripId={tripId}
+                now={now}
+                onRequestRemove={setPendingRemoval}
               />
             ) : (
               <ParticipantCard
@@ -407,6 +463,8 @@ export default function ParticipantsListPage() {
                 participant={unit.item}
                 tripId={tripId}
                 index={i}
+                now={now}
+                onRequestRemove={setPendingRemoval}
               />
             ),
           )
@@ -443,6 +501,86 @@ export default function ParticipantsListPage() {
           </div>
         </div>
       )}
+
+      {/* ==========================================
+          POTWIERDZENIE USUNIĘCIA NIEOPŁACONEJ REZERWACJI
+          ========================================== */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {pendingRemoval && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isRemoving && setPendingRemoval(null)}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brand-secondary/40 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-sm bg-white rounded-[24px] rounded-tr-none shadow-[0_30px_60px_-15px_rgba(3,63,99,0.35)] p-6 flex flex-col items-center text-center"
+                >
+                  <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                    <Trash size={26} weight="bold" className="text-red-500" />
+                  </div>
+                  <h3 className="font-jakarta font-bold text-lg text-brand-secondary">
+                    Usunąć rezerwację?
+                  </h3>
+                  <p className="text-[13px] text-gray-500 font-montserrat mt-2 leading-relaxed">
+                    Skasujesz nieopłaconą rezerwację{" "}
+                    <span className="font-semibold text-brand-secondary">
+                      {pendingRemoval.name ||
+                        pendingRemoval.user?.name ||
+                        pendingRemoval.email ||
+                        "tej osoby"}
+                    </span>{" "}
+                    i zwolnisz jej miejsce. Tej operacji nie można cofnąć.
+                    {pendingRemoval.packagePartner?.relation === "inviter" && (
+                      <> Razem z nią zniknie osoba zaproszona w pakiecie.</>
+                    )}
+                  </p>
+
+                  <div className="w-full flex items-center gap-2.5 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setPendingRemoval(null)}
+                      disabled={isRemoving}
+                      className="flex-1 h-11 rounded-2xl bg-gray-100 text-brand-secondary font-bold text-[13.5px] hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      Anuluj
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmRemove}
+                      disabled={isRemoving}
+                      className="flex-1 h-11 rounded-2xl bg-red-500 text-white font-bold text-[13.5px] hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+                    >
+                      {isRemoving ? (
+                        <>
+                          <CircleNotch
+                            size={16}
+                            weight="bold"
+                            className="animate-spin"
+                          />
+                          Usuwam...
+                        </>
+                      ) : (
+                        <>
+                          <Trash size={16} weight="bold" />
+                          Usuń
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </div>
   );
 }

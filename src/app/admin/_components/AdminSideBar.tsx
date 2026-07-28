@@ -33,6 +33,7 @@ import {
   PaperPlaneTilt,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { getAdminTripId, getAdminCourseSlug } from "@/lib/admin/nav";
 
 type IconType = React.ComponentType<{
   size?: number;
@@ -182,18 +183,9 @@ export default function AdminSidebar() {
   // 1. ZAAWANSOWANE POBIERANIE ID WYDARZENIA
   const queryId = searchParams.get("id");
 
-  const pathSegments = pathname.split("/").filter(Boolean);
-  let pathTripId: string | null = null;
-  if (
-    pathSegments[0] === "admin" &&
-    pathSegments[1] === "wydarzenia" &&
-    pathSegments.length >= 3 &&
-    !["dodaj", "edycja", "platnosci", "live", "uczestniczki", "lista"].includes(
-      pathSegments[2],
-    )
-  ) {
-    pathTripId = pathSegments[2];
-  }
+  // Wspólne z mobilnym paskiem (`src/lib/admin/nav.ts`) — jedna lista segmentów,
+  // które nie są ID wydarzenia.
+  const pathTripId = getAdminTripId(pathname);
 
   // Ostateczne ID wydarzenia, w którym obecnie "siedzimy"
   const actualTripId = queryId || pathTripId;
@@ -221,15 +213,7 @@ export default function AdminSidebar() {
     : 0;
 
   // Kontekst konkretnego kursu: /admin/kursy/[slug] (z pominięciem dodaj/lista).
-  let courseSlug: string | null = null;
-  if (
-    pathSegments[0] === "admin" &&
-    pathSegments[1] === "kursy" &&
-    pathSegments.length >= 3 &&
-    !["dodaj", "lista"].includes(pathSegments[2])
-  ) {
-    courseSlug = pathSegments[2];
-  }
+  const courseSlug = getAdminCourseSlug(pathname);
   const isManagingCourse = !!courseSlug;
 
   // 3. AKORDEON — rozwinięta tylko sekcja, w której aktualnie jesteśmy.

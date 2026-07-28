@@ -32,12 +32,22 @@ export async function GET(
     // Filtrujemy po kolumnie relacyjnej `tripId`. Stare rekordy zapisywały
     // tripId w `meta` (przed wprowadzeniem dispatchera) — obsługujemy oba przez OR,
     // żeby historia z migracji nie zniknęła z widoku.
+    // Zakładka „Inne" = wszystko, co nie mieści się w nazwanych filtrach
+    // (m.in. porzucone i ręcznie usunięte rezerwacje). Wcześniej `OTHER`
+    // przelatywał bez dopasowania i pokazywał PEŁNĄ listę.
+    const kindFilter: Prisma.ActivityWhereInput =
+      typeParam === "OTHER"
+        ? { kind: { notIn: Array.from(VALID_TYPES) } }
+        : typeParam && VALID_TYPES.has(typeParam)
+          ? { kind: typeParam }
+          : {};
+
     const where: Prisma.ActivityWhereInput = {
       OR: [
         { tripId: id },
         { tripId: null, meta: id, pillar: "CAMP" },
       ],
-      ...(typeParam && VALID_TYPES.has(typeParam) ? { kind: typeParam } : {}),
+      ...kindFilter,
     };
 
     const [items, total] = await Promise.all([

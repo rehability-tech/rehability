@@ -356,7 +356,7 @@ export async function DELETE(
     if (activeBookings > 0) {
       return NextResponse.json(
         {
-          error: `Nie można usunąć — wydarzenie ma zapisane uczestniczki (${activeBookings}). Zamiast usuwać, przenieś je do archiwum.`,
+          error: `Nie można usunąć — wydarzenie ma zapisanych uczestników (${activeBookings}). Nieopłacone rezerwacje możesz skasować w zakładce „Uczestnicy”, a opłacone wydarzenie przenieś do archiwum.`,
         },
         { status: 409 },
       );

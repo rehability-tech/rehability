@@ -148,11 +148,15 @@ const NOTIFICATION_TYPE: Record<CampEventKind, NotificationType> = {
   HEALTH_UPDATED: "HEALTH",
   SERVICE_BOUGHT: "SPA",
   SIGNUP: "BOOKING",
+  BOOKING_ABANDONED: "BOOKING",
+  BOOKING_REMOVED: "BOOKING",
   CHECK_IN: "BOOKING",
 };
 
 // Macierz [A]/[P] per zdarzenie. Klucz dla "alert fatigue":
-// karty zdrowia idą tylko IN_APP + ACTIVITY (admin sprawdza grupowo).
+// karty zdrowia idą tylko IN_APP + ACTIVITY (admin sprawdza grupowo),
+// a domknięcia nieopłaconych rezerwacji tylko do ACTIVITY — to zapis do
+// historii, nie news wart budzenia telefonu.
 const CAMP_EVENT_CHANNELS: Record<CampEventKind, NotificationChannel[]> = {
   DEPOSIT_PAID: ["ACTIVITY", "IN_APP", "PUSH"],
   FULLY_PAID: ["ACTIVITY", "IN_APP", "PUSH"],
@@ -161,6 +165,8 @@ const CAMP_EVENT_CHANNELS: Record<CampEventKind, NotificationChannel[]> = {
   CHECK_IN: ["ACTIVITY", "IN_APP", "PUSH"],
   HEALTH_FILLED: ["ACTIVITY", "IN_APP"],
   HEALTH_UPDATED: ["ACTIVITY", "IN_APP"],
+  BOOKING_ABANDONED: ["ACTIVITY"],
+  BOOKING_REMOVED: ["ACTIVITY"],
 };
 
 function buildCopy(input: LogCampEventInput): {
@@ -171,54 +177,73 @@ function buildCopy(input: LogCampEventInput): {
   const { kind, userName, amount, tripTitle, detail } = input;
   const trip = tripTitle ? `wydarzenie: ${tripTitle}` : "wydarzenie";
 
+  // Wszystkie komunikaty są NEUTRALNE PŁCIOWO — zamiast czasownika z końcówką
+  // rodzajową („zarezerwowała") używamy formy rzeczownikowej po myślniku
+  // („— rozpoczęta rezerwacja"). Platforma jest dla uczestników i uczestniczek.
   switch (kind) {
     case "DEPOSIT_PAID":
       return {
         title: "🎉 Nowa wpłata: Zadatek",
-        message: `${userName} opłaciła zadatek${amount ? ` (${amount} PLN)` : ""} za ${trip}.`,
+        message: `${userName} — zadatek opłacony${amount ? ` (${amount} PLN)` : ""}, ${trip}.`,
         kind: "PAYMENT",
       };
     case "FULLY_PAID":
       return {
         title: "💰 Wpłata: Reszta kwoty",
-        message: `${userName} dopłaciła resztę${amount ? ` (${amount} PLN)` : ""} za ${trip}.`,
+        message: `${userName} — reszta kwoty opłacona${amount ? ` (${amount} PLN)` : ""}, ${trip}.`,
         kind: "PAYMENT",
       };
     case "HEALTH_FILLED":
       return {
         title: "❤️ Wypełniona karta zdrowia",
-        message: `${userName} wypełniła kartę zdrowia (${trip}).`,
+        message: `${userName} — karta zdrowia wypełniona (${trip}).`,
         kind: "HEALTH_FILLED",
       };
     case "HEALTH_UPDATED":
       return {
         title: "❤️ Aktualizacja karty zdrowia",
-        message: `${userName} zaktualizowała kartę zdrowia tuż przed wydarzeniem (${trip}).`,
+        message: `${userName} — karta zdrowia zaktualizowana tuż przed wydarzeniem (${trip}).`,
         kind: "HEALTH_FILLED",
       };
     case "SERVICE_BOUGHT":
       return {
         title: "✨ Nowa rezerwacja SPA",
-        message: `${userName} zarezerwowała usługę${detail ? ` ${detail}` : ""} na ${trip}.`,
+        message: `${userName} — rezerwacja usługi${detail ? ` „${detail}"` : ""}, ${trip}.`,
         kind: "SERVICE_BOUGHT",
       };
+    // UWAGA: ten wpis powstaje przy OTWARCIU płatności, zanim Stripe cokolwiek
+    // pobierze. Celowo — pokazuje porzucone koszyki. Dlatego nazywa się
+    // „rozpoczęta rezerwacja", a nie „nowa rezerwacja": miejsce liczy się
+    // dopiero po zadatku (osobny wpis DEPOSIT_PAID).
     case "SIGNUP":
       return {
-        title: "👋 Nowa rezerwacja",
-        message: `${userName} zarezerwowała ${trip}.`,
+        title: "👋 Rozpoczęta rezerwacja",
+        message: `${userName} — rozpoczęta rezerwacja, ${trip}. Miejsce liczy się dopiero po wpłacie zadatku.`,
         kind: "SIGNUP",
+      };
+    case "BOOKING_ABANDONED":
+      return {
+        title: "⌛ Porzucona rezerwacja",
+        message: `${userName} — rezerwacja anulowana automatycznie, zadatek nie wpłynął (${trip}).`,
+        kind: "BOOKING_ABANDONED",
+      };
+    case "BOOKING_REMOVED":
+      return {
+        title: "🗑️ Rezerwacja usunięta",
+        message: `${userName} — nieopłacona rezerwacja usunięta przez administratora${detail ? ` ${detail}` : ""} (${trip}).`,
+        kind: "BOOKING_REMOVED",
       };
     case "CHECK_IN":
       return {
         title: "✅ Check-in",
-        message: `${userName} zameldowała się (${trip}).`,
+        message: `${userName} — check-in na miejscu (${trip}).`,
         kind: "CHECK_IN",
       };
   }
 }
 
 /**
- * Fasada zdarzeń wydarzenia. Jeden helper dla wszystkich akcji uczestniczek,
+ * Fasada zdarzeń wydarzenia. Jeden helper dla wszystkich akcji uczestników,
  * który leci przez dispatcher i automatycznie dobiera kanały wg macierzy.
  *
  * Zapisuje `tripId` do kolumny relacyjnej w `Activity` (a nie do `meta`),
@@ -253,7 +278,7 @@ export async function logVodPurchase(input: {
   await dispatchNotification({
     target: "ADMIN",
     title: "🎓 Sprzedaż kursu VOD",
-    message: `${input.userName} kupił(a) kurs „${input.courseTitle}"${
+    message: `${input.userName} — zakup kursu „${input.courseTitle}"${
       input.amount ? ` (${input.amount} zł)` : ""
     }.`,
     link: input.courseSlug ? `/kursy/${input.courseSlug}` : "/admin/kursy/lista",

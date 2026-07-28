@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
 import AttentionDot from "@/components/ui/AttentionDot";
+import { getAdminTripId, getAdminCourseSlug } from "@/lib/admin/nav";
 
 // Animacje przejść między widokami
 const navVariants: Variants = {
@@ -87,16 +88,10 @@ export default function AdminMobileNavBar() {
   }, [pathname, refreshChatUnread]);
 
   // LOGIKA WYKRYWANIA KONTEKSTU WYDARZENIA
-  // Sprawdzamy, czy jesteśmy w /admin/wydarzenia/[id] — ale NIE w kreatorze
-  // (/admin/wydarzenia/dodaj/...) ani w /nowy /edycja. Inaczej regex wyłapałby
-  // "dodaj" jako id i pasek wszedłby w tryb konkretnego wydarzenia z błędnymi
-  // linkami, przez co żaden krok kreatora nie byłby podświetlony.
-  const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
-  const campIdMatch = pathname?.match(/\/admin\/wydarzenia\/([a-zA-Z0-9_-]+)/);
-  const currentCampId =
-    campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1])
-      ? campIdMatch[1]
-      : null;
+  // Wspólna z AdminSideBar (`src/lib/admin/nav.ts`) — sekcje typu /lista czy
+  // /dodaj nie są ID wydarzenia, więc pasek nie wchodzi na nich w tryb
+  // pojedynczego wydarzenia.
+  const currentCampId = getAdminTripId(pathname);
   const isTripContext = !!currentCampId;
 
   // KONTEKST BLOGA — analogicznie do kontekstu wydarzenia (sub-menu sekcji bloga).
@@ -124,11 +119,7 @@ export default function AdminMobileNavBar() {
       : pathname === item.href;
 
   // KONTEKST KONKRETNEGO KURSU — sub-menu zsynchronizowane z AdminSideBar.
-  const courseSlugMatch = pathname?.match(/\/admin\/kursy\/([a-zA-Z0-9_-]+)/);
-  const currentCourseSlug =
-    courseSlugMatch && !["dodaj", "lista"].includes(courseSlugMatch[1])
-      ? courseSlugMatch[1]
-      : null;
+  const currentCourseSlug = getAdminCourseSlug(pathname);
   const isCourseContext = !!currentCourseSlug;
 
   const courseItems = [
@@ -189,6 +180,43 @@ export default function AdminMobileNavBar() {
   ];
   const isVodItemActive = (item: (typeof vodItems)[number]) =>
     item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+
+  // KONTEKST SEKCJI WYDARZEŃ (poziom sekcji, nie konkretnego wydarzenia) —
+  // te same opcje co w AdminSideBar: Panel / Wszystkie wydarzenia / Kreator.
+  // Konkretne wydarzenie ma pierwszeństwo (isTripContext sprawdzany wcześniej),
+  // więc tu trafiają tylko /admin/wydarzenia, /lista i /dodaj.
+  const isTripSectionContext =
+    !isTripContext && (pathname?.startsWith("/admin/wydarzenia") ?? false);
+
+  const tripSectionItems = [
+    {
+      key: "trips-panel",
+      href: "/admin/wydarzenia",
+      label: "Panel",
+      icon: ChartLineUp,
+      exact: true,
+    },
+    {
+      key: "trips-list",
+      href: "/admin/wydarzenia/lista",
+      label: "Wydarzenia",
+      icon: Suitcase,
+      exact: false,
+    },
+    {
+      key: "trips-new",
+      href: "/admin/wydarzenia/dodaj/dane-podstawowe",
+      label: "Nowe",
+      icon: PlusCircle,
+      exact: false,
+      activePrefix: "/admin/wydarzenia/dodaj",
+    },
+  ];
+  const isTripSectionItemActive = (item: (typeof tripSectionItems)[number]) => {
+    const prefix = "activePrefix" in item ? item.activePrefix : undefined;
+    if (prefix) return pathname?.startsWith(prefix);
+    return item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+  };
 
   // 2. SUB-MENU DLA KONKRETNEGO WYDARZENIA — zsynchronizowane z AdminSideBar
   const tripItems: TripItem[] = [
@@ -611,6 +639,80 @@ export default function AdminMobileNavBar() {
                     icon: Icon,
                     ...rest,
                   });
+                  return (
+                    <motion.li
+                      key={key}
+                      layout
+                      transition={LAYOUT_SPRING}
+                      className={cn("list-none shrink-0", isActive && "flex-grow")}
+                    >
+                      <Link
+                        href={href}
+                        className={cn(
+                          "relative flex items-center justify-center gap-2 h-11 min-w-11 rounded-full",
+                          isActive
+                            ? "w-full px-4 text-white"
+                            : "text-brand-secondary/40 hover:text-brand-primary",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="admin-nav-pill"
+                            transition={LAYOUT_SPRING}
+                            className="absolute inset-0 bg-brand-primary rounded-full shadow-[0_4px_12px_-2px_rgba(40,125,136,0.3)] overflow-hidden"
+                          >
+                            <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-brand-yellow/30 rounded-full blur-md" />
+                          </motion.div>
+                        )}
+                        <motion.div
+                          layout="position"
+                          transition={LAYOUT_SPRING}
+                          className="relative flex items-center justify-center z-10"
+                        >
+                          <Icon
+                            size={22}
+                            weight={isActive ? "fill" : "regular"}
+                            className="shrink-0 transition-colors duration-200"
+                          />
+                        </motion.div>
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {isActive && (
+                            <motion.span
+                              key="label"
+                              layout="position"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                              className="relative z-10 font-montserrat text-[13px] font-semibold tracking-wide whitespace-nowrap"
+                            >
+                              {label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
+            ) : isTripSectionContext ? (
+              /* WIDOK 1d: KONTEKST SEKCJI WYDARZEŃ (Panel, Wydarzenia, Nowe) */
+              <motion.ul
+                key="trips-nav"
+                variants={navVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="absolute inset-0 flex items-center justify-between w-full h-full gap-1.5"
+              >
+                {tripSectionItems.map(({ key, href, label, icon: Icon, ...rest }) => {
+                  const isActive = isTripSectionItemActive({
+                    key,
+                    href,
+                    label,
+                    icon: Icon,
+                    ...rest,
+                  } as (typeof tripSectionItems)[number]);
                   return (
                     <motion.li
                       key={key}
