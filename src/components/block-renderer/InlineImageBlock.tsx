@@ -4,7 +4,9 @@ import Image from "next/image";
 export default function InlineImageBlock({ content }: { content: any }) {
   if (!content?.url) return null;
 
-  const alt = content.alt || "Zdjęcie z wyjazdu";
+  const alt = content.alt || "Zdjęcie z wydarzenia";
+  const caption = typeof content.alt === "string" ? content.alt.trim() : "";
+  const showCaption = content.showCaption === true && caption.length > 0;
 
   return (
     <figure className="w-full">
@@ -19,9 +21,13 @@ export default function InlineImageBlock({ content }: { content: any }) {
           />
         </div>
       </div>
-      {content.alt && (
-        <figcaption className="mt-2 text-left text-[12px] text-[#0B3B4C]/55 italic font-montserrat">
-          {content.alt}
+      {/* Pole `alt` domyślnie NIE jest podpisem dla czytelnika — to opis
+          rekomendacji zdjęcia generowany przez AI („Wysokiej jakości zdjęcie
+          wnętrza…"), służący SEO i czytnikom ekranu. Pokazujemy je pod zdjęciem
+          tylko wtedy, gdy admin świadomie włączy podpis ikonką oka w edytorze. */}
+      {showCaption && (
+        <figcaption className="mt-3 px-1 text-center font-montserrat text-[13px] @md:text-[14px] leading-relaxed text-gray-500">
+          {caption}
         </figcaption>
       )}
     </figure>

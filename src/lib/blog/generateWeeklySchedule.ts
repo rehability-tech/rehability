@@ -52,7 +52,7 @@ Zwróć tablicę JSON (bez żadnych nagłówków, tylko surowy JSON):
   {
     "title": "Chwytliwy tytuł artykułu po polsku (max 10 słów)",
     "topic": "2-3 zdania opisujące co powinien zawierać artykuł i jaką wartość da czytelniczce",
-    "category": "jedna z: Fizjoterapia | Mindfulness | Żywienie | Ruch | Wyjazdy holistyczne | Terapia | Ogólne",
+    "category": "jedna z: Fizjoterapia | Mindfulness | Żywienie | Ruch | Wydarzenia holistyczne | Terapia | Ogólne",
     "keywords": ["słowo1", "słowo2", "słowo3", "słowo4"]
   }
 ]`;

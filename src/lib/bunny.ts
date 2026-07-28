@@ -93,11 +93,13 @@ export async function getBunnyVideoStatus(
   // rzucać, by uploader nie pollował w nieskończoność. Inne błędy (5xx, sieć)
   // traktujemy jako chwilowe → rzucamy, poll spróbuje ponownie.
   if (res.status === 404) {
+    // notFound jest samodzielnym sygnałem końca pollingu; failed zostawiamy
+    // false, by kolejność sprawdzeń u konsumenta nie miała znaczenia.
     return {
       status: 0,
       encodeProgress: 0,
       ready: false,
-      failed: true,
+      failed: false,
       notFound: true,
       length: 0,
     };

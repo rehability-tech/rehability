@@ -40,7 +40,7 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-// Element podmenu (kontekst wyjazdu / VOD).
+// Element podmenu (kontekst wydarzenia / VOD).
 type SubItem = {
   key: string;
   href: string;
@@ -56,12 +56,12 @@ const MENU_SECTIONS: MenuSection[] = [
     items: [{ key: "hub", href: "/panel", label: "Start", icon: SquaresFour }],
   },
   {
-    title: "Strefa Wyjazdów",
+    title: "Strefa Wydarzeń",
     items: [
       {
         key: "campy",
-        href: "/panel/wyjazdy",
-        label: "Moje Wyjazdy",
+        href: "/panel/wydarzenia",
+        label: "Moje Wydarzenia",
         icon: Suitcase,
       },
     ],
@@ -93,11 +93,11 @@ export default function UserSidebar() {
     refreshChatUnread();
   }, [pathname, refreshChatUnread]);
 
-  // LOGIKA WYKRYWANIA KONTEKSTU WYJAZDU
+  // LOGIKA WYKRYWANIA KONTEKSTU WYDARZENIA
   const segments = pathname?.split("/") || [];
   const isTripContext =
     segments[1] === "panel" &&
-    segments[2] === "wyjazdy" &&
+    segments[2] === "wydarzenia" &&
     segments.length >= 4;
   const tripId = isTripContext ? segments[3] : null;
 
@@ -120,35 +120,35 @@ export default function UserSidebar() {
     };
   }, [pathname, isVodContext]);
 
-  // Submenu wyjazdu
+  // Submenu wydarzenia
   const tripItems: SubItem[] = [
     {
       key: "trip-home",
-      href: `/panel/wyjazdy/${tripId}`,
+      href: `/panel/wydarzenia/${tripId}`,
       label: "Panel",
       icon: House,
     },
     {
       key: "sklep",
-      href: `/panel/wyjazdy/${tripId}/sklep`,
+      href: `/panel/wydarzenia/${tripId}/sklep`,
       label: "Sklep",
       icon: Storefront,
     },
     {
       key: "chat",
-      href: `/panel/wyjazdy/${tripId}/chat`,
+      href: `/panel/wydarzenia/${tripId}/chat`,
       label: "Czat",
       icon: ChatCircle,
     },
     {
       key: "harmonogram",
-      href: `/panel/wyjazdy/${tripId}/harmonogram`,
+      href: `/panel/wydarzenia/${tripId}/harmonogram`,
       label: "Plan",
       icon: CalendarBlank,
     },
     {
       key: "karta",
-      href: `/panel/wyjazdy/${tripId}/karta-zdrowia`,
+      href: `/panel/wydarzenia/${tripId}/karta-zdrowia`,
       label: "Zdrowie",
       icon: Heartbeat,
       needsAttention: true,
@@ -222,7 +222,7 @@ export default function UserSidebar() {
             <div className="flex flex-col gap-1">
               {section.items.map(
                 ({ key, href, label, icon: Icon, disabled }) => {
-                  // Rozwijane podmenu: kontekst wyjazdu (Moje Wyjazdy) lub VOD
+                  // Rozwijane podmenu: kontekst wydarzenia (Moje Wydarzenia) lub VOD
                   // (Platforma VOD) → traktujemy przycisk jako „Otwarty Folder".
                   const submenu: SubItem[] | null =
                     key === "campy" && isTripContext
@@ -294,7 +294,7 @@ export default function UserSidebar() {
                         </div>
                       </Link>
 
-                      {/* --- INTELIGENTNE SUBMENU WYJAZDU --- */}
+                      {/* --- INTELIGENTNE SUBMENU WYDARZENIA --- */}
                       <AnimatePresence>
                         {submenu && (
                           <motion.div
@@ -314,7 +314,7 @@ export default function UserSidebar() {
                               const hasQuery = subItem.href.includes("?");
                               const isHome =
                                 base === "/panel/vod" ||
-                                base === `/panel/wyjazdy/${tripId}`;
+                                base === `/panel/wydarzenia/${tripId}`;
                               const isSubActive = hasQuery
                                 ? false
                                 : isHome

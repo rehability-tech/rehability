@@ -31,7 +31,7 @@ type GlobalItem = {
 // 1. GLOBALNA NAWIGACJA
 const globalItems: GlobalItem[] = [
   { key: "hub", href: "/panel", label: "Start", icon: SquaresFour },
-  { key: "campy", href: "/panel/wyjazdy", label: "Wyjazdy", icon: Suitcase },
+  { key: "campy", href: "/panel/wydarzenia", label: "Wydarzenia", icon: Suitcase },
   {
     key: "vod",
     href: "/panel/vod",
@@ -78,17 +78,17 @@ export default function UserMobileBottomNav() {
   // MOCK: Akcja powiadomienia
   const hasPendingActionInTrips = true;
 
-  // LOGIKA WYKRYWANIA KONTEKSTU WYJAZDU
+  // LOGIKA WYKRYWANIA KONTEKSTU WYDARZENIA
   const segments = pathname?.split("/") || [];
   const isTripContext =
     segments[1] === "panel" &&
-    segments[2] === "wyjazdy" &&
+    segments[2] === "wydarzenia" &&
     segments.length >= 4;
   const tripId = isTripContext ? segments[3] : null;
 
   // Karta zdrowia (HealthProfile) jest 1:1 z użytkowniczką — wystarczy jeden
   // globalny strzał. `null` = jeszcze nie wiemy (nie pokazujemy kropki).
-  // Pobieramy tylko w kontekście wyjazdu, bo tam jest zakładka "Zdrowie".
+  // Pobieramy tylko w kontekście wydarzenia, bo tam jest zakładka "Zdrowie".
   const [healthFilled, setHealthFilled] = useState<boolean | null>(null);
   useEffect(() => {
     if (!isTripContext) return;
@@ -118,19 +118,19 @@ export default function UserMobileBottomNav() {
   const tripItems: TripItem[] = [
     {
       key: "trip-home",
-      href: `/panel/wyjazdy/${tripId}`,
+      href: `/panel/wydarzenia/${tripId}`,
       label: "Panel",
       icon: House,
     },
     {
       key: "harmonogram",
-      href: `/panel/wyjazdy/${tripId}/harmonogram`,
+      href: `/panel/wydarzenia/${tripId}/harmonogram`,
       label: "Plan",
       icon: CalendarBlank,
     },
     {
       key: "karta",
-      href: `/panel/wyjazdy/${tripId}/karta-zdrowia`,
+      href: `/panel/wydarzenia/${tripId}/karta-zdrowia`,
       label: "Zdrowie",
       icon: Heartbeat,
       // Kropka tylko, gdy karta NIE jest jeszcze uzupełniona.
@@ -139,15 +139,15 @@ export default function UserMobileBottomNav() {
     },
     {
       key: "chat",
-      href: `/panel/wyjazdy/${tripId}/chat`,
+      href: `/panel/wydarzenia/${tripId}/chat`,
       label: "Czat",
       icon: ChatCircle,
-      needsAttention: chatUnreadLinks.has(`/panel/wyjazdy/${tripId}/chat`),
+      needsAttention: chatUnreadLinks.has(`/panel/wydarzenia/${tripId}/chat`),
       wideOnly: true,
     },
     {
       key: "sklep",
-      href: `/panel/wyjazdy/${tripId}/sklep`,
+      href: `/panel/wydarzenia/${tripId}/sklep`,
       label: "Sklep",
       icon: Storefront,
     },
@@ -210,7 +210,7 @@ export default function UserMobileBottomNav() {
         <div className="relative w-full h-11">
           <AnimatePresence mode="wait" initial={false}>
             {isTripContext ? (
-              /* WIDOK 1: KONTEKST WYJAZDU */
+              /* WIDOK 1: KONTEKST WYDARZENIA */
               <motion.div
                 key="trip-nav"
                 variants={navVariants}
@@ -220,8 +220,8 @@ export default function UserMobileBottomNav() {
                 className="absolute inset-0 flex items-center justify-between w-full h-full"
               >
                 <div className="flex items-center justify-between gap-1.5 w-full max-w-full">
-                  {/* Powrót do listy wyjazdów jest teraz w topbarze (ikona back). */}
-                  {/* Scrollowane menu wyjazdu */}
+                  {/* Powrót do listy wydarzeń jest teraz w topbarze (ikona back). */}
+                  {/* Scrollowane menu wydarzenia */}
                   <ul
                     className={cn(
                       "flex flex-1 items-center justify-start gap-1.5 overflow-x-auto scroll-smooth relative transition-all duration-300",
@@ -367,7 +367,7 @@ export default function UserMobileBottomNav() {
                 </div>
               </motion.div>
             ) : (
-              /* WIDOK 2: GLOBALNA NAWIGACJA (Start, Wyjazdy, VOD, Profil) */
+              /* WIDOK 2: GLOBALNA NAWIGACJA (Start, Wydarzenia, VOD, Profil) */
               <motion.ul
                 key="global-nav"
                 variants={navVariants}

@@ -35,7 +35,7 @@ export default function AcceptInvitation({ token, isLoggedIn }: Props) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Nie udało się przyjąć zaproszenia.");
       }
-      router.push("/panel/wyjazdy");
+      router.push("/panel/wydarzenia");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Coś poszło nie tak.");
@@ -56,7 +56,7 @@ export default function AcceptInvitation({ token, isLoggedIn }: Props) {
           <CircleNotch size={20} weight="bold" className="animate-spin" />
         ) : isLoggedIn ? (
           <>
-            Dołączam do wyjazdu
+            Dołączam do wydarzenia
             <ArrowRight size={18} weight="bold" />
           </>
         ) : (

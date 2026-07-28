@@ -502,6 +502,7 @@ export function VodCoursePlayer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lessonId: active.id, completed: next }),
+        keepalive: true,
       });
     } catch {
       /* offline — UI już zaktualizowane optymistycznie */
@@ -627,6 +628,7 @@ export function VodCoursePlayer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
+        keepalive: true,
       });
     } catch {
       /* offline — flaga lokalna już ustawiona */
@@ -644,6 +646,7 @@ export function VodCoursePlayer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lessonId: active.id, completed: true }),
+        keepalive: true,
       }).catch(() => {});
     }
     if (isLastLesson) {

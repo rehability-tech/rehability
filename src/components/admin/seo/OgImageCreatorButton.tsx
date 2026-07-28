@@ -6,7 +6,7 @@ import OgImageCreator from "./OgImageCreator";
 
 /**
  * Przycisk otwierający kreator grafiki OG (1200×630) — wspólny dla bloga,
- * wyjazdów i kursów. Składa grafikę ze zdjęcia tła + tytułu/etykiety i wgrywa
+ * wydarzeń i kursów. Składa grafikę ze zdjęcia tła + tytułu/etykiety i wgrywa
  * gotowy PNG do magazynu, zwracając URL do pola `ogImage`.
  */
 export default function OgImageCreatorButton({

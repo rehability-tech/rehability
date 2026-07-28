@@ -253,7 +253,7 @@ export default function EmailTemplateEditor({ templateId }: Props) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="np. Zaproszenie na wyjazd majowy"
+              placeholder="np. Zaproszenie na wydarzenie majowe"
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-[13.5px] font-montserrat text-[#033f63] placeholder:text-gray-300 focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10 transition-all bg-white"
             />
           </div>

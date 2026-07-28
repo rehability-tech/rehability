@@ -39,10 +39,10 @@ To najszybsza dźwignia. Rób **pojedynczo**, w tej kolejności (najważniejsze 
 
 1. `https://www.rehabilityprudnik.pl/`
 2. `https://www.rehabilityprudnik.pl/gabinet`
-3. `https://www.rehabilityprudnik.pl/wyjazdy`
+3. `https://www.rehabilityprudnik.pl/wydarzenia`
 4. `https://www.rehabilityprudnik.pl/o-nas`
 5. Po kolei 4 wpisy blogowe (`https://www.rehabilityprudnik.pl/blog/...`)
-6. Po kolei strony wyjazdów (`https://www.rehabilityprudnik.pl/wyjazdy/...`)
+6. Po kolei strony wydarzeń (`https://www.rehabilityprudnik.pl/wydarzenia/...`)
 
 Dla każdego URL-a:
 - Wklej adres w górny pasek **„Sprawdź dowolny URL"** w GSC.
@@ -101,7 +101,7 @@ Upewnij się, że w każdym profilu jest klikalny link do `www.rehabilityprudnik
 - Częste publikacje uczą Googlebota wracać częściej → szybciej łapie też resztę stron.
 
 ### C2. Linkowanie wewnętrzne
-- Z każdego wpisu blogowego linkuj do `/gabinet` i `/wyjazdy` (anchor opisowy,
+- Z każdego wpisu blogowego linkuj do `/gabinet` i `/wydarzenia` (anchor opisowy,
   np. „umów wizytę w gabinecie w Prudniku").
 - Ze strony głównej musi być widoczny link do każdej ważnej podstrony
   (to już zwykle jest w nawigacji — warto potwierdzić, że żadna strona nie jest „sierotą").
@@ -126,14 +126,14 @@ Upewnij się, że w każdym profilu jest klikalny link do `www.rehabilityprudnik
 ## Checklista
 
 - [ ] Sitemapa zatwierdzona w GSC (status: Sukces, ~18 URL)
-- [ ] Poproszono o indeksację: `/`, `/gabinet`, `/wyjazdy`, `/o-nas`
-- [ ] Poproszono o indeksację: 4 wpisy blog + strony wyjazdów
+- [ ] Poproszono o indeksację: `/`, `/gabinet`, `/wydarzenia`, `/o-nas`
+- [ ] Poproszono o indeksację: 4 wpisy blog + strony wydarzeń
 - [ ] Sprawdzono stronę „z przekierowaniem" (zamierzone czy nie)
 - [ ] Wizytówka Google utworzona i zweryfikowana
 - [ ] Link do strony dodany w Booksy / FB / IG
 - [ ] Pierwsze opinie Google zbierane
 - [ ] Plan: 1 wpis blogowy co 1–2 tygodnie
-- [ ] Linkowanie wewnętrzne blog → /gabinet, /wyjazdy
+- [ ] Linkowanie wewnętrzne blog → /gabinet, /wydarzenia
 - [ ] Cotygodniowy przegląd GSC
 
 ---
@@ -159,10 +159,10 @@ Po publikacji wpisu nie trzeba nic robić ręcznie dla większości wyszukiwarek
 - **Sitemap** jest dynamiczny — każdy opublikowany wpis pojawia się w `sitemap.xml`
   automatycznie. To standardowa droga dla **Google** (Google nie wspiera „pingów").
 - **IndexNow** (standard wspierany przez Bing, Yandex, Seznam, DuckDuckGo…) odpala
-  się automatycznie przy publikacji **wpisu i wyjazdu** — zarówno ręcznej (admin),
+  się automatycznie przy publikacji **wpisu i wydarzenia** — zarówno ręcznej (admin),
   jak i z harmonogramu (cron). Kod: `src/lib/seo/indexing.ts`, wpięty w
-  `api/admin/blog/status`, `api/cron/blog/publish` oraz `api/admin/wyjazdy/status`
-  (wyjazdy z `noIndex` są pomijane, spójnie z sitemap).
+  `api/admin/blog/status`, `api/cron/blog/publish` oraz `api/admin/wydarzenia/status`
+  (wydarzenia z `noIndex` są pomijane, spójnie z sitemap).
   - Klucz weryfikacyjny: `public/72c3a4e845c3dcd7e6269c73fbeb8a2b.txt`
     (dostępny pod `https://www.rehabilityprudnik.pl/72c3a4e845c3dcd7e6269c73fbeb8a2b.txt`).
   - Działa tylko na produkcji (na dev jest wyłączony).

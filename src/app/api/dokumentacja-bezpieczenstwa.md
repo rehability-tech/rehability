@@ -30,7 +30,7 @@ Naprawione w tej iteracji:
 |---|---|---|
 | **K1** | ✅ naprawione | `requireAdmin()` + walidacja Zod na GET/POST/PATCH w `admin/uslugi`. |
 | **S1** | ✅ naprawione | Nowy helper [`assertPublicHttpUrl`](../../lib/uploads/assertPublicHttpUrl.ts) (blokada loopback/sieci prywatnej/metadata), timeout 8 s, `redirect: "error"`, kontrola `Content-Type` i limit 10 MB w `import-image`. |
-| **S2** | ✅ naprawione | Nowy helper [`validateImageUpload`](../../lib/uploads/validateImageUpload.ts) (whitelist rozszerzeń + MIME, limit 10 MB) w `blog/upload`, `wyjazdy/[id]/upload`, `service-image`. |
+| **S2** | ✅ naprawione | Nowy helper [`validateImageUpload`](../../lib/uploads/validateImageUpload.ts) (whitelist rozszerzeń + MIME, limit 10 MB) w `blog/upload`, `wydarzenia/[id]/upload`, `service-image`. |
 | **N2** | ✅ naprawione | Usunięto `console.log(service)` i pole `debug` (panel/orders) oraz logi z kwotami/ID (resume-payment). |
 | **N3** | ✅ naprawione | Dodano `.max()` na wszystkich polach tekstowych `health-profile`. |
 | **N4** | ✅ naprawione | Walidacja Zod w `email-templates` POST (oraz wcześniej w `uslugi`). |
@@ -59,7 +59,7 @@ Wszystkie trzy metody (`GET`, `POST`, `PATCH`) **nie wołają `requireAdmin()` a
 
 - **GET** — odczytać cały katalog usług (`ExtraService`),
 - **POST** — dodać dowolną usługę,
-- **PATCH** — **edytować dowolną usługę po `id`**, a zmiana propaguje się przez `tripService.updateMany({ where: { sourceServiceId: id } })` na **wszystkie wyjazdy** korzystające z tej usługi.
+- **PATCH** — **edytować dowolną usługę po `id`**, a zmiana propaguje się przez `tripService.updateMany({ where: { sourceServiceId: id } })` na **wszystkie wydarzenia** korzystające z tej usługi.
 
 ```ts
 export async function PATCH(req: Request) {
@@ -74,7 +74,7 @@ export async function PATCH(req: Request) {
 }
 ```
 
-**Wpływ:** podmiana cen/opisów usług na wszystkich wyjazdach, zaśmiecanie katalogu, manipulacja ofertą — bez logowania. To realna, zdalnie wykorzystywalna dziura w kontroli dostępu (BOLA/Broken Access Control, OWASP API1/API5).
+**Wpływ:** podmiana cen/opisów usług na wszystkich wydarzeniach, zaśmiecanie katalogu, manipulacja ofertą — bez logowania. To realna, zdalnie wykorzystywalna dziura w kontroli dostępu (BOLA/Broken Access Control, OWASP API1/API5).
 
 > Uwaga: `dokumentacja.md` deklaruje, że „Admin: `requireAdmin()` — wszystkie `/api/admin/*`". To stwierdzenie jest **nieprawdziwe** dla tego route'a — dokumentacja maskuje lukę.
 
@@ -121,8 +121,8 @@ Walidacja sprawdza tylko schemat. Można podać:
 
 **Pliki:**
 - [`src/app/api/admin/blog/upload/route.ts`](./admin/blog/upload/route.ts)
-- [`src/app/api/admin/wyjazdy/[id]/upload/route.ts`](./admin/wyjazdy/[id]/upload/route.ts)
-- [`src/app/api/admin/wyjazdy/service-image/route.ts`](./admin/wyjazdy/service-image/route.ts)
+- [`src/app/api/admin/wydarzenia/[id]/upload/route.ts`](./admin/wydarzenia/[id]/upload/route.ts)
+- [`src/app/api/admin/wydarzenia/service-image/route.ts`](./admin/wydarzenia/service-image/route.ts)
 
 Wszystkie streamują surowe `request.body` prosto do Vercel Blob z `access: "public"`, biorąc rozszerzenie wprost z nazwy pliku:
 
@@ -148,7 +148,7 @@ Brakuje:
 ### N1. Brak rate-limitingu na endpointach wrażliwych i publicznych
 
 - [`/api/public/newsletter`](./public/newsletter/route.ts) — brak rate-limitu i CAPTCHA → spam/zapychanie tabeli `NewsletterSubscriber`, możliwa enumeracja (różne odpowiedzi 409 vs 200).
-- [`/api/bookings/create-payment-intent`](./bookings/create-payment-intent/route.ts), [`/api/panel/orders`](./panel/orders/route.ts), [`/api/panel/wyjazdy/resume-payment`](./panel/wyjazdy/resume-payment/route.ts) — tworzą `PaymentIntent` w Stripe przy każdym żądaniu; brak throttlingu pozwala generować masę PI (koszt/szum, porzucone rezerwacje `PENDING`).
+- [`/api/bookings/create-payment-intent`](./bookings/create-payment-intent/route.ts), [`/api/panel/orders`](./panel/orders/route.ts), [`/api/panel/wydarzenia/resume-payment`](./panel/wydarzenia/resume-payment/route.ts) — tworzą `PaymentIntent` w Stripe przy każdym żądaniu; brak throttlingu pozwala generować masę PI (koszt/szum, porzucone rezerwacje `PENDING`).
 - [`/api/admin/gemini`](./admin/gemini/route.ts), [`/api/admin/pexels`](./admin/pexels/route.ts) — płatne API zewnętrzne (admin-gated, więc ryzyko niskie, ale brak limitu).
 
 **Rekomendacja:** rate-limit per-IP/per-user (np. Upstash/Vercel KV) na endpointach publicznych i płatniczych; CAPTCHA na newsletterze.
@@ -156,7 +156,7 @@ Brakuje:
 ### N2. Wyciek danych w logach i odpowiedziach błędów
 
 - [`/api/panel/orders`](./panel/orders/route.ts): `console.log(service)` (linia ~167) loguje cały obiekt usługi; odpowiedź 500 zwraca `debug: msg` (linia ~301) — ujawnia wewnętrzne kody błędów klientowi.
-- [`/api/panel/wyjazdy/resume-payment`](./panel/wyjazdy/resume-payment/route.ts): rozbudowane `console.log` z kwotami, statusem i ID rezerwacji (linie ~80–124, ~142–157) — dane biznesowe trafiają do logów produkcyjnych.
+- [`/api/panel/wydarzenia/resume-payment`](./panel/wydarzenia/resume-payment/route.ts): rozbudowane `console.log` z kwotami, statusem i ID rezerwacji (linie ~80–124, ~142–157) — dane biznesowe trafiają do logów produkcyjnych.
 
 **Rekomendacja:** usunąć logi debugowe lub przełączyć na `devLog` (jest już `@/lib/devLog`), nie zwracać `debug` w produkcji.
 
@@ -170,7 +170,7 @@ Brakuje:
 
 [`/api/admin/uslugi`](./admin/uslugi/route.ts) i [`/api/admin/email-templates`](./admin/email-templates/route.ts) pobierają pola wprost z `body` bez Zod (reszta kodu konsekwentnie używa `safeParse`). `parseInt`/`parseFloat` mogą dać `NaN` zapisane do bazy. Niska severity (admin), ale niespójne ze standardem projektu.
 
-**Rekomendacja:** ujednolicić — Zod na każdym body, jak w `wyjazdy/save`, `gemini`, `slots`.
+**Rekomendacja:** ujednolicić — Zod na każdym body, jak w `wydarzenia/save`, `gemini`, `slots`.
 
 ### N5. Cron akceptuje sekret w query stringu
 
@@ -192,7 +192,7 @@ Brakuje:
 
 ### N8. Narzędzia „dev/test" dostępne na produkcji
 
-[`/api/admin/wyjazdy/[id]/harmonogram/seed`](./admin/wyjazdy/[id]/harmonogram/seed/route.ts) i [`/api/admin/wyjazdy/[id]/harmonogram/clear`](./admin/wyjazdy/[id]/harmonogram/clear/route.ts) — `clear` kaskadowo usuwa cały harmonogram i `ServiceOrder`. Są admin-gated (akceptowalne), ale destrukcyjne i opisane jako narzędzia dev.
+[`/api/admin/wydarzenia/[id]/harmonogram/seed`](./admin/wydarzenia/[id]/harmonogram/seed/route.ts) i [`/api/admin/wydarzenia/[id]/harmonogram/clear`](./admin/wydarzenia/[id]/harmonogram/clear/route.ts) — `clear` kaskadowo usuwa cały harmonogram i `ServiceOrder`. Są admin-gated (akceptowalne), ale destrukcyjne i opisane jako narzędzia dev.
 
 **Rekomendacja:** dodać potwierdzenie/flagę lub ograniczyć do środowiska nieprodukcyjnego, jeśli nie są potrzebne klientowi.
 
@@ -201,12 +201,12 @@ Brakuje:
 ## ✅ Co jest zrobione dobrze (warto utrzymać)
 
 - **Webhook Stripe** weryfikuje podpis (`stripe.webhooks.constructEvent`) i jest idempotentny (sprawdza status przed aktualizacją). [`webhooks/stripe`](./webhooks/stripe/route.ts)
-- **Kwoty płatności** liczone wyłącznie po stronie serwera z `Trip.price`/`deposit`/`amountTotal` — klient nigdy nie przesyła kwoty. [`resume-payment`](./panel/wyjazdy/resume-payment/route.ts), [`create-payment-intent`](./bookings/create-payment-intent/route.ts)
-- **Kontrola własności** w panelu: konsekwentne `userId === session.user.id || email === session.user.email` (e-mail pochodzi ze zweryfikowanego konta Google). [`panel/orders`](./panel/orders/route.ts), [`panel/wyjazdy/[bookingId]/sklep`](./panel/wyjazdy/[bookingId]/sklep/route.ts), [`harmonogram/[bookingId]`](./panel/harmonogram/[bookingId]/route.ts)
+- **Kwoty płatności** liczone wyłącznie po stronie serwera z `Trip.price`/`deposit`/`amountTotal` — klient nigdy nie przesyła kwoty. [`resume-payment`](./panel/wydarzenia/resume-payment/route.ts), [`create-payment-intent`](./bookings/create-payment-intent/route.ts)
+- **Kontrola własności** w panelu: konsekwentne `userId === session.user.id || email === session.user.email` (e-mail pochodzi ze zweryfikowanego konta Google). [`panel/orders`](./panel/orders/route.ts), [`panel/wydarzenia/[bookingId]/sklep`](./panel/wydarzenia/[bookingId]/sklep/route.ts), [`harmonogram/[bookingId]`](./panel/harmonogram/[bookingId]/route.ts)
 - **Powiadomienia / notyfikacje** filtrowane po `userId` zalogowanego — brak IDOR. [`notifications`](./notifications/route.ts), [`notifications/[id]/read`](./notifications/[id]/read/route.ts)
-- **Czat** sprawdza dostęp do wyjazdu (admin lub posiadacz rezerwacji) i waliduje treść Zod (`max 2000`). [`wyjazdy/[tripId]/chat`](./wyjazdy/[tripId]/chat/route.ts)
-- **Admin – obrona w głąb:** route'y jak [`klienci/[id]`](./admin/klienci/[id]/route.ts) i [`uczestnicy/[participantId]`](./admin/wyjazdy/[id]/uczestnicy/[participantId]/route.ts) sprawdzają rolę `ADMIN` niezależnie od guardu w layoutcie oraz weryfikują przynależność zasobu do wyjazdu (`participant.tripId !== tripId`).
-- **Walidacja paginacji** z górnymi limitami (`Math.min(...)`) — brak nadmiarowych zapytań. [`public/wyjazdy`](./public/wyjazdy/route.ts), [`notifications`](./notifications/route.ts)
+- **Czat** sprawdza dostęp do wydarzenia (admin lub posiadacz rezerwacji) i waliduje treść Zod (`max 2000`). [`wydarzenia/[tripId]/chat`](./wydarzenia/[tripId]/chat/route.ts)
+- **Admin – obrona w głąb:** route'y jak [`klienci/[id]`](./admin/klienci/[id]/route.ts) i [`uczestnicy/[participantId]`](./admin/wydarzenia/[id]/uczestnicy/[participantId]/route.ts) sprawdzają rolę `ADMIN` niezależnie od guardu w layoutcie oraz weryfikują przynależność zasobu do wydarzenia (`participant.tripId !== tripId`).
+- **Walidacja paginacji** z górnymi limitami (`Math.min(...)`) — brak nadmiarowych zapytań. [`public/wydarzenia`](./public/wydarzenia/route.ts), [`notifications`](./notifications/route.ts)
 - **Cron** chroniony bearer-tokenem z porównaniem w czasie stałym (`timingSafeEqual`) i twardym guardem na produkcji. [`requireCron`](../../lib/auth/requireCron.ts)
 
 ---

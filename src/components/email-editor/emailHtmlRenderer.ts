@@ -47,7 +47,7 @@ function renderHero(image: string): string {
   return `
     <img
       src="${image}"
-      alt="Wyjazd"
+      alt="Wydarzenie"
       width="600"
       style="width:100%;max-width:600px;height:auto;aspect-ratio:600/220;object-fit:cover;border-radius:24px 0 0 0;display:block;margin:0 0 24px;"
     />`;
@@ -188,7 +188,7 @@ export function generateEmailHtml(
   const vars: Record<string, string> = {
     inviterName,
     inviteeName,
-    campName: tripContext.title || "wyjazd Rehability",
+    campName: tripContext.title || "wydarzenie Rehability",
     ...(extraVars ?? {}),
   };
 

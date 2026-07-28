@@ -6,7 +6,7 @@ import { useBlogUploadImage } from "@/app/admin/blog/dodaj/edytor-tresci/_compon
 
 /**
  * Przycisk wgrania własnego zdjęcia OG (Social Media) na obu stronach SEO
- * (blog i wyjazd). Plik leci do Vercel Blob przez wspólny endpoint uploadu,
+ * (blog i wydarzenie). Plik leci do Vercel Blob przez wspólny endpoint uploadu,
  * a zwrócony URL trafia do pola `ogImage`.
  */
 export default function OgImageUploadButton({

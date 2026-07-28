@@ -39,7 +39,7 @@ const ALERT_CONFIG = [
       `${n} rezerwacj${n === 1 ? "a" : n < 5 ? "e" : "i"} bez płatności`,
     iconBg: "bg-amber-100 text-amber-600",
     rowBg: "hover:bg-amber-50/70",
-    href: "/admin/wyjazdy",
+    href: "/admin/wydarzenia",
   },
   {
     key: "coursesWithoutVideo" as const,
@@ -54,10 +54,10 @@ const ALERT_CONFIG = [
     key: "unpaidRemainders" as const,
     icon: CurrencyCircleDollar,
     label: (n: number) =>
-      `${n} nieopłacon${n === 1 ? "a reszta" : "e reszty"} · wyjazd < 30 dni`,
+      `${n} nieopłacon${n === 1 ? "a reszta" : "e reszty"} · wydarzenie < 30 dni`,
     iconBg: "bg-rose-100 text-rose-600",
     rowBg: "hover:bg-rose-50/70",
-    href: "/admin/wyjazdy",
+    href: "/admin/wydarzenia",
   },
   {
     key: "missingHealthProfiles" as const,
@@ -66,7 +66,7 @@ const ALERT_CONFIG = [
       `${n} brakując${n === 1 ? "a karta" : "e karty"} zdrowia · < 7 dni`,
     iconBg: "bg-red-100 text-red-600",
     rowBg: "hover:bg-red-50/70",
-    href: "/admin/wyjazdy",
+    href: "/admin/wydarzenia",
   },
 ];
 

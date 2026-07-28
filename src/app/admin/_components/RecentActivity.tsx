@@ -316,7 +316,7 @@ export default function RecentActivity() {
                     {pillar === "ALL"
                       ? "Wszystko"
                       : pillar === "CAMP"
-                        ? "Tylko Wyjazdy"
+                        ? "Tylko Wydarzenia"
                         : pillar === "VOD"
                           ? "Platforma VOD"
                           : "Publikacje"}

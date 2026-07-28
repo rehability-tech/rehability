@@ -145,7 +145,7 @@ export function SocialProofSection() {
               <p className="typography-paragraph text-brand-secondary/80 mt-6 mb-8 max-w-[450px]">
                 Niezależnie czy preferujesz naukę we własnym tempie na
                 platformie VOD, czy intensywny trening na żywo podczas naszych
-                Wyjazdów – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
+                Wydarzeń – przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
               </p>
               <Button showArrow variant="primary" href="/kursy">
                 Poznaj strefę edukacji
@@ -251,7 +251,7 @@ export function SocialProofSection() {
             </h2>
             <p className="typography-paragraph text-brand-secondary/80 mt-6 mb-8 max-w-[450px]">
               Niezależnie czy preferujesz naukę we własnym tempie na platformie
-              VOD, czy intensywny trening na żywo podczas naszych Wyjazdów –
+              VOD, czy intensywny trening na żywo podczas naszych Wydarzeń –
               przygotowaliśmy dla Ciebie sprawdzoną ścieżkę rozwoju.
             </p>
             <Button showArrow variant="primary" href="/kursy">

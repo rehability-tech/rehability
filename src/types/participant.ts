@@ -1,4 +1,4 @@
-// Typ danych uczestnika zwracany przez /api/admin/wyjazdy/[id]/uczestnicy/[participantId]
+// Typ danych uczestnika zwracany przez /api/admin/wydarzenia/[id]/uczestnicy/[participantId]
 
 export interface HealthProfileData {
   dietType?: string | null;

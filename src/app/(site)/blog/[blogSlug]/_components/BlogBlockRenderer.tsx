@@ -147,7 +147,7 @@ function renderBlock(block: Block, index: number) {
                   <Icon size={24} weight="duotone" className="text-white" />
                 </div>
                 <div
-                  className="w-full font-montserrat font-medium text-[14px] leading-relaxed text-white [&_span]:!text-white [&_p]:m-0"
+                  className="on-dark-card w-full font-montserrat font-medium text-[14px] leading-relaxed text-white [&_p]:m-0"
                   dangerouslySetInnerHTML={{ __html: item.text || "" }}
                 />
               </div>

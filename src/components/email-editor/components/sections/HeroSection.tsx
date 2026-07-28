@@ -46,7 +46,7 @@ export default function HeroSection({ image, onOpenPicker, readonly = false }: H
         >
           <ImageIcon size={28} weight="duotone" color="#94b5b9" />
           <p style={{ margin: 0, color: "#94b5b9", fontSize: 12, fontFamily: "Montserrat,sans-serif" }}>
-            {readonly ? "Zdjęcie hero wyjazdu" : "Kliknij, aby dodać zdjęcie hero"}
+            {readonly ? "Zdjęcie hero wydarzenia" : "Kliknij, aby dodać zdjęcie hero"}
           </p>
         </div>
       )}

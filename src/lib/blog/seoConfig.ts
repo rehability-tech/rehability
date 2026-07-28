@@ -18,7 +18,7 @@ export type BlogCategory =
   | "Fizjoterapia"
   | "Terapia"
   | "Mindfulness"
-  | "Wyjazdy holistyczne"
+  | "Wydarzenia holistyczne"
   | "Ruch"
   | "Żywienie"
   | "Ogólne";
@@ -64,13 +64,18 @@ export const PILLARS: readonly Pillar[] = [
   },
   {
     id: "HOLISTIC_TRIPS",
-    label: "Wyjazdy holistyczne (cała Polska)",
+    label: "Wydarzenia holistyczne (cała Polska)",
     scope: "NATIONAL",
     // AUTOCOMPLETE z pustymi geoModifiers => seedy odpytywane wprost (krajowo).
     // Trends dla tych fraz zwracał pustkę albo szum (hotele) — patrz zwiad.
     discovery: "AUTOCOMPLETE",
-    category: "Wyjazdy holistyczne",
-    seedKeywords: ["wyjazd dla kobiet", "wyjazd weekendowy", "wyjazd ze spa"],
+    category: "Wydarzenia holistyczne",
+    seedKeywords: [
+      "wydarzenie regeneracyjne",
+      "wydarzenie weekendowe",
+      "wydarzenie ze spa",
+      "obóz treningowy",
+    ],
     geoModifiers: [],
   },
   {
@@ -114,21 +119,21 @@ export const EVERGREEN_TOPICS: readonly EvergreenTopic[] = [
     focusKeyword: "rwa kulszowa leczenie",
     supportingKeywords: ["rwa kulszowa", "ćwiczenia", "ból nogi"],
   },
-  // Filar 2 — Wyjazdy holistyczne (frazy potwierdzone w autocomplete)
+  // Filar 2 — Wydarzenia holistyczne (frazy potwierdzone w autocomplete)
   {
     pillar: "HOLISTIC_TRIPS",
-    focusKeyword: "wyjazd dla kobiet na weekend",
+    focusKeyword: "wydarzenie regeneracyjne na weekend",
     supportingKeywords: ["wellness", "SPA", "regeneracja", "reset"],
   },
   {
     pillar: "HOLISTIC_TRIPS",
-    focusKeyword: "wyjazd weekendowy ze spa w Polsce",
-    supportingKeywords: ["wyjazd weekendowy", "spa", "joga", "relaks"],
+    focusKeyword: "wydarzenie weekendowe ze spa w Polsce",
+    supportingKeywords: ["wydarzenie weekendowe", "spa", "joga", "relaks"],
   },
   // Filar 3 — Edukacja / VOD (frazy potwierdzone w autocomplete)
   {
     pillar: "EDUCATION_VOD",
-    focusKeyword: "trening siłowy w domu dla kobiet",
+    focusKeyword: "trening siłowy w domu dla początkujących",
     supportingKeywords: ["trening siłowy", "plan treningowy", "siłownia"],
   },
   {

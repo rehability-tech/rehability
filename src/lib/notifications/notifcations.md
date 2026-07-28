@@ -4,7 +4,7 @@
 
 ### **Ogólne**
 
-- [x ] 1. Nowy wyjazd
+- [x ] 1. Nowe wydarzenie
 - [ x] 2. Nowy blog
 - [ x] 3. Nowy kurs vod
 
@@ -20,12 +20,12 @@
 
 ## \***\* 🛠️ Admin \*\***
 
-- [x ] 1. Zapisanie się na wyjazd / opłacenie zaliczki
-- [ x] 2. Opłacenie całości za wyjazd
+- [x ] 1. Zapisanie się na wydarzenie / opłacenie zaliczki
+- [ x] 2. Opłacenie całości za wydarzenie
 - [ x] 3. Wypełnienie karty zdrowia
 - [ x] 4. Aktualizacja karty zdrowia
 - [ x] 5. Nowa wiadomość na chacie
 - [x ] 6. Harmonogram blogów wygenerowany
 - [ x] 7. Thresholdy wyświetleń bloga
-- [ x] 8. Thresholdy wyświetleń wyjazdów
-- [x ] 9. Wykupienie usługi wyjazdowej
+- [ x] 8. Thresholdy wyświetleń wydarzeń
+- [x ] 9. Wykupienie usługi na wydarzeniu

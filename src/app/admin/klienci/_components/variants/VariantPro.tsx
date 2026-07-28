@@ -45,12 +45,12 @@ export default function VariantPro({
 
   const kpis = useMemo(() => {
     const sub = contacts.filter((c) => c.status === "SUBSCRIBED");
-    const trips = contacts.filter((c) => c.sources.includes("Wyjazdy"));
+    const trips = contacts.filter((c) => c.sources.includes("Wydarzenia"));
     const news = contacts.filter((c) => c.sources.includes("Newsletter"));
     return [
       { label: "Wszystkie kontakty", list: contacts },
       { label: "Subskrybują", list: sub },
-      { label: "Z wyjazdów", list: trips },
+      { label: "Z wydarzeń", list: trips },
       { label: "Newsletter", list: news },
     ];
   }, [contacts]);

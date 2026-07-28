@@ -17,7 +17,8 @@ import {
   CircleNotch,
   X,
 } from "@phosphor-icons/react/dist/ssr";
-import StripePaymentStep from "@/app/(site)/wyjazdy/[slug]/_components/StripePaymentStep";
+import StripePaymentStep from "@/app/(site)/wydarzenia/[slug]/_components/StripePaymentStep";
+import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
 
 const DEFAULT_TRIP_IMAGE = "/images/camp-background.jpg";
 
@@ -41,13 +42,13 @@ export default function HubTripsWidget() {
 
     async function fetchActiveBooking() {
       try {
-        const res = await fetch("/api/panel/wyjazdy/active");
+        const res = await fetch("/api/panel/wydarzenia/active");
         if (res.ok) {
           const data = await res.json();
           setBooking(data.booking);
         }
       } catch (error) {
-        console.error("Błąd pobierania danych o wyjeździe:", error);
+        console.error("Błąd pobierania danych o wydarzeniu:", error);
       } finally {
         setIsLoading(false);
       }
@@ -60,6 +61,8 @@ export default function HubTripsWidget() {
 
   const formatDateRange = (start?: string, end?: string) => {
     if (!start) return "Brak daty";
+    const singleDay = formatSingleDayOrNull(start, end);
+    if (singleDay) return singleDay;
     const options: Intl.DateTimeFormatOptions = {
       day: "2-digit",
       month: "2-digit",
@@ -91,7 +94,7 @@ export default function HubTripsWidget() {
     setPaymentError(null);
 
     try {
-      const res = await fetch("/api/panel/wyjazdy/resume-payment", {
+      const res = await fetch("/api/panel/wydarzenia/resume-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId: booking.id }),
@@ -141,7 +144,7 @@ export default function HubTripsWidget() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/15 h-max">
             <Sparkle size={14} weight="fill" className="text-brand-primary" />
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary">
-              Strefa Wyjazdów
+              Strefa Wydarzeń
             </span>
           </div>
 
@@ -157,21 +160,21 @@ export default function HubTripsWidget() {
           <h3 className="font-jakarta font-bold text-[22px] lg:text-2xl text-brand-secondary leading-tight mb-3">
             Nie masz jeszcze
             <br />
-            zarezerwowanego wyjazdu
+            zarezerwowanego wydarzenia
           </h3>
           <p className="text-gray-500 text-[13.5px] leading-relaxed max-w-sm">
             Po opłaceniu zadatku Twój panel uczestnika pojawi się tutaj —
-            zobaczysz odliczanie do wyjazdu, harmonogram i zarezerwujesz zabiegi
+            zobaczysz odliczanie do wydarzenia, harmonogram i zarezerwujesz zabiegi
             SPA.
           </p>
         </div>
 
         <div className="mt-8 relative z-10">
           <Link
-            href="/wyjazdy"
+            href="/wydarzenia"
             className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-brand-primary text-white font-semibold text-[14px] shadow-[0_4px_15px_0px_rgba(40,125,136,0.35)] hover:shadow-[0_6px_20px_0px_rgba(40,125,136,0.5)] transition overflow-hidden"
           >
-            <span className="relative z-10">Zobacz dostępne wyjazdy</span>
+            <span className="relative z-10">Zobacz dostępne wydarzenia</span>
             <ArrowRight
               size={16}
               weight="bold"
@@ -237,7 +240,7 @@ export default function HubTripsWidget() {
               Przetwarzanie płatności
             </h3>
             <p className="text-white/80 text-[13.5px] leading-relaxed max-w-sm">
-              Oczekujemy na potwierdzenie przelewu z Twojego banku za wyjazd na{" "}
+              Oczekujemy na potwierdzenie przelewu z Twojego banku za wydarzenie na{" "}
               <strong>{trip?.title}</strong>. Księgowanie zajmuje
               zazwyczaj od kilku sekund do kilku minut.
             </p>
@@ -282,7 +285,7 @@ export default function HubTripsWidget() {
               Dokończ rezerwację
             </h3>
             <p className="text-white/80 text-[13.5px] leading-relaxed max-w-sm">
-              Płatność za wyjazd <strong>{trip?.title}</strong> nie
+              Płatność za wydarzenie <strong>{trip?.title}</strong> nie
               powiodła się. Opłać zadatek, aby zabezpieczyć swoje miejsce.
             </p>
           </div>
@@ -367,7 +370,7 @@ export default function HubTripsWidget() {
                       <StripePaymentStep
                         clientSecret={clientSecret}
                         depositLabel={`${depositAmount} zł`}
-                        returnUrl={`${window.location.origin}/panel/wyjazdy/${booking.id}?status=processing`}
+                        returnUrl={`${window.location.origin}/panel/wydarzenia/${booking.id}?status=processing`}
                       />
                     </div>
                   ) : null}
@@ -394,7 +397,7 @@ export default function HubTripsWidget() {
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary border border-brand-primary/20 h-max shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white">
-            Twój najbliższy wyjazd
+            Twoje najbliższe wydarzenie
           </span>
         </div>
         <div className="relative w-10 h-10 rounded-xl rounded-tr-none bg-white border border-white/80 shadow-[0_15px_35px_-10px_rgba(3,63,99,0.2)] flex items-center justify-center shrink-0">
@@ -407,7 +410,7 @@ export default function HubTripsWidget() {
 
       <div className="flex-1 relative z-10">
         <h3 className="font-jakarta font-bold text-[22px] lg:text-2xl text-white leading-tight mb-4">
-          {trip?.title || "Rehability Wyjazd"}
+          {trip?.title || "Rehability Wydarzenie"}
         </h3>
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2.5 text-white/80 text-[13.5px]">
@@ -431,10 +434,10 @@ export default function HubTripsWidget() {
 
       <div className="mt-8 relative z-10">
         <Link
-          href={`/panel/wyjazdy`}
+          href={`/panel/wydarzenia`}
           className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-brand-primary text-white font-semibold text-[14px] shadow-[0_4px_15px_0px_rgba(40,125,136,0.35)] hover:shadow-[0_6px_20px_0px_rgba(40,125,136,0.5)] transition overflow-hidden"
         >
-          <span className="relative z-10">Przejdź do panelu wyjazdu</span>
+          <span className="relative z-10">Przejdź do panelu wydarzenia</span>
           <ArrowRight
             size={16}
             weight="bold"

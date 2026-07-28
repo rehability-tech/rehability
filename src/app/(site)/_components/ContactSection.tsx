@@ -252,7 +252,7 @@ export function ContactSection() {
             <p className="font-montserrat text-[16px] max-[1024px]:text-[14px] leading-[160%] text-white/90 mb-8 max-w-[700px]">
               Zostaw swój e-mail i otrzymuj od nas sprawdzone porady zdrowotne,
               powiadomienia o nowych kursach VOD oraz priorytetowy dostęp do
-              zapisów na nasze Wyjazdy (zanim ogłosimy je oficjalnie).{" "}
+              zapisów na nasze Wydarzenia (zanim ogłosimy je oficjalnie).{" "}
               <br className="max-[768px]:hidden" />
               <span className="font-bold">Zero spamu, sam konkret.</span>
             </p>

@@ -26,8 +26,8 @@ const mockSearchData = [
   },
   {
     id: "4",
-    title: "Lista aktywnych Wyjazdów",
-    href: "/admin/wyjazdy",
+    title: "Lista aktywnych Wydarzeń",
+    href: "/admin/wydarzenia",
     icon: Tent,
   },
 ];

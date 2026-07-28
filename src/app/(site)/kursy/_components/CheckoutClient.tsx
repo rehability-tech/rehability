@@ -17,7 +17,7 @@ import {
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import { OrderSummary } from "./OrderSummary";
-import StripePaymentStep from "@/app/(site)/wyjazdy/[slug]/_components/StripePaymentStep";
+import StripePaymentStep from "@/app/(site)/wydarzenia/[slug]/_components/StripePaymentStep";
 import type { Course } from "../_data/courses";
 
 type BuyerType = "private" | "company";
@@ -285,6 +285,12 @@ export function CheckoutClient({
           buyerType: buyer,
           company: form.company,
           nip: form.nip,
+          // Dane rozliczeniowe do faktury — utrwalane po opłaceniu (CoursePurchase).
+          name: form.name,
+          email: form.email,
+          address: form.address,
+          postal: form.postal,
+          city: form.city,
         }),
       });
       const data = await res.json().catch(() => ({}));

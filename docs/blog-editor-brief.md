@@ -36,9 +36,9 @@ sterujący całym pipeline'em. Stan publikacji to maszyna `DRAFT → PUBLISHED` 
 - Builder (lista + reorder + dodawanie): [BlogBlockBuilder.tsx](src/app/admin/blog/dodaj/edytor-tresci/_components/lib/BlogBlockBuilder.tsx)
 - Karta pojedynczego bloku (router typów → render): [BlogBlockEditorCard.tsx](src/app/admin/blog/dodaj/edytor-tresci/_components/lib/BlogBlockEditorCard.tsx)
 - Menu „dodaj blok": [BlogBlockAdder.tsx](src/app/admin/blog/dodaj/edytor-tresci/_components/lib/BlogBlockAdder.tsx)
-- Inline rich-text (TipTap + bubble menu): [RichTextInput.tsx](src/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/RichTextInput.tsx) *(współdzielony z modułem wyjazdów)*
+- Inline rich-text (TipTap + bubble menu): [RichTextInput.tsx](src/app/admin/wydarzenia/dodaj/edytor-tresci/_components/lib/RichTextInput.tsx) *(współdzielony z modułem wydarzeń)*
 - Bloki specyficzne dla bloga: [BlogInlineImageBlock.tsx](src/app/admin/blog/dodaj/edytor-tresci/_components/blocks/BlogInlineImageBlock.tsx), [BlogTableBlock.tsx](src/app/admin/blog/dodaj/edytor-tresci/_components/blocks/BlogTableBlock.tsx)
-- Pozostałe bloki reużyte z wyjazdów: [wyjazdy/.../blocks/](src/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/) (Heading, Paragraph, Highlight, BulletList, Faq, FeaturesGrid, Spacer, VideoEmbed)
+- Pozostałe bloki reużyte z wydarzeń: [wydarzenia/.../blocks/](src/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/) (Heading, Paragraph, Highlight, BulletList, Faq, FeaturesGrid, Spacer, VideoEmbed)
 
 ### Hooki (logika edytora)
 - Pobranie + zapis + autozapis treści: [useBlogContent.ts](src/app/admin/blog/dodaj/edytor-tresci/_components/hooks/useBlogContent.ts)
@@ -172,7 +172,7 @@ Wzorzec z [BlogBlockBuilder.tsx](src/app/admin/blog/dodaj/edytor-tresci/_compone
   komponent bloku i przekazuje `onUpdate`/`onDelete`.
 
 ### 4.3 Inline rich-text (TipTap)
-Wzorzec z [RichTextInput.tsx](src/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/RichTextInput.tsx):
+Wzorzec z [RichTextInput.tsx](src/app/admin/wydarzenia/dodaj/edytor-tresci/_components/lib/RichTextInput.tsx):
 - TipTap `useEditor` z `StarterKit + TextStyle + Color + Placeholder`.
 - `onUpdate` → `onChange(editor.getHTML())` — blok trzyma HTML.
 - **BubbleMenu** (zaznaczenie tekstu): bold + kilka kolorów brandowych + reset koloru.

@@ -37,8 +37,8 @@ interface BlogCoverPickerProps {
   mandatory?: boolean;
   /** Gdy podane — pokazuje przycisk „Pomiń" (np. w kolejce doboru zdjęć). */
   onSkip?: () => void;
-  /** Endpoint dla zakładki „Wgraj własne" (domyślnie blog). Dla wyjazdów podajemy
-   *  endpoint danego wyjazdu, żeby plik trafił we właściwe miejsce. */
+  /** Endpoint dla zakładki „Wgraj własne" (domyślnie blog). Dla wydarzeń podajemy
+   *  endpoint danego wydarzenia, żeby plik trafił we właściwe miejsce. */
   uploadEndpoint?: string;
 }
 

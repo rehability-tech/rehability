@@ -7,7 +7,7 @@
 
 ## 1. Obraz całości
 
-VOD to druga noga produktu obok wyjazdów: sprzedaż i odtwarzanie kursów wideo on-demand.
+VOD to druga noga produktu obok wydarzeń: sprzedaż i odtwarzanie kursów wideo on-demand.
 Platforma ma trzy warstwy użytkownika i jedno źródło danych domenowych:
 
 - **Publiczna** (`(site)`) — katalog, strony sprzedażowe, checkout.

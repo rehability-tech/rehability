@@ -27,7 +27,7 @@ import {
 import { useAutoSave } from "@/components/email-editor/hooks/useAutoSave";
 import { Button } from "@/components/ui/Button";
 
-const SOURCES = ["Wyjazdy", "VOD", "Newsletter", "Ręczny"];
+const SOURCES = ["Wydarzenia", "VOD", "Newsletter", "Ręczny"];
 const EDITABLE_STATUSES = ["DRAFT", "SCHEDULED"];
 
 interface Props {
@@ -346,7 +346,7 @@ export default function CampaignEditor({ campaignId }: Props) {
             value={ctaUrl}
             disabled={readOnly}
             onChange={(e) => setCtaUrl(e.target.value)}
-            placeholder="https://rehabilityprudnik.pl/wyjazdy"
+            placeholder="https://rehabilityprudnik.pl/wydarzenia"
             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-[13.5px] text-[#033f63] placeholder:text-gray-300 focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10 transition-all bg-white disabled:bg-gray-50"
           />
         </div>

@@ -33,7 +33,7 @@ import { VideoUploader } from "./VideoUploader";
  *  tytuły i opisy. Liczność jest gwarantowana po stronie klienta.
  *
  *  Modal jest SPECYFICZNY dla kursów (współdzielony AiGeneratorModal zostaje
- *  nietknięty dla bloga i wyjazdów).
+ *  nietknięty dla bloga i wydarzeń).
  * ========================================================================= */
 
 const LEVELS = [

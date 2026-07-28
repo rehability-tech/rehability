@@ -52,18 +52,18 @@ export default async function PanelHubPage() {
           {firstName ? `, ${firstName}` : ""} 👋
         </h1>
         <p className="text-brand-secondary/50 text-[14px] md:text-[15px] mt-2 font-montserrat max-w-lg leading-relaxed">
-          Zarządzaj swoimi nadchodzącymi wyjazdami i korzystaj z naszej cyfrowej
+          Zarządzaj swoimi nadchodzącymi wydarzenieami i korzystaj z naszej cyfrowej
           platformy treningowej.
         </p>
       </div>
 
       {/* SIATKA GŁÓWNYCH WIDŻETÓW */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Moduł 1: Wyjazdy (Pobiera dane samodzielnie na kliencie!) */}
+        {/* Moduł 1: Wydarzenia (Pobiera dane samodzielnie na kliencie!) */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-jakarta font-bold text-[18px] text-brand-secondary">
-              Strefa Wyjazdów
+              Strefa Wydarzeń
             </h2>
           </div>
           <HubTripsWidget />

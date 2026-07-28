@@ -81,7 +81,7 @@ export function Footer() {
             <p className="font-montserrat font-medium text-white/90 text-[15px] max-[1078px]:text-[14px] leading-[170%] max-w-[500px] max-[400px]:max-w-[320px]">
               Łączymy precyzyjną diagnostykę z holistyczną pracą z ciałem.
               Zaufaj ekspertom i odzyskaj pełną sprawność oraz życiową harmonię
-              – w gabinecie, na platformie VOD i podczas naszych Wyjazdów.
+              – w gabinecie, na platformie VOD i podczas naszych Wydarzeń.
             </p>
           </div>
 
@@ -116,10 +116,10 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/wyjazdy"
+                  href="/wydarzenia"
                   className="font-montserrat font-medium text-[13px] text-white/80 hover:text-white transition-colors"
                 >
-                  Wyjazdy Wellness
+                  Wydarzenia Wellness
                 </Link>
               </li>
             </ul>

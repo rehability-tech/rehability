@@ -61,7 +61,7 @@ const EmailEditor = forwardRef<EmailEditorHandle, EmailEditorProps>(function Ema
   const getPreviewValues = useCallback(
     (): Record<string, string> => ({
       inviterName: previewInviterName,
-      campName: tripContext.title || "Nazwa wyjazdu",
+      campName: tripContext.title || "Nazwa wydarzenia",
       inviteeName: previewInviteeName,
     }),
     [previewInviterName, previewInviteeName, tripContext.title],
@@ -232,7 +232,7 @@ const EmailEditor = forwardRef<EmailEditorHandle, EmailEditorProps>(function Ema
         onClose={() => setGalleryPicker(null)}
         onSelect={handleGalleryPickerSelect}
         defaultQuery={tripContext.title}
-        heading={`Klimat wyjazdu — zdjęcie ${galleryPicker ? galleryPicker.slotIdx + 1 : ""}`}
+        heading={`Klimat wydarzenia — zdjęcie ${galleryPicker ? galleryPicker.slotIdx + 1 : ""}`}
         subheading="Zaciągnij zdjęcie z Pexels albo wgraj własne."
         uploadEndpoint={uploadEndpoint}
       />

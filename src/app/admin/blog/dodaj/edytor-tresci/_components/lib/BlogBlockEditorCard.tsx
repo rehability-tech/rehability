@@ -14,14 +14,14 @@ import BlogInlineImageBlock from "../blocks/BlogInlineImageBlock";
 import BlogTableBlock from "../blocks/BlogTableBlock";
 
 // Reuse generic trip blocks — they have no camp-specific logic
-import HeadingBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/HeadingBlock";
-import ParagraphBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/ParagraphBlock";
-import HighlightBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/HighlightBlock";
-import SpacerBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/SpacerBlock";
-import BulletListBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/BulletListBlock";
-import FaqBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/FaqBlock";
-import FeaturesGridBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/FeaturesGridBlock";
-import VideoEmbedBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/VideoEmbedBlock";
+import HeadingBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/HeadingBlock";
+import ParagraphBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/ParagraphBlock";
+import HighlightBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/HighlightBlock";
+import SpacerBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/SpacerBlock";
+import BulletListBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/BulletListBlock";
+import FaqBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/FaqBlock";
+import FeaturesGridBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/FeaturesGridBlock";
+import VideoEmbedBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/VideoEmbedBlock";
 
 interface BlogBlockEditorCardProps {
   block: BlogBlock;

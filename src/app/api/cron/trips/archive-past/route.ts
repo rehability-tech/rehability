@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { runCron } from "@/lib/cron/runCron";
 
-// Cron: archiwizuje wyjazdy, które już się odbyły.
+// Cron: archiwizuje wydarzenia, które już się odbyły.
 // Każdy PUBLISHED Trip z endDate w przeszłości → ARCHIVED. Dzięki temu znika
 // z publicznych listingów i z formularza rezerwacji bez ręcznej akcji admina.
 // (Listingi i tak filtrują po endDate, ale archiwizacja porządkuje status w bazie.)

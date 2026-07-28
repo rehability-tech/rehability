@@ -124,7 +124,7 @@ export default function FinancialChart() {
               {(activePillar === "ALL" || activePillar === "CAMP") && (
                 <div className="flex items-center gap-1.5 font-bold text-brand-primary">
                   <span className="w-2 h-2 rounded-full bg-brand-primary" />
-                  Wyjazdy
+                  Wydarzenia
                 </div>
               )}
               {(activePillar === "ALL" || activePillar === "VOD") && (
@@ -211,7 +211,7 @@ export default function FinancialChart() {
                         {type === "ALL"
                           ? "Wszystkie systemy"
                           : type === "CAMP"
-                            ? "Tylko Wyjazdy"
+                            ? "Tylko Wydarzenia"
                             : "Platforma VOD"}
                         {activePillar === type && (
                           <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
@@ -294,7 +294,7 @@ export default function FinancialChart() {
                 <Area
                   type="monotone"
                   dataKey="campy"
-                  name="Wyjazdy"
+                  name="Wydarzenia"
                   stroke="#287D88"
                   strokeWidth={3}
                   fillOpacity={1}

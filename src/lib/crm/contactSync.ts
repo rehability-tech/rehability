@@ -3,7 +3,7 @@
  *
  * To TUTAJ — a nie w przenośnym `src/lib/mailer` — żyje wiedza o tym, skąd biorą
  * się kontakty: `NewsletterSubscriber` ("Newsletter"), `User` z rezerwacjami
- * ("Wyjazdy") i `User` z zapisami na kursy ("VOD"). Mailer operuje już tylko na
+ * ("Wydarzenia") i `User` z zapisami na kursy ("VOD"). Mailer operuje już tylko na
  * gotowej tabeli `Contact`.
  *
  * Zasady:
@@ -17,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 
 /** Źródła rozpoznawane przez sync — spójne z filtrami segmentów w UI. */
 export const CONTACT_SOURCES = {
-  TRIPS: "Wyjazdy",
+  TRIPS: "Wydarzenia",
   VOD: "VOD",
   NEWSLETTER: "Newsletter",
 } as const;
@@ -135,7 +135,7 @@ export async function syncAllContacts(): Promise<SyncResult> {
     newsletter++;
   }
 
-  // Wyjazdy: użytkownicy z co najmniej jedną rezerwacją (≠ CANCELLED)
+  // Wydarzenia: użytkownicy z co najmniej jedną rezerwacją (≠ CANCELLED)
   const tripUsers = await prisma.user.findMany({
     where: { bookings: { some: { status: { not: "CANCELLED" } } } },
     select: { id: true, name: true, email: true },

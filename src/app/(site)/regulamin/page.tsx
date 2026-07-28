@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Regulamin",
   description:
-    "Regulamin świadczenia usług drogą elektroniczną — kursy VOD, wyjazdy holistyczne, gabinet fizjoterapeutyczny.",
+    "Regulamin świadczenia usług drogą elektroniczną — kursy VOD, wydarzenia holistyczne, gabinet fizjoterapeutyczny.",
   alternates: { canonical: "/regulamin" },
 };
 
@@ -32,13 +32,13 @@ export default async function RegulaminPage() {
           <div className="prose-content flex flex-col gap-8 font-montserrat text-[15px] leading-[170%] text-[#0B3B4C]/90">
             <section>
               <h2 className="font-jakarta font-bold text-[22px] md:text-[26px] mb-3 text-[#0B3B4C]">
-                §1. Postanowienia ogAllne
+                §1. Postanowienia ogólne
               </h2>
               <p>
-                Niniejszy regulamin okreL�la zasady korzystania z platformy
-                Rehability, dostępnej online, w tym z kursAlw VOD, rezerwacji
-                wyjazdów oraz funkcji panelu kursanta. Akceptacja regulaminu jest
-                warunkiem zaL�oLLenia konta.
+                Niniejszy regulamin określa zasady korzystania z platformy
+                Rehability, dostępnej online, w tym z kursów VOD, rezerwacji
+                wydarzeń oraz funkcji panelu kursanta. Akceptacja regulaminu jest
+                warunkiem założenia konta.
               </p>
             </section>
 
@@ -48,20 +48,21 @@ export default async function RegulaminPage() {
               </h2>
               <ul className="list-disc pl-6 flex flex-col gap-2">
                 <li>
-                  <strong>UsL�ugodawca</strong> — Rehability, operator
+                  <strong>Usługodawca</strong> — Rehability, operator
                   platformy.
                 </li>
                 <li>
-                  <strong>ULLytkownik</strong> — osoba fizyczna posiadająca
+                  <strong>Użytkownik</strong> — osoba fizyczna posiadająca
                   konto w platformie.
                 </li>
                 <li>
-                  <strong>Kurs VOD</strong> — materiaL� wideo udostępniany w
-                  panelu kursanta po opL�aceniu dostępu.
+                  <strong>Kurs VOD</strong> — materiał wideo udostępniany w
+                  panelu kursanta po opłaceniu dostępu.
                 </li>
                 <li>
-                  <strong>Wyjazd</strong> — stacjonarne wydarzenie zdrowotne
-                  organizowane przez UsL�ugodawcę.
+                  <strong>Wydarzenie</strong> — stacjonarne spotkanie zdrowotne
+                  (np. weekend regeneracyjny, warsztaty) organizowane przez
+                  Usługodawcę.
                 </li>
               </ul>
             </section>
@@ -71,20 +72,20 @@ export default async function RegulaminPage() {
                 §3. Rejestracja konta
               </h2>
               <p>
-                Konto zakL�ada się przez logowanie z dostawcą zewnętrznym
-                (Google). ULLytkownik zobowiązuje się do podania prawdziwych
+                Konto zakłada się przez logowanie z dostawcą zewnętrznym
+                (Google). Użytkownik zobowiązuje się do podania prawdziwych
                 danych oraz nieudostępniania konta osobom trzecim.
               </p>
             </section>
 
             <section>
               <h2 className="font-jakarta font-bold text-[22px] md:text-[26px] mb-3 text-[#0B3B4C]">
-                §4. PL�atnoL�ci
+                §4. Płatności
               </h2>
               <p>
-                PL�atnoL�ci obsL�ugiwane są przez operatorAlw pL�atnoL�ci
-                wskazanych w procesie zakupu. Po zaksięgowaniu wpL�aty dostęp do
-                zakupionego zasobu jest aktywowany niezwL�ocznie w panelu
+                Płatności obsługiwane są przez operatorów płatności
+                wskazanych w procesie zakupu. Po zaksięgowaniu wpłaty dostęp do
+                zakupionego zasobu jest aktywowany niezwłocznie w panelu
                 kursanta.
               </p>
             </section>
@@ -94,10 +95,10 @@ export default async function RegulaminPage() {
                 §5. Prawo odstąpienia
               </h2>
               <p>
-                Konsument ma prawo odstąpić od umowy zawartej na odlegL�oL�ć w
-                terminie 14 dni bez podania przyczyny. Prawo to nie przysL�uguje
-                w przypadku treL�ci cyfrowych, do ktAlrych dostęp zostaL�
-                udostępniony przed upL�ywem tego terminu po wyraLsnej zgodzie
+                Konsument ma prawo odstąpić od umowy zawartej na odległość w
+                terminie 14 dni bez podania przyczyny. Prawo to nie przysługuje
+                w przypadku treści cyfrowych, do których dostęp został
+                udostępniony przed upływem tego terminu po wyraźnej zgodzie
                 konsumenta (art. 38 ust. 13 ustawy o prawach konsumenta).
               </p>
             </section>
@@ -107,14 +108,14 @@ export default async function RegulaminPage() {
                 §6. Reklamacje
               </h2>
               <p>
-                Reklamacje naleLLy zgL�aszać na adres{" "}
+                Reklamacje należy zgłaszać na adres{" "}
                 <a
-                  href="mailto:kontakt@rehability.pl"
+                  href="mailto:biuro@kocikdev.com"
                   className="font-bold text-[#287D88] hover:underline"
                 >
-                  kontakt@rehability.pl
+                  biuro@kocikdev.com
                 </a>
-                . UsL�ugodawca rozpatruje reklamację w terminie 14 dni roboczych
+                . Usługodawca rozpatruje reklamację w terminie 14 dni roboczych
                 od jej otrzymania.
               </p>
             </section>
@@ -124,20 +125,20 @@ export default async function RegulaminPage() {
                 §7. Prawa autorskie
               </h2>
               <p>
-                Wszelkie materiaL�y udostępniane w ramach kursAlw VOD są objęte
+                Wszelkie materiały udostępniane w ramach kursów VOD są objęte
                 prawem autorskim. Zabrania się ich kopiowania, rozpowszechniania
-                ani udostępniania osobom trzecim bez zgody UsL�ugodawcy.
+                ani udostępniania osobom trzecim bez zgody Usługodawcy.
               </p>
             </section>
 
             <section>
               <h2 className="font-jakarta font-bold text-[22px] md:text-[26px] mb-3 text-[#0B3B4C]">
-                §8. Postanowienia koL�cowe
+                §8. Postanowienia końcowe
               </h2>
               <p>
                 W sprawach nieuregulowanych zastosowanie mają przepisy prawa
-                polskiego, w szczegAllnoL�ci Kodeksu cywilnego i ustawy o
-                prawach konsumenta. Spory rozstrzygane są przez wL�aL�ciwy sąd
+                polskiego, w szczególności Kodeksu cywilnego i ustawy o
+                prawach konsumenta. Spory rozstrzygane są przez właściwy sąd
                 powszechny.
               </p>
             </section>

@@ -303,6 +303,10 @@ export async function PATCH(
       });
 
       if (data.modules) {
+        // Odrzuć moduły bez żadnej lekcji (spójnie z POST) — surowy PATCH mógłby
+        // inaczej utrwalić pusty moduł; klient (modulesPayload) filtruje to wcześniej.
+        data.modules = data.modules.filter((m) => (m.lessons?.length ?? 0) > 0);
+
         const existing = await tx.courseModule.findMany({
           where: { courseId: id },
           include: { lessons: { select: { id: true } } },

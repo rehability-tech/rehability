@@ -4,7 +4,7 @@ import { getDashboardData } from "../_data";
 export const dynamic = "force-dynamic";
 
 /**
- * Wejście „Edytuj kurs" — ujednolicone z wyjazdami: edycja kursu odbywa się w
+ * Wejście „Edytuj kurs" — ujednolicone z wydarzenieami: edycja kursu odbywa się w
  * kreatorze (CourseWizard), nie w osobnych zakładkach dashboardu. Trasa zna tylko
  * slug, a kreator wczytuje kurs po ID (GET /api/admin/kursy/[id]), więc tu
  * zamieniamy slug → id i przekierowujemy do kreatora w trybie edycji.

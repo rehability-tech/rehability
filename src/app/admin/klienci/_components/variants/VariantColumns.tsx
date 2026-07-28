@@ -15,7 +15,7 @@ import {
 } from "../crmShared";
 
 /**
- * Wariant „Kolumny segmentów" — kanban z kolumną per źródło (Wyjazdy / VOD /
+ * Wariant „Kolumny segmentów" — kanban z kolumną per źródło (Wydarzenia / VOD /
  * Newsletter / Ręczny). Kontakt z wieloma źródłami pojawia się w kilku kolumnach.
  * Najmocniej pokazuje segmentację — pod kampanie do konkretnej grupy.
  */

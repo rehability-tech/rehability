@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /* ===========================================================================
- *  Autozapis kreatora kursu — wzorzec z edytora wyjazdów.
+ *  Autozapis kreatora kursu — wzorzec z edytora wydarzeń.
  *  Nowy kurs nie ma ID, więc przy pierwszym zapisie tworzymy szkic (POST,
  *  status DRAFT) i zapamiętujemy ID; kolejne zapisy lecą PATCH-em. „Opublikuj"
  *  zapisuje ze statusem PUBLISHED. Szkice są niewidoczne publicznie
@@ -113,7 +113,9 @@ function createBody(draft: Draft, status: CourseStatus) {
     content: draft.content ?? null,
     faq: draft.faq ?? null,
     status,
-    curriculum: draft.curriculum,
+    // Czysta projekcja (bez klucza `_key` Reacta, spójna z PATCH) — inaczej
+    // pole tylko-klienckie trafiałoby do API (POST je ignoruje, ale nie wysyłamy).
+    curriculum: modulesPayload(draft),
   };
 }
 

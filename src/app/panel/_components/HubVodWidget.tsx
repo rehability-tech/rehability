@@ -77,7 +77,7 @@ export default function HubVodWidget({
     );
   }
 
-  // WIDOK AKTYWNY (Ma dostęp do VOD) — w tle okładka aktualnego kursu (jak w Strefie Wyjazdów)
+  // WIDOK AKTYWNY (Ma dostęp do VOD) — w tle okładka aktualnego kursu (jak w Strefie Wydarzeń)
   const bgImage = continueCourse?.cover || FALLBACK_COVER;
 
   return (

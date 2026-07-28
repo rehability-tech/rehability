@@ -65,7 +65,7 @@ type TripItem = {
 // 1. GLOBALNA NAWIGACJA ADMINA
 const globalItems: GlobalItem[] = [
   { key: "dashboard", href: "/admin", label: "Start", icon: SquaresFour },
-  { key: "campy", href: "/admin/wyjazdy", label: "Wyjazdy", icon: Suitcase },
+  { key: "campy", href: "/admin/wydarzenia", label: "Wydarzenia", icon: Suitcase },
   { key: "blog", href: "/admin/blog", label: "Blog", icon: Article },
   {
     key: "vod",
@@ -86,20 +86,20 @@ export default function AdminMobileNavBar() {
     refreshChatUnread();
   }, [pathname, refreshChatUnread]);
 
-  // LOGIKA WYKRYWANIA KONTEKSTU WYJAZDU
-  // Sprawdzamy, czy jesteśmy w /admin/wyjazdy/[id] — ale NIE w kreatorze
-  // (/admin/wyjazdy/dodaj/...) ani w /nowy /edycja. Inaczej regex wyłapałby
-  // "dodaj" jako id i pasek wszedłby w tryb konkretnego wyjazdu z błędnymi
+  // LOGIKA WYKRYWANIA KONTEKSTU WYDARZENIA
+  // Sprawdzamy, czy jesteśmy w /admin/wydarzenia/[id] — ale NIE w kreatorze
+  // (/admin/wydarzenia/dodaj/...) ani w /nowy /edycja. Inaczej regex wyłapałby
+  // "dodaj" jako id i pasek wszedłby w tryb konkretnego wydarzenia z błędnymi
   // linkami, przez co żaden krok kreatora nie byłby podświetlony.
   const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
-  const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
+  const campIdMatch = pathname?.match(/\/admin\/wydarzenia\/([a-zA-Z0-9_-]+)/);
   const currentCampId =
     campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1])
       ? campIdMatch[1]
       : null;
   const isTripContext = !!currentCampId;
 
-  // KONTEKST BLOGA — analogicznie do kontekstu wyjazdu (sub-menu sekcji bloga).
+  // KONTEKST BLOGA — analogicznie do kontekstu wydarzenia (sub-menu sekcji bloga).
   const isBlogContext = pathname?.startsWith("/admin/blog") ?? false;
 
   const blogItems = [
@@ -147,7 +147,7 @@ export default function AdminMobileNavBar() {
       exact: false,
     },
     {
-      // Edycja kursu przez kreator (dane, program, nagrania, treść) — jak wyjazdy.
+      // Edycja kursu przez kreator (dane, program, nagrania, treść) — jak wydarzenia.
       key: "course-edit",
       href: `/admin/kursy/${currentCourseSlug}/edytuj`,
       label: "Edytuj",
@@ -190,40 +190,40 @@ export default function AdminMobileNavBar() {
   const isVodItemActive = (item: (typeof vodItems)[number]) =>
     item.exact ? pathname === item.href : pathname?.startsWith(item.href);
 
-  // 2. SUB-MENU DLA KONKRETNEGO WYJAZDU — zsynchronizowane z AdminSideBar
+  // 2. SUB-MENU DLA KONKRETNEGO WYDARZENIA — zsynchronizowane z AdminSideBar
   const tripItems: TripItem[] = [
     {
       key: "trip-home",
-      href: `/admin/wyjazdy/${currentCampId}`,
+      href: `/admin/wydarzenia/${currentCampId}`,
       label: "Pulpit",
       icon: House,
     },
     {
       key: "uczestnicy",
-      href: `/admin/wyjazdy/${currentCampId}/uczestnicy`,
+      href: `/admin/wydarzenia/${currentCampId}/uczestnicy`,
       label: "Ludzie",
       icon: Users,
     },
     {
       key: "harmonogram",
-      href: `/admin/wyjazdy/${currentCampId}/harmonogram`,
+      href: `/admin/wydarzenia/${currentCampId}/harmonogram`,
       label: "Plan",
       icon: CalendarBlank,
     },
     {
       key: "sklep",
-      href: `/admin/wyjazdy/${currentCampId}/sklep`,
+      href: `/admin/wydarzenia/${currentCampId}/sklep`,
       label: "Sklep",
       icon: Storefront,
       wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
     },
     {
       key: "chat",
-      href: `/admin/wyjazdy/${currentCampId}/chat`,
+      href: `/admin/wydarzenia/${currentCampId}/chat`,
       label: "Czat",
       icon: ChatCircle,
       needsAttention: chatUnreadLinks.has(
-        `/admin/wyjazdy/${currentCampId}/chat`,
+        `/admin/wydarzenia/${currentCampId}/chat`,
       ),
       wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
     },
@@ -376,7 +376,7 @@ export default function AdminMobileNavBar() {
                 })}
               </motion.ul>
             ) : isTripContext ? (
-              /* WIDOK 1: KONTEKST KONKRETNEGO WYJAZDU */
+              /* WIDOK 1: KONTEKST KONKRETNEGO WYDARZENIA */
               <motion.div
                 key="trip-nav"
                 variants={navVariants}
@@ -386,8 +386,8 @@ export default function AdminMobileNavBar() {
                 className="absolute inset-0 flex items-center justify-between w-full h-full"
               >
                 <div className="flex items-center justify-between gap-1.5 w-full max-w-full">
-                  {/* Powrót do listy wyjazdów jest teraz w topbarze (ikona back). */}
-                  {/* Scrollowane menu wyjazdu */}
+                  {/* Powrót do listy wydarzeń jest teraz w topbarze (ikona back). */}
+                  {/* Scrollowane menu wydarzenia */}
                   <ul
                     className={cn(
                       "flex flex-1 items-center justify-start gap-1.5 overflow-x-auto scroll-smooth relative transition-all duration-300",
@@ -668,7 +668,7 @@ export default function AdminMobileNavBar() {
                 })}
               </motion.ul>
             ) : (
-              /* WIDOK 2: GLOBALNA NAWIGACJA ADMINA (Start, Wyjazdy, Blog, VOD) */
+              /* WIDOK 2: GLOBALNA NAWIGACJA ADMINA (Start, Wydarzenia, Blog, VOD) */
               <motion.ul
                 key="global-nav"
                 variants={navVariants}

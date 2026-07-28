@@ -67,7 +67,7 @@ model Trip {
   // rozpoczęcia (startDate). Po tej dacie publiczny formularz znika.
   registrationDeadline DateTime?
   // Ręczne zamknięcie zapisów przez admina (np. gdy pokoje są już
-  // zaklepane). Wyjazd zostaje widoczny, ale bez formularza rezerwacji.
+  // zaklepane). Wydarzenie zostaje widoczny, ale bez formularza rezerwacji.
   registrationClosed   Boolean  @default(false)
   // ──────────────────────────────────────────────────────────────
 
@@ -271,7 +271,7 @@ model ExtraService {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Kopie tej usługi przypisane do konkretnych wyjazdów (umożliwia propagację edycji)
+  // Kopie tej usługi przypisane do konkretnych wydarzeń (umożliwia propagację edycji)
   tripServices TripService[]
 }
 
@@ -296,7 +296,7 @@ model TripService {
   @@index([sourceServiceId])
 }
 
-// Ogólny punkt harmonogramu wyjazdu widoczny dla wszystkich uczestniczek
+// Ogólny punkt harmonogramu wydarzenia widoczny dla wszystkich uczestniczek
 model TripEvent {
   id          String        @id @default(cuid())
   tripId      String
@@ -465,6 +465,7 @@ model User {
   lessonProgress LessonProgress[]
   courseReviews CourseReview[]
   courseFavorites CourseFavorite[]
+  coursePurchases CoursePurchase[]
 
   // Powiązanie z rekordem kontaktu w module mailingowym (1:1, opcjonalne).
   contact       Contact?
@@ -497,7 +498,6 @@ model Course {
   description  Json?   // bloki zakładki „O kursie"
   content      Json?   // bloki zakładki „Zawartość" (opis co kurs zawiera)
   faq          Json?
-  testimonials Json?
   // ── SEO (mirror modelu Post/Trip) ─────────────────
   metaTitle       String?
   metaDescription String?  @db.Text
@@ -517,6 +517,7 @@ model Course {
   courseReviews CourseReview[]
   pageViews     CourseView[]
   favorites     CourseFavorite[]
+  purchases     CoursePurchase[]
 
   @@index([status])
 }
@@ -545,6 +546,36 @@ model CourseView {
 
   @@unique([courseId, visitorHash, day])
   @@index([courseId, day])
+}
+
+// Utrwalony rekord zakupu kursu (do faktur i realnego przychodu). Enrollment
+// nadaje sam dostęp; tu zapisujemy KWOTĘ zapłaconą w chwili sprzedaży oraz
+// snapshot danych rozliczeniowych — dzięki temu edycja ceny kursu nie zmienia
+// historycznego przychodu. Idempotentne po paymentIntentId (webhook + fallback).
+model CoursePurchase {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // Klucz idempotencji — jeden PaymentIntent = jeden rekord.
+  paymentIntentId String   @unique
+  // Kwota realnie zapłacona w GROSZACH (amount_received ze Stripe).
+  amount          Int
+  currency        String   @default("pln")
+  // Snapshot danych rozliczeniowych z checkoutu (do faktur; wszystkie opcjonalne).
+  buyerType       String?
+  buyerName       String?
+  buyerEmail      String?
+  company         String?
+  nip             String?
+  address         String?
+  postalCode      String?
+  city            String?
+  createdAt       DateTime @default(now())
+
+  @@index([courseId])
+  @@index([userId])
 }
 
 model CourseReview {
@@ -665,7 +696,7 @@ model EmailTemplate {
 // Modele celowo GENERYCZNE (Contact / Campaign / CampaignRecipient), bez nazw
 // domenowych Rehability. Cała logika żyje w przenośnym module src/lib/mailer,
 // który dotyka tych tabel WYŁĄCZNIE przez warstwę repository/prisma.ts.
-// Powiązanie z domeną (User, źródła "Wyjazdy"/"VOD"/"Newsletter") realizuje
+// Powiązanie z domeną (User, źródła "Wydarzenia"/"VOD"/"Newsletter") realizuje
 // adapter src/lib/crm/contactSync.ts — sam rdzeń mailera o tym nie wie.
 
 // Pojedynczy kontakt mailingowy. Email jest kluczem deduplikacji — jeden adres
@@ -678,7 +709,7 @@ model Contact {
   // SUBSCRIBED | UNSUBSCRIBED | BOUNCED | COMPLAINED
   status    String   @default("SUBSCRIBED")
 
-  // Źródła pochodzenia, zarządzane automatycznie przez sync (np. "Wyjazdy",
+  // Źródła pochodzenia, zarządzane automatycznie przez sync (np. "Wydarzenia",
   // "VOD", "Newsletter"). Kontakt może mieć wiele źródeł jednocześnie.
   sources   String[] @default([])
   // Tagi ręczne nadawane przez admina — sync ich NIE rusza.

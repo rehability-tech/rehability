@@ -110,7 +110,7 @@ function buildItems(data: StatsData): { vod: StatItem[]; trips: StatItem[] } {
         statClass: "text-rose-600 bg-rose-50",
       },
       {
-        label: "Przychód wyjazdy",
+        label: "Przychód wydarzenia",
         value: formatPln(trips.revenueTotal),
         sub: "w tym miesiącu",
         delta:
@@ -220,7 +220,7 @@ export default function StatsGrid() {
   return (
     <div className="flex flex-col gap-5">
       <GroupBlock title="Platforma VOD" icon={PlayCircle} items={vod} baseDelay={0} />
-      <GroupBlock title="Wyjazdy" icon={Mountains} items={trips} baseDelay={0.15} />
+      <GroupBlock title="Wydarzenia" icon={Mountains} items={trips} baseDelay={0.15} />
     </div>
   );
 }

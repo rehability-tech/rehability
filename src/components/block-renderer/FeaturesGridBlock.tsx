@@ -59,8 +59,11 @@ export default function FeaturesGridBlock({ content }: { content: any }) {
             <div className="w-12 h-12 flex items-center justify-center rounded-full shrink-0 bg-white/10">
               <Icon size={24} weight="duotone" className="text-white" />
             </div>
+            {/* `on-dark-card` (globals.css) bije inline `style="color:#287D88"`,
+                którym AI wyróżnia frazy — na morskim kaflu byłyby niewidoczne. */}
             <div
               className="
+                on-dark-card
                 w-full mt-1 text-white font-montserrat font-medium text-[14px] leading-relaxed
                 [&_p]:m-0 [&_p+p]:mt-1
                 [&_strong]:font-bold [&_em]:italic

@@ -6,7 +6,7 @@ type Entry = MetadataRoute.Sitemap[number];
 
 const staticEntries: Entry[] = [
   { url: absoluteUrl("/"), changeFrequency: "monthly", priority: 1.0 },
-  { url: absoluteUrl("/wyjazdy"), changeFrequency: "weekly", priority: 0.9 },
+  { url: absoluteUrl("/wydarzenia"), changeFrequency: "weekly", priority: 0.9 },
   { url: absoluteUrl("/kursy"), changeFrequency: "weekly", priority: 0.9 },
   { url: absoluteUrl("/blog"), changeFrequency: "weekly", priority: 0.9 },
   { url: absoluteUrl("/o-nas"), changeFrequency: "monthly", priority: 0.7 },
@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     const tripEntries: Entry[] = trips.map((t) => ({
-      url: absoluteUrl(`/wyjazdy/${t.id}`),
+      url: absoluteUrl(`/wydarzenia/${t.id}`),
       lastModified: t.updatedAt,
       changeFrequency: "monthly",
       priority: 0.8,

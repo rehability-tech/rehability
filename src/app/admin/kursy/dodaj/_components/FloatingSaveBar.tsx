@@ -12,7 +12,7 @@ import {
 import type { SaveSource } from "./useCourseAutosave";
 
 /**
- * Pływający pasek akcji kreatora (wzór z edytora wyjazdów): asystent AI + zapis
+ * Pływający pasek akcji kreatora (wzór z edytora wydarzeń): asystent AI + zapis
  * szkicu, ze wskaźnikiem autozapisu. Publikacja zostaje w nawigacji kroków.
  */
 export function FloatingSaveBar({

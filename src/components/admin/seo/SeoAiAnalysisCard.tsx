@@ -24,7 +24,7 @@ interface Props {
   onRefresh: () => void;
   onFix: () => void;
   isFixing: boolean;
-  // Treść loading state — "wyjazdu" dla wyjazdów, "artykułu" dla bloga.
+  // Treść loading state — "wydarzenia" dla wydarzeń, "artykułu" dla bloga.
   contentLabel?: string;
 }
 
@@ -59,7 +59,7 @@ export default function SeoAiAnalysisCard({
   onRefresh,
   onFix,
   isFixing,
-  contentLabel = "wyjazdu",
+  contentLabel = "wydarzenia",
 }: Props) {
   const hasFixableRecs =
     !!analysis && analysis.recommendations.length > 0 && analysis.score < 100;

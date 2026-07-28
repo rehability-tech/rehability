@@ -45,7 +45,7 @@ export function createDefaultSections(heroImage = ""): EmailSection[] {
       id: uid(),
       type: "text",
       content:
-        "Twoja znajoma {inviterName} serdecznie zaprasza Cię do wspólnego udziału w wyjeździe {campName}. Czeka na Was wspaniały czas, relaks, świetne jedzenie i niezapomniane wspomnienia!",
+        "Twoja znajoma {inviterName} serdecznie zaprasza Cię do wspólnego udziału w wydarzeniu {campName}. Czeka na Was wspaniały czas, relaks, świetne jedzenie i niezapomniane wspomnienia!",
     },
     { id: uid(), type: "details" },
     {
@@ -61,8 +61,8 @@ export function createDefaultSections(heroImage = ""): EmailSection[] {
 }
 
 // ─── Defaults dla KAMPANII mailingowej (moduł src/lib/mailer) ─────────────────
-// Bez sekcji wyjazdowych (details/validity) — kampania nie jest powiązana z
-// konkretnym wyjazdem. Treść neutralna, zmienne kontaktu: {name}.
+// Bez sekcji wydarzenia (details/validity) — kampania nie jest powiązana z
+// konkretnym wydarzeniem. Treść neutralna, zmienne kontaktu: {name}.
 export function createCampaignDefaultSections(): EmailSection[] {
   return [
     { id: uid(), type: "title", content: "Cześć {name}!" },

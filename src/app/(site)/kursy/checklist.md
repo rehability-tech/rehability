@@ -40,7 +40,7 @@ Strefa po zalogowaniu (PWA). Dostęp wyłącznie po weryfikacji `Purchase`. Tu �
 
 ## C. Panel admina — zarządzanie i ingest wideo (`/admin/kursy/*`)
 
-Tworzenie kursów i wgrywanie wideo (wzorzec jak `/admin/blog/dodaj` i `/admin/wyjazdy`).
+Tworzenie kursów i wgrywanie wideo (wzorzec jak `/admin/blog/dodaj` i `/admin/wydarzenia`).
 
 - [ ] **`/admin/kursy`** — lista kursów (status: szkic/opublikowany, cena, sprzedaż, liczba lekcji).
 - [ ] **`/admin/kursy/dodaj`** — kreator nowego kursu (dane podstawowe: tytuł, slug, kategoria, cena, okładka, opis/zakładki).
@@ -55,7 +55,7 @@ Tworzenie kursów i wgrywanie wideo (wzorzec jak `/admin/blog/dodaj` i `/admin/w
 - [ ] **`GET /api/kursy/[slug]/lekcja/[lessonId]/token`** — **Gatekeeper**: sprawdza sesję + `Purchase`, zwraca krótkoterminowy **podpisany JWT** do playera. Bez tokena Mux odrzuca żądanie.
 - [ ] **`POST /api/kursy/progress`** — debounced zapis `UserProgress` (`watchTime`, `isCompleted`, `lastWatchedAt`).
 - [ ] **`POST /api/kursy/[slug]/checkout`** — tworzy sesję Stripe + `Purchase` w stanie `PENDING`.
-- [~] **`POST /api/webhooks/stripe`** — *istnieje* (wyjazdy). Rozszerzyć: po opłacie kursu utwórz/aktywuj `Purchase` (`PAID`) i odblokuj dostęp.
+- [~] **`POST /api/webhooks/stripe`** — *istnieje* (wydarzenia). Rozszerzyć: po opłacie kursu utwórz/aktywuj `Purchase` (`PAID`) i odblokuj dostęp.
 - [ ] **`GET /api/panel/kursy`** — lista kursów kupionych przez zalogowanego użytkownika (do „Moje kursy").
 
 ## E. Modele bazy danych (Prisma) — `prisma/schema.prisma`

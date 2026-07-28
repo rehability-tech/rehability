@@ -28,7 +28,7 @@ export const tripSchema = z.object({
   // Termin zamknięcia zapisów. NULL/brak = zapisy do dnia rozpoczęcia.
   registrationDeadline: z.coerce.date().nullable().optional(),
 
-  // Ręczne zamknięcie zapisów (wyjazd widoczny, ale bez formularza).
+  // Ręczne zamknięcie zapisów (wydarzenie widoczne, ale bez formularza).
   registrationClosed: z.boolean().optional().default(false),
 
   capacity: z.coerce
@@ -41,7 +41,7 @@ export const tripSchema = z.object({
   allowBringFriend: z.boolean().optional().default(false),
   price: z.coerce
     .number({
-      message: "Podaj prawidłową cenę wyjazdu",
+      message: "Podaj prawidłową cenę wydarzenia",
     })
     .min(0, "Cena nie może być ujemna"),
 

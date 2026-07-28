@@ -189,7 +189,7 @@ export default function ClientProfile({ data }: ClientProfileProps) {
               <div className="flex items-center gap-4 mt-3 text-[12px] font-medium text-white/80">
                 <span className="flex items-center gap-1.5">
                   <Tent size={15} weight="fill" />
-                  {data.tripsCount} wyjazdów
+                  {data.tripsCount} wydarzeń
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Sparkle size={15} weight="fill" />
@@ -205,14 +205,14 @@ export default function ClientProfile({ data }: ClientProfileProps) {
           {/* AI LTV BOOST — moduł zarabiania */}
           <AiLtvBoost data={data} favoriteService={favoriteServices[0]?.serviceName} />
 
-          {/* HISTORIA WYJAZDÓW */}
+          {/* HISTORIA WYDARZEŃ */}
           <section className="bg-white/50 backdrop-blur-xl border border-white/80 rounded-[28px] rounded-tr-none p-6 sm:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center">
                 <Tent size={24} weight="fill" />
               </div>
               <h2 className="font-jakarta font-bold text-xl text-brand-secondary">
-                Historia wyjazdów
+                Historia wydarzeń
               </h2>
               <span className="px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[12px] font-bold">
                 {data.bookings.length}
@@ -247,7 +247,7 @@ export default function ClientProfile({ data }: ClientProfileProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-brand-secondary text-[15px] truncate">
-                          {b.trip?.title ?? "Wyjazd usunięty"}
+                          {b.trip?.title ?? "Wydarzenie usunięte"}
                         </p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[12px] font-medium text-brand-secondary/60">
                           {b.trip?.location && (
@@ -280,7 +280,7 @@ export default function ClientProfile({ data }: ClientProfileProps) {
                 })}
               </div>
             ) : (
-              <EmptyState text="Brak historii wyjazdów." />
+              <EmptyState text="Brak historii wydarzeń." />
             )}
           </section>
 
@@ -432,7 +432,7 @@ function AiLtvBoost({
       `Imię klienta: ${data.name || "Klient"}`,
       `Status lojalnościowy: ${LOYALTY_META[data.loyalty].label}`,
       `Łączna wartość (LTV): ${data.totalSpent.toLocaleString("pl-PL")} zł`,
-      `Liczba odbytych wyjazdów: ${data.tripsCount}`,
+      `Liczba odbytych wydarzeń: ${data.tripsCount}`,
     ];
     if (favoriteService) {
       parts.push(`Ulubiona usługa SPA: ${favoriteService}`);
@@ -444,7 +444,7 @@ function AiLtvBoost({
       parts.push(`Dieta: ${DIET_LABELS[data.health.dietType] ?? data.health.dietType}`);
     }
     const lastTrip = data.bookings[0]?.trip?.title;
-    if (lastTrip) parts.push(`Ostatni wyjazd: ${lastTrip}`);
+    if (lastTrip) parts.push(`Ostatnie wydarzenie: ${lastTrip}`);
     return parts.join("\n");
   }
 
@@ -454,7 +454,7 @@ function AiLtvBoost({
     setCopied(false);
 
     const context = buildContext();
-    const prompt = `Na podstawie poniższych danych klienta napisz ultra-spersonalizowane, ciepłe i angażujące zaproszenie (w formie wiadomości e-mail/SMS) na kolejny wyjazd holistyczny Rehability.
+    const prompt = `Na podstawie poniższych danych klienta napisz ultra-spersonalizowane, ciepłe i angażujące zaproszenie (w formie wiadomości e-mail/SMS) na kolejne wydarzenie holistyczne Rehability.
 
 Wymagania:
 - Zwróć się do klienta po imieniu, nawiąż do jego historii i statusu lojalnościowego.

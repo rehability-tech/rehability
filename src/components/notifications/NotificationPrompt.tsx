@@ -199,7 +199,7 @@ export default function NotificationPrompt({ force = false }: Props) {
               <p className="font-montserrat text-[13px] text-brand-secondary/70 mt-2 leading-relaxed">
                 Dzięki temu nie przegapisz: przypomnienia o opłacie pozostałej
                 kwoty, potwierdzenia rezerwacji slotu SPA oraz wiadomości od
-                organizatora wyjazdu.
+                organizatora wydarzenia.
               </p>
             </div>
 

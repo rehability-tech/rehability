@@ -48,7 +48,7 @@ export default async function PanelLayout({
         </div>
         {/* TOPBAR */}
         <UserTopBar user={user} /> {/* Poprawione */}
-        {/* DYNAMICZNY CONTENT (Hub, Wyjazdy, VOD) */}
+        {/* DYNAMICZNY CONTENT (Hub, Wydarzenia, VOD) */}
         <MainClientContainer>{children}</MainClientContainer>
       </div>
       {/* 3. PASEK DOLNY (Tylko Mobile) */}

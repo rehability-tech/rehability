@@ -18,7 +18,7 @@ const REHABILITY_FAQ_DATA: FAQItemData[] = [
   {
     question: "Co odróżnia Rehability od standardowego gabinetu fizjoterapii?",
     answer:
-      "Nie skupiamy się tylko na chwilowym ugaszeniu bólu. Tworzymy kompleksowy ekosystem powrotu do zdrowia. Poza zaawansowaną terapią w gabinecie, oferujemy autorską platformę VOD z programami ruchowymi do ćwiczeń w domu, profesjonalne masaże oraz wyjazdy holistyczne (Wyjazdy Wellness). Edukujemy Cię, abyś odzyskał pełną kontrolę nad własnym ciałem.",
+      "Nie skupiamy się tylko na chwilowym ugaszeniu bólu. Tworzymy kompleksowy ekosystem powrotu do zdrowia. Poza zaawansowaną terapią w gabinecie, oferujemy autorską platformę VOD z programami ruchowymi do ćwiczeń w domu, profesjonalne masaże oraz wydarzenia holistyczne (Wydarzenia Wellness). Edukujemy Cię, abyś odzyskał pełną kontrolę nad własnym ciałem.",
   },
   {
     question: "Czy na platformie VOD znajdę ćwiczenia na ból kręgosłupa?",
@@ -26,9 +26,9 @@ const REHABILITY_FAQ_DATA: FAQItemData[] = [
       "Tak! Nasza platforma VOD działa jak Twój wirtualny terapeuta. Znajdziesz tam precyzyjne, autorskie programy ruchowe dedykowane m.in. bólom kręgosłupa, obręczy barkowej czy stawów kolanowych. To idealne uzupełnienie terapii gabinetowej, pozwalające na bezpieczny i świadomy trening we własnym domu.",
   },
   {
-    question: "Dla kogo przeznaczone są Wyjazdy Wellness i wyjazdy holistyczne?",
+    question: "Dla kogo przeznaczone są Wydarzenia Wellness i wydarzenia holistyczne?",
     answer:
-      "Nasze Wyjazdy to ekskluzywne wyjazdy skierowane do osób, które potrzebują całkowitego resetu dla ciała i umysłu z dala od miejskiego zgiełku. Są idealne zarówno dla osób zmagających się z przewlekłym stresem i napięciami, jak i dla tych, którzy chcą połączyć aktywny, mądry ruch z głęboką odnową biologiczną w otoczeniu natury.",
+      "Nasze Wydarzenia to ekskluzywne wydarzenia skierowane do osób, które potrzebują całkowitego resetu dla ciała i umysłu z dala od miejskiego zgiełku. Są idealne zarówno dla osób zmagających się z przewlekłym stresem i napięciami, jak i dla tych, którzy chcą połączyć aktywny, mądry ruch z głęboką odnową biologiczną w otoczeniu natury.",
   },
 ];
 

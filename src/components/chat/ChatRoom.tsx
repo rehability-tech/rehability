@@ -38,7 +38,7 @@ interface ChatRoomProps {
   title?: string;
   subtitle?: string;
   /**
-   * Deep-link tego czatu (np. "/panel/wyjazdy/{bookingId}/chat"). Po wejściu na
+   * Deep-link tego czatu (np. "/panel/wydarzenia/{bookingId}/chat"). Po wejściu na
    * ekran oznaczamy powiadomienia o nowych wiadomościach jako przeczytane, żeby
    * zgasić pulsujący wskaźnik w nawigacji.
    */
@@ -88,7 +88,7 @@ function initials(name: string) {
 export default function ChatRoom({
   tripId,
   variant = "panel",
-  title = "Czat wyjazdowy",
+  title = "Czat wydarzenia",
   subtitle = "Bądź na bieżąco z organizatorem i grupą",
   chatLink,
 }: ChatRoomProps) {
@@ -106,7 +106,7 @@ export default function ChatRoom({
   }, [chatLink]);
 
   const { data, error, isLoading, mutate } = useSWR<ChatResponse>(
-    `/api/wyjazdy/${tripId}/chat`,
+    `/api/wydarzenia/${tripId}/chat`,
     fetcher,
     { refreshInterval: 5000, revalidateOnFocus: true },
   );
@@ -149,7 +149,7 @@ export default function ChatRoom({
     setDraft("");
 
     try {
-      const res = await fetch(`/api/wyjazdy/${tripId}/chat`, {
+      const res = await fetch(`/api/wydarzenia/${tripId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),

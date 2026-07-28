@@ -9,17 +9,17 @@ import type { Loyalty } from "./types";
 
 /** Próg wydatków (PLN) kwalifikujący do VIP. */
 export const VIP_SPEND_THRESHOLD = 5000;
-/** Próg liczby wyjazdów kwalifikujący do VIP. */
+/** Próg liczby wydarzeń kwalifikujący do VIP. */
 export const VIP_TRIPS_THRESHOLD = 3;
-/** Próg liczby wyjazdów kwalifikujący do RETURNING. */
+/** Próg liczby wydarzeń kwalifikujący do RETURNING. */
 export const RETURNING_TRIPS_THRESHOLD = 2;
 
 /**
  * Wyznacza segment lojalnościowy klienta.
  *
- * - VIP:        wydatki > 5000 PLN LUB >= 3 wyjazdy
- * - RETURNING:  >= 2 wyjazdy
- * - NEW:        pozostali (1 wyjazd)
+ * - VIP:        wydatki > 5000 PLN LUB >= 3 wydarzenia
+ * - RETURNING:  >= 2 wydarzenia
+ * - NEW:        pozostali (1 wydarzenie)
  *
  * @param totalSpent Suma wpłat w PLN.
  * @param tripsCount Liczba rezerwacji (bez CANCELLED).

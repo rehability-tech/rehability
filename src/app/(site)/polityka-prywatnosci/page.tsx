@@ -22,7 +22,7 @@ export default async function PolitykaPrywatnosciPage() {
         <article className="container max-w-[800px] mx-auto px-4 text-[#0B3B4C]">
           <header className="mb-10">
             <h1 className="font-jakarta font-extrabold text-[36px] md:text-[48px] leading-[110%] mb-4">
-              Polityka prywatnoL�ci
+              Polityka prywatności
             </h1>
             <p className="font-montserrat text-[14px] text-gray-500">
               Ostatnia aktualizacja: 21 maja 2026
@@ -55,10 +55,10 @@ export default async function PolitykaPrywatnosciPage() {
               <p>
                 Przetwarzamy dane podane przy rejestracji (imię, nazwisko, adres
                 e-mail, awatar z dostawcy logowania), dane wynikające z
-                aktywnoL�ci na platformie (zakupy, postępy w kursach VOD,
-                rezerwacje wyjazdów) oraz dane techniczne (adres IP, cookies,
+                aktywności na platformie (zakupy, postępy w kursach VOD,
+                rezerwacje wydarzeń) oraz dane techniczne (adres IP, cookies,
                 identyfikatory urządzenia) niezbędne do zapewnienia
-                bezpieczeL�stwa i prawidL�owego dziaL�ania usL�ugi.
+                bezpieczeństwa i prawidłowego działania usługi.
               </p>
             </section>
 
@@ -68,14 +68,14 @@ export default async function PolitykaPrywatnosciPage() {
               </h2>
               <ul className="list-disc pl-6 flex flex-col gap-2">
                 <li>
-                  L�wiadczenie usL�ug platformy (art. 6 ust. 1 lit. b RODO).
+                  Świadczenie usług platformy (art. 6 ust. 1 lit. b RODO).
                 </li>
                 <li>
-                  Realizacja obowiązkAlw prawnych, w tym księgowych (art. 6 ust.
+                  Realizacja obowiązków prawnych, w tym księgowych (art. 6 ust.
                   1 lit. c RODO).
                 </li>
                 <li>
-                  Marketing wL�asnych usL�ug w oparciu o prawnie uzasadniony
+                  Marketing własnych usług w oparciu o prawnie uzasadniony
                   interes (art. 6 ust. 1 lit. f RODO).
                 </li>
                 <li>
@@ -102,9 +102,9 @@ export default async function PolitykaPrywatnosciPage() {
                 5. Okres przechowywania
               </h2>
               <p>
-                Dane konta przechowujemy przez okres aktywnoL�ci konta oraz
-                przez czas wymagany przepisami (np. dla rozliczeL� księgowych —
-                5 lat od koL�ca roku obrachunkowego).
+                Dane konta przechowujemy przez okres aktywności konta oraz
+                przez czas wymagany przepisami (np. dla rozliczeń księgowych —
+                5 lat od końca roku obrachunkowego).
               </p>
             </section>
 
@@ -114,7 +114,7 @@ export default async function PolitykaPrywatnosciPage() {
               </h2>
               <p>
                 Masz prawo do dostępu, sprostowania, usunięcia, ograniczenia
-                przetwarzania, przenoszenia danych, sprzeciwu, a takLLe
+                przetwarzania, przenoszenia danych, sprzeciwu, a także
                 wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych
                 (ul. Stawki 2, 00-193 Warszawa).
               </p>
@@ -125,7 +125,7 @@ export default async function PolitykaPrywatnosciPage() {
                 7. Pliki cookies
               </h2>
               <p>
-                Strona uLLywa cookies technicznych (niezbędnych do dziaL�ania)
+                Strona używa cookies technicznych (niezbędnych do działania)
                 oraz analitycznych. Zarządzanie zgodami odbywa się przez baner
                 zgody dostępny na dole ekranu.
               </p>
@@ -136,9 +136,9 @@ export default async function PolitykaPrywatnosciPage() {
                 8. Zmiany polityki
               </h2>
               <p>
-                Niniejszą politykę moLLemy aktualizować. O istotnych zmianach
+                Niniejszą politykę możemy aktualizować. O istotnych zmianach
                 poinformujemy z wyprzedzeniem przez e-mail lub komunikat w
-                panelu uLLytkownika.
+                panelu użytkownika.
               </p>
             </section>
           </div>

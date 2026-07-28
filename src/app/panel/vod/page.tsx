@@ -7,6 +7,7 @@ import {
   getVodOverview,
   getCourses,
   enrollUserInCourse,
+  recordCoursePurchaseFromStripe,
 } from "@/lib/courses-db";
 import { VodClient } from "./_components/VodClient";
 
@@ -53,6 +54,9 @@ export default async function VodPage({
         meta.courseId
       ) {
         await enrollUserInCourse(userId, meta.courseId);
+        // Domknij też rekord zakupu, gdy webhook go jeszcze nie zapisał
+        // (idempotentne po paymentIntentId).
+        await recordCoursePurchaseFromStripe(pi);
       }
     } catch (err) {
       console.error("[panel/vod] Weryfikacja PaymentIntent Stripe:", err);

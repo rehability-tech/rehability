@@ -23,10 +23,10 @@ import {
   FormInput,
   FormTextarea,
   FormSelect,
-} from "@/app/admin/wyjazdy/dodaj/_components/FormFields";
+} from "@/app/admin/wydarzenia/dodaj/_components/FormFields";
 import { useBlogUploadImage } from "../edytor-tresci/_components/lib/useBlogUploadImage";
 import BlogCoverPicker from "../_components/BlogCoverPicker";
-import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
+import AiGeneratorModal from "@/app/admin/wydarzenia/dodaj/_components/AiGeneratorModal";
 import NeonAiPanel, {
   type NeonStep,
   type StepStatus,
@@ -61,7 +61,7 @@ const DEFAULT_CATEGORIES = [
   "Mindfulness",
   "Żywienie",
   "Ruch",
-  "Wyjazdy holistyczne",
+  "Wydarzenia holistyczne",
   "Terapia",
   "Ogólne",
 ];

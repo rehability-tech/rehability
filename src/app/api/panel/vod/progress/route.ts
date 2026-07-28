@@ -55,6 +55,32 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  // Tryb lekcyjny wymaga dostępu do kursu — inaczej każdy zalogowany mógłby
+  // zapisać postęp dowolnej lekcji. Lekcja nie ma courseId, więc idziemy przez
+  // lesson → module → courseId i sprawdzamy Enrollment (jak w trybie „single").
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { module: { select: { courseId: true } } },
+  });
+  if (!lesson) {
+    return NextResponse.json(
+      { error: "Nie znaleziono lekcji." },
+      { status: 404 },
+    );
+  }
+  const enrolled = await prisma.enrollment.findUnique({
+    where: {
+      userId_courseId: { userId, courseId: lesson.module.courseId },
+    },
+    select: { id: true },
+  });
+  if (!enrolled) {
+    return NextResponse.json(
+      { error: "Brak dostępu do kursu." },
+      { status: 403 },
+    );
+  }
+
   // Postęp lekcji: `completed` (oznaczenie/odznaczenie) i `seconds` (obejrzany
   // czas) są niezależne — tick z playera niesie tylko sekundy, a przycisk tylko
   // flagę. Każde pole aktualizujemy osobno, sekundy monotonicznie (max).

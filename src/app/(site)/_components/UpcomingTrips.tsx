@@ -9,6 +9,7 @@ import {
 import { AsteriskSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { motion } from "framer-motion";
+import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
 
 // ==========================================
 // 1. DANE DLA DESKTOPU (Siatka 4x2 = 8 bloków) | Od 900px
@@ -100,12 +101,12 @@ interface UpcomingTripsProps {
 // POMOCNICZE
 // ==========================================
 function formatDateRange(start: Date | string, end: Date | string): string {
+  const singleDay = formatSingleDayOrNull(start, end);
+  if (singleDay) return singleDay;
+
   const s = new Date(start);
   const e = new Date(end);
-  if (
-    s.getMonth() === e.getMonth() &&
-    s.getFullYear() === e.getFullYear()
-  ) {
+  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
     return `${s.getDate()}–${e.getDate()}.${String(s.getMonth() + 1).padStart(2, "0")}.${s.getFullYear()}`;
   }
   return `${s.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} – ${e.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" })}`;
@@ -156,33 +157,40 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
   const heroImage = featuredTrip.heroImage ?? "/images/static/camp.png";
   const tripTitle = featuredTrip.title;
   const tripTags = featuredTrip.tags;
-  const tripSubtitle = featuredTrip.subtitle ?? "Pod opieką fizjoterapeuty i dietetyka klinicznego";
-  const tripLink = `/wyjazdy/${featuredTrip.id}`;
+  // Podtytuł pochodzi wyłącznie z danych wydarzenia — bez fallbacku opisującego
+  // konkretną obsadę, bo nie każde wydarzenie prowadzi fizjoterapeuta z dietetykiem.
+  const tripSubtitle = featuredTrip.subtitle?.trim() ?? "";
+  const tripLink = `/wydarzenia/${featuredTrip.id}`;
 
   const infoCircles = [
     {
       icon: <CalendarCheck size={18} weight="fill" className="text-white" />,
       label: "Termin",
       value: formatDateRange(featuredTrip.startDate, featuredTrip.endDate),
-      sub: "Twój czas na odpoczynek",
     },
     {
       icon: <MapPin size={18} weight="fill" className="text-white" />,
       label: "Lokalizacja",
       value: parseLocation(featuredTrip.location),
-      sub: "Piękne otoczenie",
     },
     {
       icon: <CreditCard size={18} weight="fill" className="text-white" />,
       label: "Cena",
-      value: featuredTrip.price ? `od ${featuredTrip.price} zł / os.` : "Sprawdź cennik",
-      sub: "Inwestycja w siebie",
+      value: featuredTrip.price
+        ? `od ${featuredTrip.price} zł / os.`
+        : "Sprawdź cennik",
     },
   ];
 
-  const activeDesktopArray = isFilled ? FILLED_BLOCKS_DESKTOP : MASK_BLOCKS_DESKTOP;
-  const activeTabletArray = isFilled ? FILLED_BLOCKS_TABLET : MASK_BLOCKS_TABLET;
-  const activeMobileArray = isFilled ? FILLED_BLOCKS_MOBILE : MASK_BLOCKS_MOBILE;
+  const activeDesktopArray = isFilled
+    ? FILLED_BLOCKS_DESKTOP
+    : MASK_BLOCKS_DESKTOP;
+  const activeTabletArray = isFilled
+    ? FILLED_BLOCKS_TABLET
+    : MASK_BLOCKS_TABLET;
+  const activeMobileArray = isFilled
+    ? FILLED_BLOCKS_MOBILE
+    : MASK_BLOCKS_MOBILE;
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
@@ -199,7 +207,7 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
             Zasługujesz na <span className="text-brand-primary">reset</span>
           </h2>
           <p className="font-montserrat font-medium text-brand-primary/80 text-[16px] md:text-[18px]">
-            Dołącz do naszego najbliższego wyjazdu
+            Dołącz do naszego najbliższego wydarzenia
           </p>
         </motion.div>
 
@@ -296,7 +304,9 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
 
               <div
                 className={`flex flex-col items-center gap-2 md:gap-3 transition-all duration-700 ease-in-out delay-100 ${
-                  isFilled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  isFilled
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
                 }`}
               >
                 <div className="flex flex-wrap justify-center items-center gap-2 md:gap-5 max-w-[100%] bg-black/20 backdrop-blur-sm px-4 md:px-6 py-2 md:py-3 rounded-[32px] md:rounded-full shadow-lg border border-white/10 max-[670px]:bg-transparent max-[670px]:backdrop-filter-none max-[670px]:shadow-none max-[670px]:border-none max-[670px]:p-0">
@@ -315,16 +325,20 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
                     </React.Fragment>
                   ))}
                 </div>
-                <p className="font-montserrat font-medium text-white text-[12px] md:text-[16px] mt-1 md:mt-2 drop-shadow-md text-center max-[450px]:text-[10px]">
-                  {tripSubtitle}
-                </p>
+                {tripSubtitle && (
+                  <p className="font-montserrat font-medium text-white text-[12px] md:text-[16px] mt-1 md:mt-2 drop-shadow-md text-center max-[450px]:text-[10px]">
+                    {tripSubtitle}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* === PRZYCISK DESKTOP === */}
             <div
-              className={`hidden md:flex absolute right-6 bottom-6 flex-col z-20 transition-all duration-700 delay-300 ${
-                isFilled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+              className={`hidden md:flex absolute right-6 bottom-6 flex-col z-50 transition-all duration-700 delay-300  ${
+                isFilled
+                  ? "opacity-100 translate-y-0 "
+                  : "opacity-0 translate-y-4 pointer-events-none"
               }`}
             >
               <Button href={tripLink}>Poznaj szczegóły</Button>
@@ -334,7 +348,9 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
           {/* === DOLNE ELEMENTY NACHODZĄCE (KÓŁKA I PRZYCISK MOBILE) === */}
           <div
             className={`relative z-20 w-full flex flex-wrap justify-center items-center gap-4 md:gap-6 -mt-12 md:-mt-20 px-2 md:px-4 transition-all duration-700 ease-in-out ${
-              isFilled ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-8 pointer-events-none"
+              isFilled
+                ? "opacity-100 translate-y-0 delay-200"
+                : "opacity-0 translate-y-8 pointer-events-none"
             }`}
           >
             {infoCircles.map((info, i) => (
@@ -350,11 +366,8 @@ export function UpcomingTrips({ featuredTrip }: UpcomingTripsProps) {
                 <span className="font-montserrat text-white/90 text-[11px] md:text-[13px] mb-1">
                   {info.label}
                 </span>
-                <span className="font-montserrat font-bold text-white text-[13px] md:text-[15px] leading-tight mb-0.5 md:mb-1">
+                <span className="font-montserrat font-bold text-white text-[13px] md:text-[15px] leading-tight">
                   {info.value}
-                </span>
-                <span className="font-montserrat text-white/70 text-[9px] md:text-[11px]">
-                  {info.sub}
                 </span>
               </div>
             ))}

@@ -181,7 +181,7 @@ export default function PWAInstallPrompt() {
               </h2>
               <p className="font-montserrat text-[13px] text-brand-secondary/70 mt-2 leading-relaxed">
                 Dodaj Rehability do ekranu głównego — szybszy dostęp do panelu,
-                harmonogramu i powiadomień o wyjeździe.
+                harmonogramu i powiadomień o wydarzeniu.
               </p>
             </div>
 

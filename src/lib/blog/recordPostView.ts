@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
 // Zlicza wyświetlenie wpisu z dedupem: jeden visitor (IP+UA) liczony raz dziennie.
-// Wzorowane na recordTripView — spójna logika dla wyjazdów i bloga.
+// Wzorowane na recordTripView — spójna logika dla wydarzeń i bloga.
 export async function recordPostView(postId: string) {
   try {
     const h = await headers();

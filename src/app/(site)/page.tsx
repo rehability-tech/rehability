@@ -10,14 +10,14 @@ import { authOptions } from "@/lib/auth/auth";
 // Strona główna. title.template z root layoutu doklei " | Rehability Prudnik",
 // więc trzymamy tu tylko mocne słowa kluczowe. Canonical przechodzi do "/".
 export const metadata: Metadata = {
-  title: "Fizjoterapia, Masaż Kobido i Wyjazdy Holistyczne",
+  title: "Fizjoterapia, Masaż Kobido i Wydarzenia Holistyczne",
   description:
-    "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wyjazdy holistyczne i edukacja.",
+    "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wydarzenia holistyczne i edukacja.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Fizjoterapia, Masaż Kobido i Wyjazdy Holistyczne",
+    title: "Fizjoterapia, Masaż Kobido i Wydarzenia Holistyczne",
     description:
-      "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wyjazdy holistyczne i edukacja.",
+      "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, masaże lecznicze i Kobido w Prudniku oraz ogólnopolskie wydarzenia holistyczne i edukacja.",
     url: "/",
   },
 };
@@ -89,7 +89,7 @@ async function getLatestPosts() {
 
 async function getFeaturedTrip() {
   try {
-    // Pomijamy wyjazdy już zakończone (po endDate) — próg = początek dziś.
+    // Pomijamy wydarzenia już zakończone (po endDate) — próg = początek dziś.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const campRaw = await prisma.trip.findFirst({

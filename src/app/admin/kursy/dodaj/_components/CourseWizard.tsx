@@ -516,7 +516,7 @@ export function CourseWizard({
     prevUploadCount.current = activeUploads.size;
   }, [activeUploads]);
 
-  // Autozapis szkicu na serwerze (wzór z edytora wyjazdów) — aktywny od kroku
+  // Autozapis szkicu na serwerze (wzór z edytora wydarzeń) — aktywny od kroku
   // „Dane podstawowe", gdy jest co zapisać.
   const autosave = useCourseAutosave(draft, step >= 1 && !loadingDraft, {
     initialCourseId: draftIdParam,

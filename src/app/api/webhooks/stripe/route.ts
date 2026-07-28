@@ -12,6 +12,7 @@ import {
   upsertContactFromEmail,
   CONTACT_SOURCES,
 } from "@/lib/crm/contactSync";
+import { recordCoursePurchaseFromStripe } from "@/lib/courses-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -192,7 +193,7 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       console.error("[stripe-webhook] Błąd wysyłki powiadomień:", err),
     );
 
-    // Sync do bazy kontaktów (CRM/mailing) — źródło "Wyjazdy".
+    // Sync do bazy kontaktów (CRM/mailing) — źródło "Wydarzenia".
     upsertContactFromEmail(booking.email, {
       name: booking.name,
       source: CONTACT_SOURCES.TRIPS,
@@ -249,7 +250,7 @@ async function handlePaymentFailed(pi: Stripe.PaymentIntent) {
  *
  *  A) e-mail NIE należy do żadnego użytkownika
  *       → wysyłamy mail z linkiem zaproszenia (24h od teraz).
- *  B1) e-mail to istniejący użytkownik, który MA już opłaconą zaliczkę na ten wyjazd
+ *  B1) e-mail to istniejący użytkownik, który MA już opłaconą zaliczkę na to wydarzenie
  *       → łączymy istniejącą rezerwację jako partnera, kasujemy placeholder,
  *         wysyłamy TYLKO powiadomienie "połączono Cię z…". Bez maila.
  *  B2) e-mail to istniejący użytkownik BEZ opłaconej zaliczki (lub bez push)
@@ -296,7 +297,7 @@ async function maybeSendFriendInvitation(
     select: { id: true },
   });
 
-  // Czy ta osoba MA już opłaconą rezerwację na ten wyjazd (inną niż placeholder)?
+  // Czy ta osoba MA już opłaconą rezerwację na to wydarzenie (inną niż placeholder)?
   const paidBooking = await prisma.booking.findFirst({
     where: {
       tripId: guest.tripId,
@@ -325,9 +326,9 @@ async function maybeSendFriendInvitation(
       await sendNotification({
         userId: targetUserId,
         title: "🤝 Jedziecie razem!",
-        message: `Zostałaś połączona z ${inviter} — dzielicie pokój na wyjeździe ${trip.title}. Pakiet jest aktywny.`,
+        message: `Zostałaś połączona z ${inviter} — dzielicie pokój na wydarzeniu ${trip.title}. Pakiet jest aktywny.`,
         type: "BOOKING",
-        link: `/panel/wyjazdy/${paidBooking.id}`,
+        link: `/panel/wydarzenia/${paidBooking.id}`,
         push: true,
       });
     }
@@ -345,10 +346,10 @@ async function maybeSendFriendInvitation(
   if (user) {
     await sendNotification({
       userId: user.id,
-      title: "✈️ Masz zaproszenie na wyjazd",
+      title: "✈️ Masz zaproszenie na wydarzenie",
       message: `${inviter} zaprasza Cię na ${trip.title}. Opłać zadatek (24h), aby dołączyć.`,
       type: "BOOKING",
-      link: `/panel/wyjazdy/${guest.id}`,
+      link: `/panel/wydarzenia/${guest.id}`,
       push: true,
     });
   }
@@ -360,7 +361,7 @@ async function maybeSendFriendInvitation(
       inviteeName: guest.name ?? "",
       inviterName: inviter,
       campName: trip.title,
-      // Publiczny route /wyjazdy/[slug] identyfikuje wyjazd po ID, więc do linku
+      // Publiczny route /wydarzenia/[slug] identyfikuje wydarzenie po ID, więc do linku
       // używamy tripId (nie pola slug).
       campSlug: guest.tripId,
       campStart: trip.startDate,
@@ -466,6 +467,11 @@ async function handleCoursePurchasePaid(pi: Stripe.PaymentIntent) {
     create: { userId, courseId },
   });
 
+  // Utrwalenie zakupu (kwota + snapshot rozliczeniowy) — idempotentne po
+  // paymentIntentId. Zapisujemy PO dostępie, ale PRZED telemetrią, bo to dane
+  // finansowe; oba upserty są retry-safe.
+  await recordCoursePurchaseFromStripe(pi);
+
   // Sync do bazy kontaktów (CRM/mailing) — źródło "VOD".
   prisma.user
     .findUnique({ where: { id: userId }, select: { name: true, email: true } })
@@ -481,37 +487,46 @@ async function handleCoursePurchasePaid(pi: Stripe.PaymentIntent) {
       console.error("[stripe-webhook] contact sync (VOD) error:", err),
     );
 
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { title: true, slug: true },
-  });
-  if (course) {
-    // Powiadomienie dla kupującej — dostęp odblokowany.
-    await sendNotification({
-      userId,
-      title: "🎓 Dostęp do kursu odblokowany",
-      message: `Masz już pełny dostęp do kursu „${course.title}". Miłej nauki!`,
-      type: "PAYMENT",
-      link: `/panel/vod/${course.slug}`,
-      push: true,
-    }).catch((err) =>
-      console.error("[stripe-webhook] COURSE_PURCHASE notify error:", err),
-    );
-
-    // Wpis do live-feedu admina (sprzedaż) — kto, jaki kurs, za ile.
-    const buyer = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, email: true },
+  // Telemetria (powiadomienie + wpis do live-feedu) — best-effort. Dostęp i
+  // rekord zakupu są już zapisane wyżej, więc błąd TUTAJ nie może zwrócić 500
+  // (inaczej Stripe ponawia event i dubluje powiadomienia).
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { title: true, slug: true },
     });
-    const amountPln = ((pi.amount_received ?? pi.amount ?? 0) / 100).toFixed(0);
-    await logVodPurchase({
-      userName: buyer?.name || buyer?.email || "Klient",
-      courseTitle: course.title,
-      courseSlug: course.slug,
-      amount: amountPln,
-    }).catch((err) =>
-      console.error("[stripe-webhook] COURSE_PURCHASE activity error:", err),
-    );
+    if (course) {
+      // Powiadomienie dla kupującej — dostęp odblokowany.
+      await sendNotification({
+        userId,
+        title: "🎓 Dostęp do kursu odblokowany",
+        message: `Masz już pełny dostęp do kursu „${course.title}". Miłej nauki!`,
+        type: "PAYMENT",
+        link: `/panel/vod/${course.slug}`,
+        push: true,
+      }).catch((err) =>
+        console.error("[stripe-webhook] COURSE_PURCHASE notify error:", err),
+      );
+
+      // Wpis do live-feedu admina (sprzedaż) — kto, jaki kurs, za ile.
+      const buyer = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      });
+      const amountPln = ((pi.amount_received ?? pi.amount ?? 0) / 100).toFixed(
+        0,
+      );
+      await logVodPurchase({
+        userName: buyer?.name || buyer?.email || "Klient",
+        courseTitle: course.title,
+        courseSlug: course.slug,
+        amount: amountPln,
+      }).catch((err) =>
+        console.error("[stripe-webhook] COURSE_PURCHASE activity error:", err),
+      );
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] COURSE_PURCHASE telemetry error:", err);
   }
 }
 

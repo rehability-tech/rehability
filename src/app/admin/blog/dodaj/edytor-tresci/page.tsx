@@ -19,8 +19,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { cn, safeUuid, isUsableImageUrl } from "@/lib/utils";
 
-import EditorToolbar from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/EditorToolbar";
-import AiGeneratorModal from "@/app/admin/wyjazdy/dodaj/_components/AiGeneratorModal";
+import EditorToolbar from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/lib/EditorToolbar";
+import AiGeneratorModal from "@/app/admin/wydarzenia/dodaj/_components/AiGeneratorModal";
 import BlogBlockBuilder from "./_components/lib/BlogBlockBuilder";
 import { useBlogContent } from "./_components/hooks/useBlogContent";
 import {

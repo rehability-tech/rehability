@@ -36,7 +36,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Harmonogram wydajemy dopiero po publikacji przez admina (flaga na wyjeździe).
+  // Harmonogram wydajemy dopiero po publikacji przez admina (flaga na wydarzeniu).
   // Per-event `isPublished` jest domyślnie true, więc nie pełni roli bramki.
   if (!booking.trip.isSchedulePublished) {
     return NextResponse.json({ timeline: [] });

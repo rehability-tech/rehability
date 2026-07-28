@@ -17,9 +17,13 @@ export const dynamic = "force-dynamic";
 const INVITATION_TTL_HOURS = 24;
 
 const FriendSchema = z.object({
-  firstName: z.string().trim().min(1, "Podaj imię przyjaciółki."),
-  lastName: z.string().trim().min(1, "Podaj nazwisko przyjaciółki."),
-  email: z.string().trim().toLowerCase().email("Nieprawidłowy email przyjaciółki."),
+  firstName: z.string().trim().min(1, "Podaj imię osoby towarzyszącej."),
+  lastName: z.string().trim().min(1, "Podaj nazwisko osoby towarzyszącej."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Nieprawidłowy email osoby towarzyszącej."),
 });
 
 const BodySchema = z
@@ -38,7 +42,7 @@ const BodySchema = z
     friend: FriendSchema.optional(),
   })
   .refine((d) => d.variant !== "duo" || !!d.friend, {
-    message: "Wariant Duo wymaga danych przyjaciółki.",
+    message: "Wariant Duo wymaga danych osoby towarzyszącej.",
     path: ["friend"],
   });
 
@@ -81,7 +85,7 @@ export async function POST(req: Request) {
 
   if (data.friend && data.friend.email.toLowerCase() === sessionEmail) {
     return NextResponse.json(
-      { error: "Email przyjaciółki musi być inny niż Twój." },
+      { error: "Email osoby towarzyszącej musi być inny niż Twój." },
       { status: 422 },
     );
   }
@@ -104,13 +108,13 @@ export async function POST(req: Request) {
   });
 
   if (!trip || trip.status !== "PUBLISHED") {
-    return NextResponse.json({ error: "Wyjazd jest niedostępny." }, { status: 404 });
+    return NextResponse.json({ error: "Wydarzenie jest niedostępne." }, { status: 404 });
   }
 
-  // Okno zapisów. "Twarde" zamknięcia (wyjazd zakończony / ręcznie zamknięty)
+  // Okno zapisów. "Twarde" zamknięcia (wydarzenie zakończone / ręcznie zamknięte)
   // blokują KAŻDĄ płatność — także przejęcie zaproszenia. Minięty termin
   // (DEADLINE) blokuje tylko nowe rezerwacje (sprawdzane niżej, w ścieżce
-  // standardowej), bo zaproszona przyjaciółka ma własne 24h na opłatę.
+  // standardowej), bo zaproszona osoba ma własne 24h na opłatę.
   const bookingWindow = getTripBookingWindow(trip);
   if (bookingWindow.reason === "ENDED" || bookingWindow.reason === "MANUAL") {
     return NextResponse.json(
@@ -121,7 +125,7 @@ export async function POST(req: Request) {
 
   if (data.variant === "duo" && !trip.allowBringFriend) {
     return NextResponse.json(
-      { error: "Ten wyjazd nie wspiera opcji 'zabierz przyjaciółkę'." },
+      { error: "To wydarzenie nie wspiera opcji 'zabierz osobę towarzyszącą'." },
       { status: 422 },
     );
   }
@@ -131,7 +135,7 @@ export async function POST(req: Request) {
 
   if (depositGrosze <= 0) {
     return NextResponse.json(
-      { error: "Wyjazd nie ma poprawnie ustawionego zadatku." },
+      { error: "Wydarzenie nie ma poprawnie ustawionego zadatku." },
       { status: 500 },
     );
   }
@@ -139,7 +143,7 @@ export async function POST(req: Request) {
   const fullName = `${data.customer.firstName} ${data.customer.lastName}`.trim();
   const expiresAt = new Date(Date.now() + INVITATION_TTL_HOURS * 3600 * 1000);
 
-  // MERGE zaproszenia: jeśli ta osoba ma już aktywne zaproszenie na ten wyjazd
+  // MERGE zaproszenia: jeśli ta osoba ma już aktywne zaproszenie na to wydarzenie
   // (PENDING_INVITATION na jej email), PRZEJMUJEMY tę rezerwację zamiast tworzyć
   // duplikat. Dzięki temu zaproszona uczestniczka, która opłaca zadatek normalną
   // ścieżką (a nie przez link /zaproszenie), ląduje w SWOJEJ istniejącej rezerwacji,
@@ -191,7 +195,7 @@ export async function POST(req: Request) {
     const seatsNeeded = data.variant === "duo" ? 2 : 1;
     if (occupiedSeats + seatsNeeded > trip.capacity) {
       return NextResponse.json(
-        { error: "Brak wolnych miejsc na ten wyjazd." },
+        { error: "Brak wolnych miejsc na to wydarzenie." },
         { status: 409 },
       );
     }

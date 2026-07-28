@@ -37,7 +37,7 @@ function getAppUrl(): string {
 }
 
 function validate(input: CreateCheckoutInput): string | null {
-  if (!input.tripId) return "Brak identyfikatora wyjazdu.";
+  if (!input.tripId) return "Brak identyfikatora wydarzenia.";
   if (!input.name || input.name.trim().length < 3)
     return "Podaj imię i nazwisko.";
   if (!input.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email))
@@ -70,12 +70,12 @@ export async function createCheckoutSession(
     if (!trip) {
       return {
         ok: false,
-        error: "Ten wyjazd nie jest już dostępny do rezerwacji.",
+        error: "To wydarzenie nie jest już dostępne do rezerwacji.",
       };
     }
 
     if (trip._count.bookings >= trip.capacity) {
-      return { ok: false, error: "Brak wolnych miejsc na ten wyjazd." };
+      return { ok: false, error: "Brak wolnych miejsc na to wydarzenie." };
     }
 
     const totalPln = trip.price ? Number(trip.price) : 0;
@@ -114,7 +114,7 @@ export async function createCheckoutSession(
             unit_amount: amountPaid,
             product_data: {
               name: `Zadatek · ${trip.title}`,
-              description: `Rezerwacja miejsca na wyjeździe „${trip.title}". Zadatek bezzwrotny.`,
+              description: `Rezerwacja miejsca na wydarzeniu „${trip.title}". Zadatek bezzwrotny.`,
               images: trip.heroImage ? [trip.heroImage] : undefined,
               metadata: { tripId: trip.id },
             },
@@ -133,8 +133,8 @@ export async function createCheckoutSession(
           kind: "CAMP_DEPOSIT",
         },
       },
-      success_url: `${appUrl}/panel/wyjazdy/${booking.id}?status=processing&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/wyjazdy/${trip.id}?canceled=1`,
+      success_url: `${appUrl}/panel/wydarzenia/${booking.id}?status=processing&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/wydarzenia/${trip.id}?canceled=1`,
       locale: "pl",
     });
 

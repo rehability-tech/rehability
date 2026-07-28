@@ -14,9 +14,9 @@ import {
 const ACTIONS = [
   {
     icon: MapPin,
-    title: "Nowy wyjazd",
-    sub: "Dodaj wyjazd do kalendarza",
-    href: "/admin/wyjazdy/dodaj",
+    title: "Nowe wydarzenie",
+    sub: "Dodaj wydarzenie do kalendarza",
+    href: "/admin/wydarzenia/dodaj",
     stat: "2 nadchodzące",
     gradient: "from-[#287d88] to-[#1a5c66]",
     iconShadow: "shadow-[0_6px_16px_-6px_rgba(40,125,136,0.6)]",

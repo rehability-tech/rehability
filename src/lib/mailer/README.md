@@ -57,7 +57,7 @@ Dzięki temu duże listy nie biją w limit czasu funkcji serverless. Wszystko id
 ## Integracja w tym projekcie
 
 - Adapter źródeł kontaktów: [`src/lib/crm/contactSync.ts`](../crm/contactSync.ts)
-  (Newsletter / Wyjazdy / VOD → tabela `Contact`).
+  (Newsletter / Wydarzenia / VOD → tabela `Contact`).
 - Webhook: `POST /api/webhooks/resend` (skonfiguruj URL w panelu Resend).
 - Drainer: `GET|POST /api/cron/mailer-drain` (chroniony `CRON_SECRET`).
 - Wypisanie: `/wypisz/[token]` (link w stopce każdej kampanii + nagłówek `List-Unsubscribe`).

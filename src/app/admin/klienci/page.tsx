@@ -13,9 +13,9 @@ export const dynamic = "force-dynamic";
 /**
  * Server Component — punkt wejścia modułu CRM (zunifikowana baza kontaktów).
  *
- * Źródłem prawdy jest tabela `Contact` (klienci wyjazdów + kursanci VOD +
+ * Źródłem prawdy jest tabela `Contact` (klienci wydarzeń + kursanci VOD +
  * newsletter, deduplikowani po e-mailu, z tagami źródła). Dla kontaktów
- * powiązanych z kontem (`userId`) dociągamy LTV/wyjazdy/kartę zdrowia jednym
+ * powiązanych z kontem (`userId`) dociągamy LTV/wydarzenia/kartę zdrowia jednym
  * zagnieżdżonym zapytaniem (bez N+1).
  */
 export default async function GlobalCrmPage() {

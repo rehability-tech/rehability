@@ -16,7 +16,7 @@ import {
   SquaresFour,
   User as UserIcon,
   MonitorPlay, // Nowa ikona dla VOD
-  Tent, // Nowa ikona dla Wyjazdów (lub użyj MapTrifold/CalendarBlank)
+  Tent, // Nowa ikona dla Wydarzeń (lub użyj MapTrifold/CalendarBlank)
   CircleNotch,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -24,7 +24,7 @@ const NAV_LINKS = [
   { label: "Start", href: "/" },
   { label: "O nas", href: "/o-nas" },
   { label: "Gabinet", href: "/gabinet" },
-  { label: "Wyjazdy", href: "/wyjazdy" },
+  { label: "Wydarzenia", href: "/wydarzenia" },
   { label: "Kursy", href: "/kursy" },
   { label: "Blog", href: "/blog" },
 ];
@@ -123,9 +123,9 @@ export function Navbar({ session }: NavbarProps) {
   const currentPathname = path.split("/");
   const isGabinetRoute =
     path === "/gabinet" ||
-    path === "/wyjazdy" ||
+    path === "/wydarzenia" ||
     path === "/kursy" ||
-    path === `/wyjazdy/${currentPathname[2]}` ||
+    path === `/wydarzenia/${currentPathname[2]}` ||
     path === `/kursy/${currentPathname[2]}` ||
     path === `/blog/${currentPathname[2]}`;
 
@@ -286,16 +286,16 @@ export function Navbar({ session }: NavbarProps) {
                       </Link>
                     </motion.div>
 
-                    {/* Wyjazdy */}
+                    {/* Wydarzenia */}
                     <motion.div variants={itemVariants}>
                       <Link
-                        // Jeśli admin -> /admin/wyjazdy, w przeciwnym razie -> /moje-campy
-                        href={isAdmin ? "/admin/wyjazdy" : "/moje-campy"}
+                        // Jeśli admin -> /admin/wydarzenia, w przeciwnym razie -> /moje-campy
+                        href={isAdmin ? "/admin/wydarzenia" : "/moje-campy"}
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-primary transition-colors"
                       >
                         <Tent size={18} />
-                        {isAdmin ? "Wyjazdy" : "Moje Wyjazdy"}
+                        {isAdmin ? "Wydarzenia" : "Moje Wydarzenia"}
                       </Link>
                     </motion.div>
 

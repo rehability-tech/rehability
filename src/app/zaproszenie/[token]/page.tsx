@@ -122,7 +122,7 @@ export default async function InvitationPage({ params }: Props) {
         icon={<CheckCircle size={56} weight="duotone" className="text-brand-primary" />}
         title="Już dołączyłaś 🎉"
         description="To zaproszenie jest już przypisane do Twojego konta. Dokończ płatność zadatku w panelu."
-        cta={{ href: "/panel/wyjazdy", label: "Przejdź do panelu" }}
+        cta={{ href: "/panel/wydarzenia", label: "Przejdź do panelu" }}
       />
     );
   }
@@ -173,7 +173,7 @@ export default async function InvitationPage({ params }: Props) {
           <div className="absolute bottom-4 left-6 flex items-center gap-2 text-white">
             <AirplaneTilt size={22} weight="fill" />
             <span className="text-xs font-semibold uppercase tracking-widest">
-              Zaproszenie na wyjazd
+              Zaproszenie na wydarzenie
             </span>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default async function InvitationPage({ params }: Props) {
           </p>
           <h1 className="font-jakarta font-bold text-xl text-brand-secondary leading-snug mb-1">
             <strong className="text-brand-primary">{inviterName}</strong> zaprasza
-            Cię na wspólny wyjazd
+            Cię na wspólne wydarzenie
           </h1>
           <p className="font-jakarta font-bold text-lg text-brand-secondary mb-5">
             {invitation.trip.title}

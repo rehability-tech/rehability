@@ -20,7 +20,7 @@ const CATEGORIES = [
   "Mindfulness",
   "Żywienie",
   "Ruch",
-  "Wyjazdy holistyczne",
+  "Wydarzenia holistyczne",
   "Terapia",
   "Ogólne",
 ];

@@ -1,13 +1,13 @@
 # Dokumentacja API — Rehability
 
-Spis wszystkich endpointów REST aplikacji. Każdy plik `route.ts` w `src/app/api/**` odpowiada jednemu endpointowi. Trasa wynika ze struktury folderów (np. `src/app/api/admin/wyjazdy/[id]/route.ts` → `/api/admin/wyjazdy/[id]`).
+Spis wszystkich endpointów REST aplikacji. Każdy plik `route.ts` w `src/app/api/**` odpowiada jednemu endpointowi. Trasa wynika ze struktury folderów (np. `src/app/api/admin/wydarzenia/[id]/route.ts` → `/api/admin/wydarzenia/[id]`).
 
 ## Spis treści
 
 - [Konwencje autoryzacji](#konwencje-autoryzacji)
 - [`/api/admin/*` — Panel administratora](#apiadmin--panel-administratora)
 - [`/api/panel/*` — Panel uczestniczki](#apipanel--panel-uczestniczki)
-- [`/api/wyjazdy/*` — Czat wyjazdowy](#apiwyjazdy--czat-wyjazdowy)
+- [`/api/wydarzenia/*` — Czat wydarzenia](#apiwydarzenia--czat-wydarzenia)
 - [`/api/public/*` — Endpointy publiczne](#apipublic--endpointy-publiczne)
 - [`/api/bookings/*` — Proces rezerwacji](#apibookings--proces-rezerwacji)
 - [`/api/cron/*` — Zadania cykliczne](#apicron--zadania-cykliczne)
@@ -24,7 +24,7 @@ Spis wszystkich endpointów REST aplikacji. Każdy plik `route.ts` w `src/app/ap
 |---|---|---|
 | **Admin** | `requireAdmin()` z `@/lib/auth/requireAdmin` | wszystkie `/api/admin/*` |
 | **Sesja użytkownika** | `getServerSession(authOptions)` | `/api/panel/*`, `/api/notifications/*`, `/api/user/*`, `/api/bookings/*` |
-| **Sesja + dostęp do wyjazdu** | `getServerSession(authOptions)` + rola `ADMIN` **lub** posiadanie `Booking` w danym wyjeździe | `/api/wyjazdy/[tripId]/chat` |
+| **Sesja + dostęp do wydarzenia** | `getServerSession(authOptions)` + rola `ADMIN` **lub** posiadanie `Booking` w danym wydarzeniu | `/api/wydarzenia/[tripId]/chat` |
 | **Cron** | sekret `CRON_SECRET` (header `Authorization: Bearer …`) | `/api/cron/*` |
 | **Webhook** | weryfikacja podpisu Stripe (`stripe.webhooks.constructEvent`) | `/api/webhooks/stripe` |
 | **Publiczne** | brak | `/api/public/*` |
@@ -34,7 +34,7 @@ Spis wszystkich endpointów REST aplikacji. Każdy plik `route.ts` w `src/app/ap
 ## `/api/admin/*` — Panel administratora
 
 ### `/api/admin/uslugi`
-Globalny katalog "extra services" (osobny od `TripService` przypisanego do wyjazdu).
+Globalny katalog "extra services" (osobny od `TripService` przypisanego do wydarzenia).
 
 - **GET** — Lista wszystkich usług, sort `createdAt desc`. *Modele: `ExtraService`*
 - **POST** — Tworzy usługę. **Body:** `name`, `duration`, `price`, `description`. *Modele: `ExtraService`*
@@ -76,60 +76,60 @@ Globalny katalog "extra services" (osobny od `TripService` przypisanego do wyjaz
 ### `/api/admin/gemini`
 - **POST** — Integracja z Gemini API (~15 akcji: blueprint, copywriting, SEO, artykuły). **Body:** `action`, `prompt`, `model`, `blockType`, `topic`, `overallContext`.
 
-### `/api/admin/wyjazdy`
-- **GET** — Wszystkie wyjazdy z metadanymi. *Modele: `Trip`*
+### `/api/admin/wydarzenia`
+- **GET** — Wszystkie wydarzenia z metadanymi. *Modele: `Trip`*
 
-### `/api/admin/wyjazdy/save`
-- **POST** — Tworzy lub aktualizuje wyjazd; auto-cofa do DRAFT jeśli niekompletny. **Body:** `id`, `lastStage`, `title`, `location`, `startDate`, `endDate`, `price`, `deposit`, `capacity`, `allowBringFriend`, `description`, `mapUrl`. *Modele: `Trip`*
+### `/api/admin/wydarzenia/save`
+- **POST** — Tworzy lub aktualizuje wydarzenie; auto-cofa do DRAFT jeśli niekompletny. **Body:** `id`, `lastStage`, `title`, `location`, `startDate`, `endDate`, `price`, `deposit`, `capacity`, `allowBringFriend`, `description`, `mapUrl`. *Modele: `Trip`*
 
-### `/api/admin/wyjazdy/[id]`
+### `/api/admin/wydarzenia/[id]`
 - **GET** — Pełne drzewo: rezerwacje, profile zdrowia, zamówienia usług. *Modele: `Trip`, `Booking`, `HealthProfile`, `ServiceOrder`*
 - **PATCH** — Aktualizacja treści (edytor bloków). Synchronizuje `TripService` z blokami typu `pricingList` (upsert po id, soft-delete tylko jeśli brak zamówień). Waliduje kompletność elementów `pricingList`. **Body:** `subtitle`, `tags`, `heroImage`, `blocks`. *Modele: `Trip`, `TripService`*
 
-### `/api/admin/wyjazdy/[id]/seo`
-- **PATCH** — Aktualizuje SEO wyjazdu. **Body:** `metaTitle`, `metaDescription`, `focusKeyword`, `ogImage`, `canonicalUrl`, `noIndex`. *Modele: `Trip`*
+### `/api/admin/wydarzenia/[id]/seo`
+- **PATCH** — Aktualizuje SEO wydarzenia. **Body:** `metaTitle`, `metaDescription`, `focusKeyword`, `ogImage`, `canonicalUrl`, `noIndex`. *Modele: `Trip`*
 
-### `/api/admin/wyjazdy/[id]/upload`
+### `/api/admin/wydarzenia/[id]/upload`
 - **POST** — Upload zdjęcia hero na Vercel Blob. **Query:** `filename`. *Modele: `Trip`*
 - **DELETE** — Usuwa zdjęcie hero z chmury i DB. **Query:** `url`. *Modele: `Trip`*
 
-### `/api/admin/wyjazdy/[id]/activity`
-- **GET** — Aktywności konkretnego wyjazdu (paginacja). **Query:** `page`, `limit`, `type`. *Modele: `Activity`*
+### `/api/admin/wydarzenia/[id]/activity`
+- **GET** — Aktywności konkretnego wydarzenia (paginacja). **Query:** `page`, `limit`, `type`. *Modele: `Activity`*
 
-### `/api/admin/wyjazdy/[id]/services`
-- **GET** — Lista usług SPA przypisanych do wyjazdu (sort `name asc`). *Modele: `TripService`*
+### `/api/admin/wydarzenia/[id]/services`
+- **GET** — Lista usług SPA przypisanych do wydarzenia (sort `name asc`). *Modele: `TripService`*
 
-### `/api/admin/wyjazdy/[id]/harmonogram`
+### `/api/admin/wydarzenia/[id]/harmonogram`
 - **GET** — Pełny dashboard harmonogramu: trip + usługi + wydarzenia (`TripEvent`) + bloki SPA (`SpaBlock`) z rezerwacjami i obłożeniem per usługa. *Modele: `Trip`, `TripService`, `TripEvent`, `SpaBlock`, `ServiceOrder`*
 - **POST** — Tworzy punkt agendy (Zod). Waliduje, że `endTime > startTime`. **Body:** `title`, `description`, `startTime`, `endTime`, `type` (GENERAL/MEAL/ACTIVITY/WELLNESS_FREE/ANNOUNCEMENT), `icon`, `isPublished`, `sortOrder`. *Modele: `TripEvent`*
 
-### `/api/admin/wyjazdy/[id]/harmonogram/[eventId]`
+### `/api/admin/wydarzenia/[id]/harmonogram/[eventId]`
 - **PATCH** — Edytuje punkt agendy (te same pola/walidacja co POST). *Modele: `TripEvent`*
 - **DELETE** — Usuwa punkt agendy. *Modele: `TripEvent`*
 
-### `/api/admin/wyjazdy/[id]/harmonogram/seed`
-- **POST** — Wypełnia przykładowy harmonogram dnia (joga, posiłki, warsztaty + bloki SPA) na 2. dzień wyjazdu. Narzędzie dev/test. *Modele: `TripEvent`, `SpaBlock`*
+### `/api/admin/wydarzenia/[id]/harmonogram/seed`
+- **POST** — Wypełnia przykładowy harmonogram dnia (joga, posiłki, warsztaty + bloki SPA) na 2. dzień wydarzenia. Narzędzie dev/test. *Modele: `TripEvent`, `SpaBlock`*
 
-### `/api/admin/wyjazdy/[id]/harmonogram/clear`
+### `/api/admin/wydarzenia/[id]/harmonogram/clear`
 - **DELETE** — Czyści cały harmonogram (wszystkie `TripEvent` + `SpaBlock`; kaskadowo usuwa `ServiceOrder`). Narzędzie dev/test. *Modele: `TripEvent`, `SpaBlock`*
 
-### `/api/admin/wyjazdy/[id]/harmonogram/publish`
+### `/api/admin/wydarzenia/[id]/harmonogram/publish`
 - **PATCH** — Publikuje/ukrywa harmonogram (`Trip.isSchedulePublished`). Przy publikacji powiadamia uczestniczki (DEPOSIT_PAID/FULLY_PAID) z per-booking deep-linkiem; rozróżnia pierwszą publikację od aktualizacji. **Body:** `isPublished`. *Modele: `Trip`, `Booking`* — kanały `IN_APP`, `PUSH`, `EMAIL`.
 
-### `/api/admin/wyjazdy/[id]/slots`
-- **POST** — Tworzy blok SPA (`SpaBlock`). Wolny blok (`isOpen=true`) z sumarycznym `capacity` lub blok whitelistowy z `serviceCapacities` per usługa. Waliduje nakładanie czasowe (409), długość usług vs. długość bloku oraz przynależność usług do wyjazdu. **Body:** `startTime`, `endTime`, `capacity`, `isOpen`, `serviceCapacities` (`[{ serviceId, capacity }]`). *Modele: `SpaBlock`, `SpaBlockService`, `TripService`*
+### `/api/admin/wydarzenia/[id]/slots`
+- **POST** — Tworzy blok SPA (`SpaBlock`). Wolny blok (`isOpen=true`) z sumarycznym `capacity` lub blok whitelistowy z `serviceCapacities` per usługa. Waliduje nakładanie czasowe (409), długość usług vs. długość bloku oraz przynależność usług do wydarzenia. **Body:** `startTime`, `endTime`, `capacity`, `isOpen`, `serviceCapacities` (`[{ serviceId, capacity }]`). *Modele: `SpaBlock`, `SpaBlockService`, `TripService`*
 
-### `/api/admin/wyjazdy/[id]/slots/[blockId]`
+### `/api/admin/wydarzenia/[id]/slots/[blockId]`
 - **DELETE** — Usuwa blok SPA. Blokuje usunięcie (409), jeśli ma aktywne rezerwacje. *Modele: `SpaBlock`, `ServiceOrder`*
 
-### `/api/admin/wyjazdy/service-image`
+### `/api/admin/wydarzenia/service-image`
 - **POST** — Upload zdjęcia usługi na Vercel Blob (prefix `usluga-`, losowy sufiks). **Query:** `filename`.
 - **DELETE** — Usuwa zdjęcie usługi z chmury. **Query:** `url`.
 
-### `/api/admin/wyjazdy/feature`
-- **POST** — Ustawia wyróżniony wyjazd (tylko jeden naraz). **Body:** `id`. *Modele: `Trip`*
+### `/api/admin/wydarzenia/feature`
+- **POST** — Ustawia wyróżnione wydarzenie (tylko jeden naraz). **Body:** `id`. *Modele: `Trip`*
 
-### `/api/admin/wyjazdy/status`
+### `/api/admin/wydarzenia/status`
 - **PATCH** — Zmiana statusu (DRAFT/PUBLISHED/ARCHIVED) z walidacją kompletności. **Body:** `id`, `status`. *Modele: `Trip`*
 
 ### `/api/admin/skaner`
@@ -140,31 +140,31 @@ Globalny katalog "extra services" (osobny od `TripService` przypisanego do wyjaz
 ## `/api/panel/*` — Panel uczestniczki
 
 ### `/api/panel/orders`
-- **POST** — Rezerwuje usługę w bloku SPA i tworzy Stripe `PaymentIntent` (status `PENDING`). W transakcji sprawdza ownership, dostępność (wolny blok: sub-slot + sweep obłożenia; whitelist: capacity per usługa) i dopasowanie usługi do wyjazdu. **Body:** `bookingId`, `spaBlockId`, `serviceId`, `startTime` (tylko wolny blok). *Modele: `ServiceOrder`, `SpaBlock`, `SpaBlockService`, `TripService`, `Booking`*
+- **POST** — Rezerwuje usługę w bloku SPA i tworzy Stripe `PaymentIntent` (status `PENDING`). W transakcji sprawdza ownership, dostępność (wolny blok: sub-slot + sweep obłożenia; whitelist: capacity per usługa) i dopasowanie usługi do wydarzenia. **Body:** `bookingId`, `spaBlockId`, `serviceId`, `startTime` (tylko wolny blok). *Modele: `ServiceOrder`, `SpaBlock`, `SpaBlockService`, `TripService`, `Booking`*
 - **DELETE** — Anuluje zamówienie (soft-delete na `CANCELLED`; blokuje gdy `PAID`). **Query:** `orderId`. *Modele: `ServiceOrder`*
 
 ### `/api/panel/updates`
 - **GET** — 5 ostatnich opublikowanych aktualizacji systemu. *Modele: `SystemUpdate`*
 
-### `/api/panel/wyjazdy/active`
+### `/api/panel/wydarzenia/active`
 - **GET** — Aktywna rezerwacja użytkownika (DEPOSIT_PAID/FULLY_PAID/PENDING). *Modele: `Booking`, `Trip`*
 
-### `/api/panel/wyjazdy/[bookingId]`
+### `/api/panel/wydarzenia/[bookingId]`
 - **GET** — Szczegóły rezerwacji + profile zdrowia + podgląd agendy. *Modele: `Booking`, `Trip`, `TripEvent`, `HealthProfile`*
 
-### `/api/panel/wyjazdy/[bookingId]/services`
-- **GET** — Usługi wyjazdu z sumaryczną liczbą wolnych slotów w aktywnych blokach SPA (sprawdza ownership). *Modele: `TripService`, `SpaBlock`*
+### `/api/panel/wydarzenia/[bookingId]/services`
+- **GET** — Usługi wydarzenia z sumaryczną liczbą wolnych slotów w aktywnych blokach SPA (sprawdza ownership). *Modele: `TripService`, `SpaBlock`*
 
-### `/api/panel/wyjazdy/[bookingId]/status`
+### `/api/panel/wydarzenia/[bookingId]/status`
 - **GET** — Status płatności rezerwacji. *Modele: `Booking`*
 
-### `/api/panel/wyjazdy/resume-payment`
+### `/api/panel/wydarzenia/resume-payment`
 - **POST** — Wznawia/inicjuje płatność (zadatek lub reszta), tworzy `PaymentIntent` w Stripe. **Body:** `bookingId`. *Modele: `Booking`, `Trip`*
 
 ### `/api/panel/harmonogram/[bookingId]`
-- **GET** — Timeline: wydarzenia wyjazdu + zamówione usługi. *Modele: `TripEvent`, `ServiceOrder`*
+- **GET** — Timeline: wydarzenia wydarzenia + zamówione usługi. *Modele: `TripEvent`, `ServiceOrder`*
 
-### `/api/panel/wyjazdy/[bookingId]/sklep`
+### `/api/panel/wydarzenia/[bookingId]/sklep`
 - **GET** — Katalog usług + bloki SPA z obłożeniem (wolne miejsca, miejsca per usługa, oznaczenie własnych rezerwacji) oraz lista wykupionych zabiegów. Sprawdza ownership. *Modele: `TripService`, `SpaBlock`, `SpaBlockService`, `ServiceOrder`*
 
 ### `/api/panel/health-profile`
@@ -173,11 +173,11 @@ Globalny katalog "extra services" (osobny od `TripService` przypisanego do wyjaz
 
 ---
 
-## `/api/wyjazdy/*` — Czat wyjazdowy
+## `/api/wydarzenia/*` — Czat wydarzenia
 
-Grupowy czat jednego wyjazdu, współdzielony przez panel uczestniczki (`/panel/wyjazdy/[bookingId]/chat`) i panel admina (`/admin/wyjazdy/[id]/chat`). Front odpytuje endpoint co 5 s (SWR polling). Dostęp: admin **lub** posiadanie rezerwacji w danym wyjeździe.
+Grupowy czat jednego wydarzenia, współdzielony przez panel uczestniczki (`/panel/wydarzenia/[bookingId]/chat`) i panel admina (`/admin/wydarzenia/[id]/chat`). Front odpytuje endpoint co 5 s (SWR polling). Dostęp: admin **lub** posiadanie rezerwacji w danym wydarzeniu.
 
-### `/api/wyjazdy/[tripId]/chat`
+### `/api/wydarzenia/[tripId]/chat`
 - **GET** — Chronologiczna lista wiadomości z danymi nadawcy (imię, avatar, rola), flagą `isMine` i `currentUserId`. *Modele: `Message`, `Booking`, `User`*
 - **POST** — Zapisuje wiadomość i „fire & forget” odpala powiadomienia (`dispatchNotification`, kanały `IN_APP` + `PUSH`): admin → uczestniczki (per-booking deep-link), uczestniczka → admini. Walidacja Zod (`text` 1–2000 znaków). **Body:** `text`. *Modele: `Message`, `Booking`, `User`*
 
@@ -185,8 +185,8 @@ Grupowy czat jednego wyjazdu, współdzielony przez panel uczestniczki (`/panel/
 
 ## `/api/public/*` — Endpointy publiczne
 
-### `/api/public/wyjazdy`
-- **GET** — Opublikowane wyjazdy z paginacją. **Query:** `page`, `limit`. *Modele: `Trip`*
+### `/api/public/wydarzenia`
+- **GET** — Opublikowane wydarzenia z paginacją. **Query:** `page`, `limit`. *Modele: `Trip`*
 
 ### `/api/public/newsletter`
 - **POST** — Zapis do newslettera. **Body:** `email`. *Modele: `NewsletterSubscriber`*
@@ -258,14 +258,14 @@ Wymagają nagłówka `Authorization: Bearer ${CRON_SECRET}`.
 W kolejności częstości występowania:
 
 - `Booking` — rezerwacje (status, płatności, QR, check-in, zaproszenia duo)
-- `Trip` — wyjazdy (treść, bloki JSON, SEO, status publikacji)
+- `Trip` — wydarzenia (treść, bloki JSON, SEO, status publikacji)
 - `Post` + `BlogScheduleEntry` — blog i jego harmonogram
 - `User` — konta + preferencje powiadomień
 - `HealthProfile` — karta zdrowia uczestniczki (1:1 z `User`)
 - `TripService` + `SpaBlock` + `SpaBlockService` + `ServiceOrder` — usługi SPA, bloki czasowe (wolne/whitelistowe) i ich rezerwacja
 - `ExtraService` — globalny katalog usług (kopiowany do bloków edytora)
-- `TripEvent` — punkty agendy wyjazdu
-- `Message` — wiadomości grupowego czatu wyjazdu (powiązane z `Trip` i `User`)
+- `TripEvent` — punkty agendy wydarzenia
+- `Message` — wiadomości grupowego czatu wydarzenia (powiązane z `Trip` i `User`)
 - `Activity` — audit log zdarzeń systemowych
 - `Notification` — powiadomienia użytkownika
 - `SystemUpdate` — feed nowości w panelu

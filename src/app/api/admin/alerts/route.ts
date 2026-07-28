@@ -29,7 +29,7 @@ export async function GET() {
       },
     });
 
-    // Uczestnicey z DEPOSIT_PAID na wyjazdach za < 30 dni (reszta nieopłacona)
+    // Uczestnicey z DEPOSIT_PAID na wydarzeniach za < 30 dni (reszta nieopłacona)
     const unpaidRemainders = await prisma.booking.count({
       where: {
         status: "DEPOSIT_PAID",
@@ -40,7 +40,7 @@ export async function GET() {
       },
     });
 
-    // Uczestnicy wyjazdów za < 7 dni bez wypełnionej karty zdrowia
+    // Uczestnicy wydarzeń za < 7 dni bez wypełnionej karty zdrowia
     const upcomingTrips = await prisma.trip.findMany({
       where: {
         status: "PUBLISHED",

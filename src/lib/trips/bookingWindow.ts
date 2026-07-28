@@ -1,16 +1,16 @@
 // ==========================================
-// OKNO ZAPISÓW NA WYJAZD
+// OKNO ZAPISÓW NA WYDARZENIE
 // ==========================================
-// Jedno źródło prawdy o tym, czy na wyjazd można się jeszcze zapisać.
+// Jedno źródło prawdy o tym, czy na wydarzenie można się jeszcze zapisać.
 // Używane przez:
 //   - /api/bookings/create-payment-intent  (twarda blokada rezerwacji)
-//   - /wyjazdy/[slug]                        (formularz vs. "zapisy zamknięte")
-// Listingi (ukrywanie zakończonych wyjazdów) filtrują po endDate osobno,
+//   - /wydarzenia/[slug]                        (formularz vs. "zapisy zamknięte")
+// Listingi (ukrywanie zakończonych wydarzeń) filtrują po endDate osobno,
 // bo to zapytanie do bazy, nie reguła w pamięci.
 
 export type TripBookingClosedReason =
   | "NOT_PUBLISHED" // status !== "PUBLISHED" (szkic / archiwum)
-  | "ENDED" // wyjazd już się odbył (po endDate)
+  | "ENDED" // wydarzenie już się odbyłoo (po endDate)
   | "MANUAL" // admin ręcznie zamknął zapisy (registrationClosed)
   | "DEADLINE"; // minął termin zapisów (registrationDeadline ?? startDate)
 
@@ -31,13 +31,85 @@ function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+// Wydarzenia sprzedajemy w Polsce, więc każdą datę „do kiedy" liczymy w czasie
+// polskim — niezależnie od strefy serwera (na produkcji to UTC).
+const TRIP_TIMEZONE = "Europe/Warsaw";
+
+/** Przesunięcie strefy wydarzeń względem UTC w danym momencie (w ms). */
+function tripTimezoneOffsetMs(date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TRIP_TIMEZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date);
+
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  // Intl potrafi zwrócić "24" dla północy — normalizujemy do 0.
+  const hour = part("hour") % 24;
+  const asIfUtc = Date.UTC(
+    part("year"),
+    part("month") - 1,
+    part("day"),
+    hour,
+    part("minute"),
+    part("second"),
+  );
+
+  // Sekundowa precyzja formattera: obcinamy ms po obu stronach.
+  return asIfUtc - Math.floor(date.getTime() / 1000) * 1000;
+}
+
 /**
- * Zwraca stan okna zapisów dla wyjazdu w danym momencie.
+ * Ostatnia milisekunda dnia (23:59:59.999 czasu polskiego), w którym wypada
+ * podana data.
  *
- * Kolejność reguł (od najtwardszej): brak publikacji → wyjazd zakończony →
+ * Kalendarz w adminie zapisuje samą datę, czyli PÓŁNOC wybranego dnia. Bez tej
+ * normalizacji „zapisy do 27 lipca" gasłyby o 00:00 27 lipca — cały ostatni
+ * dzień przepadałby. Data graniczna jest więc zawsze traktowana WŁĄCZNIE.
+ */
+export function endOfTripDay(value: Date | string): Date {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return date;
+
+  const dayParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TRIP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(dayParts.find((p) => p.type === type)?.value ?? 0);
+
+  // 23:59:59.999 lokalnie → instant UTC. Offset liczymy dwuetapowo, żeby
+  // poprawnie trafić także w dobach ze zmianą czasu.
+  const naive = Date.UTC(
+    part("year"),
+    part("month") - 1,
+    part("day"),
+    23,
+    59,
+    59,
+    999,
+  );
+  const firstGuess = naive - tripTimezoneOffsetMs(new Date(naive));
+  return new Date(naive - tripTimezoneOffsetMs(new Date(firstGuess)));
+}
+
+/**
+ * Zwraca stan okna zapisów dla wydarzenia w danym momencie.
+ *
+ * Kolejność reguł (od najtwardszej): brak publikacji → wydarzenie zakończone →
  * ręczne zamknięcie → minięty termin zapisów. `registrationDeadline` ma
  * pierwszeństwo nad `startDate`; jeśli go nie ma, domyślnym terminem jest
- * dzień rozpoczęcia.
+ * dzień rozpoczęcia. Każdy termin obowiązuje WŁĄCZNIE — wybrany w adminie
+ * dzień jest ostatnim dniem, w którym można się zapisać (do 23:59 czasu PL).
  */
 export function getTripBookingWindow(
   trip: TripLike,
@@ -47,8 +119,9 @@ export function getTripBookingWindow(
     return { isOpen: false, reason: "NOT_PUBLISHED" };
   }
 
-  const endDate = toDate(trip.endDate);
-  if (now >= endDate) {
+  // Wszystkie daty graniczne liczymy WŁĄCZNIE — do końca doby czasu polskiego
+  // (patrz `endOfTripDay`), bo w bazie trzymamy samą datę bez godziny.
+  if (now > endOfTripDay(trip.endDate)) {
     return { isOpen: false, reason: "ENDED" };
   }
 
@@ -56,14 +129,25 @@ export function getTripBookingWindow(
     return { isOpen: false, reason: "MANUAL" };
   }
 
-  const cutoff = trip.registrationDeadline
-    ? toDate(trip.registrationDeadline)
-    : toDate(trip.startDate);
-  if (now >= cutoff) {
+  const cutoff = endOfTripDay(trip.registrationDeadline ?? trip.startDate);
+  if (now > cutoff) {
     return { isOpen: false, reason: "DEADLINE" };
   }
 
   return { isOpen: true, reason: null };
+}
+
+/**
+ * Czy wydarzenie należy już traktować jako minione na potrzeby LISTINGÓW
+ * (panel uczestnika, widżety). Wydarzenie zostaje widoczne przez CAŁY ostatni
+ * dzień (do końca doby `endDate`) — panel z harmonogramem, SPA i czatem musi
+ * być dostępny także w dniu zakończenia. Miniony = dopiero doba po `endDate`.
+ */
+export function isTripPast(
+  trip: { endDate: Date | string },
+  now: Date = new Date(),
+): boolean {
+  return now > endOfTripDay(trip.endDate);
 }
 
 /** Komunikat dla uczestniczki, gdy zapisy są zamknięte. */
@@ -72,14 +156,14 @@ export function bookingClosedMessage(
 ): string {
   switch (reason) {
     case "ENDED":
-      return "Ten wyjazd już się odbył.";
+      return "To wydarzenie już się odbyłoo.";
     case "MANUAL":
-      return "Zapisy na ten wyjazd zostały zamknięte.";
+      return "Zapisy na to wydarzenie zostałoy zamknięte.";
     case "DEADLINE":
-      return "Termin zapisów na ten wyjazd już minął.";
+      return "Termin zapisów na to wydarzenie już minął.";
     case "NOT_PUBLISHED":
     default:
-      return "Ten wyjazd jest obecnie niedostępny.";
+      return "To wydarzenie jest obecnie niedostępne.";
   }
 }
 
@@ -89,7 +173,7 @@ export function bookingClosedHeadline(
 ): string {
   switch (reason) {
     case "ENDED":
-      return "Wyjazd zakończony";
+      return "Wydarzenie zakończone";
     case "DEADLINE":
       return "Termin zapisów minął";
     case "MANUAL":

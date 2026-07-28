@@ -240,7 +240,7 @@ export function CourseDashboard({
           Wszystkie kursy
         </Link>
         <div className="flex items-center gap-2">
-          {/* Edycja danych/programu/treści w kreatorze (jak przy wyjazdach) */}
+          {/* Edycja danych/programu/treści w kreatorze (jak przy wydarzeniach) */}
           <Link
             href={`/admin/kursy/${data.slug}/edytuj`}
             className="group relative inline-flex items-center gap-2 bg-brand-primary text-white font-montserrat font-bold text-[13px] px-4 py-2.5 rounded-2xl rounded-tr-[3px] border border-brand-yellow/30 shadow-[0_8px_22px_-6px_rgba(40,125,136,0.5)] hover:shadow-[0_10px_26px_0px_rgba(242,217,103,0.45)] transition-all overflow-hidden"

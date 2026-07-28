@@ -19,18 +19,18 @@ const DEBUG_ROUTES = [
     ],
   },
   {
-    group: "Wyjazdy (Frontend)",
+    group: "Wydarzenia (Frontend)",
     routes: [
-      { name: "Wyjazdy (Lista)", path: "/wyjazdy" },
-      { name: "Wyjazd (Przykładowy)", path: "/wyjazdy/miedzy-nami-kobietami" },
+      { name: "Wydarzenia (Lista)", path: "/wydarzenia" },
+      { name: "Wydarzenie (Przykładowe)", path: "/wydarzenia/miedzy-nami-kobietami" },
     ],
   },
   {
     group: "Panel Admina",
     routes: [
       { name: "Dashboard", path: "/admin" },
-      { name: "Dodaj nowego Wyjazdu", path: "/admin/wyjazdy/dodaj" },
-      { name: "Lista Wyjazdów (Edycja)", path: "/admin/wyjazdy" },
+      { name: "Dodaj nowego Wydarzenia", path: "/admin/wydarzenia/dodaj" },
+      { name: "Lista Wydarzeń (Edycja)", path: "/admin/wydarzenia" },
     ],
   },
 ];

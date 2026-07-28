@@ -38,7 +38,7 @@ const getUpdateStyles = (type: string) => {
         color: "text-sky-700",
         bgColor: "bg-sky-50",
         badgeColor: "text-sky-700 bg-sky-100",
-        typeLabel: "Wyjazdy",
+        typeLabel: "Wydarzenia",
       };
     case "BLOG":
       return {
@@ -132,7 +132,7 @@ export default function HubRecentUpdates() {
         </h4>
         <p className="text-[14px] text-brand-secondary/60 mt-2 max-w-sm">
           Nie ma tu nic do przeczytania w tym momencie. Oczekuj na powiadomienia
-          o nowych wyjazdach i VOD!
+          o nowych wydarzeniach i VOD!
         </p>
       </div>
     );

@@ -3,7 +3,7 @@ import type { Pillar } from "../seoConfig";
 /**
  * Buduje listę zapytań wysyłanych do właściwego źródła dla danego filaru.
  *
- * - TRENDS:       frazy bazowe 1:1 (np. "Wyjazd holistyczny").
+ * - TRENDS:       frazy bazowe 1:1 (np. "Wydarzenie holistyczne").
  * - AUTOCOMPLETE: iloczyn seed × geoModifier, zlowercase'owany, bo tak ludzie
  *   wpisują lokalnie ("fizjoterapia prudnik"). Gdy filar nie ma geoModifierów,
  *   spadamy na same seedy (bezpieczny default).

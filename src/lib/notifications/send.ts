@@ -169,7 +169,7 @@ function buildCopy(input: LogCampEventInput): {
   kind: string;
 } {
   const { kind, userName, amount, tripTitle, detail } = input;
-  const trip = tripTitle ? `wyjazd: ${tripTitle}` : "wyjazd";
+  const trip = tripTitle ? `wydarzenie: ${tripTitle}` : "wydarzenie";
 
   switch (kind) {
     case "DEPOSIT_PAID":
@@ -193,7 +193,7 @@ function buildCopy(input: LogCampEventInput): {
     case "HEALTH_UPDATED":
       return {
         title: "❤️ Aktualizacja karty zdrowia",
-        message: `${userName} zaktualizowała kartę zdrowia tuż przed wyjazdem (${trip}).`,
+        message: `${userName} zaktualizowała kartę zdrowia tuż przed wydarzeniem (${trip}).`,
         kind: "HEALTH_FILLED",
       };
     case "SERVICE_BOUGHT":
@@ -218,11 +218,11 @@ function buildCopy(input: LogCampEventInput): {
 }
 
 /**
- * Fasada zdarzeń wyjazdu. Jeden helper dla wszystkich akcji uczestniczek,
+ * Fasada zdarzeń wydarzenia. Jeden helper dla wszystkich akcji uczestniczek,
  * który leci przez dispatcher i automatycznie dobiera kanały wg macierzy.
  *
  * Zapisuje `tripId` do kolumny relacyjnej w `Activity` (a nie do `meta`),
- * dzięki czemu widok logów na pojedynczym wyjeździe może filtrować po FK.
+ * dzięki czemu widok logów na pojedynczym wydarzeniu może filtrować po FK.
  */
 export async function logCampEvent(input: LogCampEventInput) {
   const copy = buildCopy(input);
@@ -231,7 +231,7 @@ export async function logCampEvent(input: LogCampEventInput) {
     target: "ADMIN",
     title: copy.title,
     message: copy.message,
-    link: `/admin/wyjazdy/${input.tripId}`,
+    link: `/admin/wydarzenia/${input.tripId}`,
     type: NOTIFICATION_TYPE[input.kind],
     channels: CAMP_EVENT_CHANNELS[input.kind],
     kind: copy.kind,

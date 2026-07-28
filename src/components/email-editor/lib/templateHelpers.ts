@@ -1,5 +1,6 @@
 import { TEMPLATE_TAGS } from "./templateTags";
 import type { TagDef } from "./types";
+import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
 
 export function pillStyle(tag: TagDef): string {
   return [
@@ -80,6 +81,8 @@ export function htmlToTemplate(el: HTMLElement): string {
 
 export function formatDateRange(start: string, end: string): string {
   if (!start) return "Termin do ustalenia";
+  const singleDay = formatSingleDayOrNull(start, end);
+  if (singleDay) return singleDay;
   try {
     const fmt = new Intl.DateTimeFormat("pl-PL", {
       day: "numeric",

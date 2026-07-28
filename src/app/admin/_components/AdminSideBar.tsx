@@ -179,14 +179,14 @@ export default function AdminSidebar() {
     refreshChatUnread();
   }, [pathname, refreshChatUnread]);
 
-  // 1. ZAAWANSOWANE POBIERANIE ID WYJAZDU
+  // 1. ZAAWANSOWANE POBIERANIE ID WYDARZENIA
   const queryId = searchParams.get("id");
 
   const pathSegments = pathname.split("/").filter(Boolean);
   let pathTripId: string | null = null;
   if (
     pathSegments[0] === "admin" &&
-    pathSegments[1] === "wyjazdy" &&
+    pathSegments[1] === "wydarzenia" &&
     pathSegments.length >= 3 &&
     !["dodaj", "edycja", "platnosci", "live", "uczestniczki", "lista"].includes(
       pathSegments[2],
@@ -195,16 +195,16 @@ export default function AdminSidebar() {
     pathTripId = pathSegments[2];
   }
 
-  // Ostateczne ID wyjazdu, w którym obecnie "siedzimy"
+  // Ostateczne ID wydarzenia, w którym obecnie "siedzimy"
   const actualTripId = queryId || pathTripId;
 
   // 2. FLAGI KONTEKSTOWE
-  const isInsideCampContext = pathname.startsWith("/admin/wyjazdy");
-  const isCreatingCamp = pathname.startsWith("/admin/wyjazdy/dodaj");
+  const isInsideCampContext = pathname.startsWith("/admin/wydarzenia");
+  const isCreatingCamp = pathname.startsWith("/admin/wydarzenia/dodaj");
   const isManagingCamp =
     !!actualTripId && isInsideCampContext && !isCreatingCamp;
-  const isWyjazdyPanel = pathname === "/admin/wyjazdy";
-  const isWyjazdyList = pathname.startsWith("/admin/wyjazdy/lista");
+  const isWydarzeniaPanel = pathname === "/admin/wydarzenia";
+  const isWydarzeniaList = pathname.startsWith("/admin/wydarzenia/lista");
 
   const isCreatingPost = pathname.startsWith("/admin/blog/dodaj");
   const isBlogPanel = pathname === "/admin/blog";
@@ -234,7 +234,7 @@ export default function AdminSidebar() {
 
   // 3. AKORDEON — rozwinięta tylko sekcja, w której aktualnie jesteśmy.
   const activeSection: string | null = isInsideCampContext
-    ? "wyjazdy"
+    ? "wydarzenia"
     : pathname.startsWith("/admin/blog")
       ? "publikacje"
       : pathname.startsWith("/admin/kursy")
@@ -327,31 +327,31 @@ export default function AdminSidebar() {
   const createCampSteps = [
     {
       name: "1. Dane podst.",
-      href: "/admin/wyjazdy/dodaj/dane-podstawowe",
+      href: "/admin/wydarzenia/dodaj/dane-podstawowe",
       icon: <ListNumbers size={16} />,
       requiresId: false,
     },
     {
       name: "2. Edytor treści",
-      href: "/admin/wyjazdy/dodaj/edytor-tresci",
+      href: "/admin/wydarzenia/dodaj/edytor-tresci",
       icon: <ImageIcon size={16} />,
       requiresId: true,
     },
     {
       name: "3. E-mail",
-      href: "/admin/wyjazdy/dodaj/zaproszenia",
+      href: "/admin/wydarzenia/dodaj/zaproszenia",
       icon: <Envelope size={16} />,
       requiresId: true,
     },
     {
       name: "4. SEO",
-      href: "/admin/wyjazdy/dodaj/seo",
+      href: "/admin/wydarzenia/dodaj/seo",
       icon: <MagnifyingGlass size={16} />,
       requiresId: true,
     },
     {
       name: "5. Podsumowanie",
-      href: "/admin/wyjazdy/dodaj/podsumowanie",
+      href: "/admin/wydarzenia/dodaj/podsumowanie",
       icon: <Article size={16} />,
       requiresId: true,
     },
@@ -360,32 +360,32 @@ export default function AdminSidebar() {
   const manageCampSteps = actualTripId
     ? [
         {
-          name: "Pulpit wyjazdu",
-          href: `/admin/wyjazdy/${actualTripId}`,
+          name: "Pulpit wydarzenia",
+          href: `/admin/wydarzenia/${actualTripId}`,
           icon: <Info size={16} />,
           exact: true,
         },
         {
           name: "Uczestnicy",
-          href: `/admin/wyjazdy/${actualTripId}/uczestnicy`,
+          href: `/admin/wydarzenia/${actualTripId}/uczestnicy`,
           icon: <UserList size={16} />,
           exact: false,
         },
         {
           name: "Harmonogram",
-          href: `/admin/wyjazdy/${actualTripId}/harmonogram`,
+          href: `/admin/wydarzenia/${actualTripId}/harmonogram`,
           icon: <CalendarBlank size={16} />,
           exact: false,
         },
         {
           name: "Sklep & SPA",
-          href: `/admin/wyjazdy/${actualTripId}/sklep`,
+          href: `/admin/wydarzenia/${actualTripId}/sklep`,
           icon: <Sparkle size={16} />,
           exact: false,
         },
         {
           name: "Czat",
-          href: `/admin/wyjazdy/${actualTripId}/chat`,
+          href: `/admin/wydarzenia/${actualTripId}/chat`,
           icon: <ChatCircleDots size={16} />,
           exact: false,
         },
@@ -407,7 +407,7 @@ export default function AdminSidebar() {
           exact: false,
         },
         {
-          // Edycja danych, programu, nagrań i treści przez kreator (jak wyjazdy).
+          // Edycja danych, programu, nagrań i treści przez kreator (jak wydarzenia).
           name: "Edytuj kurs",
           href: `/admin/kursy/${courseSlug}/edytuj`,
           icon: <PencilSimple size={16} />,
@@ -416,7 +416,7 @@ export default function AdminSidebar() {
       ]
     : [];
 
-  // Pomocniczy render dla rozwijanego podmenu kroków (kreator / menu wyjazdu).
+  // Pomocniczy render dla rozwijanego podmenu kroków (kreator / menu wydarzenia).
   const StepsBox = ({
     title,
     children,
@@ -465,29 +465,29 @@ export default function AdminSidebar() {
           />
         </div>
 
-        {/* WYJAZDY */}
+        {/* WYDARZENIA */}
         <Section
-          title="Wyjazdy"
-          icon={Suitcase}          open={openSection === "wyjazdy"}
-          onToggle={() => toggle("wyjazdy")}
+          title="Wydarzenia"
+          icon={Suitcase}          open={openSection === "wydarzenia"}
+          onToggle={() => toggle("wydarzenia")}
         >
           <NavLink
-            href="/admin/wyjazdy"
+            href="/admin/wydarzenia"
             label="Panel"
             icon={ChartLineUp}
-            active={isWyjazdyPanel}
+            active={isWydarzeniaPanel}
           />
 
-          {/* Wszystkie wyjazdy (+ menu konkretnego wyjazdu) */}
+          {/* Wszystkie wydarzenia (+ menu konkretnego wydarzenia) */}
           <div className="flex flex-col mt-1">
             <NavLink
-              href="/admin/wyjazdy/lista"
-              label="Wszystkie wyjazdy"
+              href="/admin/wydarzenia/lista"
+              label="Wszystkie wydarzenia"
               icon={Suitcase}
-              active={isWyjazdyList || isManagingCamp}
+              active={isWydarzeniaList || isManagingCamp}
             />
             {isManagingCamp && (
-              <StepsBox title="Menu Wyjazdu">
+              <StepsBox title="Menu Wydarzenia">
                 {manageCampSteps.map((step) => {
                   const baseHref = step.href.split("?")[0];
                   const isSubActive = step.exact
@@ -533,16 +533,16 @@ export default function AdminSidebar() {
             )}
           </div>
 
-          {/* Kreator wyjazdów (+ kroki) */}
+          {/* Kreator wydarzeń (+ kroki) */}
           <div className="flex flex-col mt-1">
             <NavLink
-              href="/admin/wyjazdy/dodaj/dane-podstawowe"
-              label="Kreator wyjazdów"
+              href="/admin/wydarzenia/dodaj/dane-podstawowe"
+              label="Kreator wydarzeń"
               icon={Sparkle}
               active={isCreatingCamp}
             />
             {isCreatingCamp && (
-              <StepsBox title="Kreator wyjazdów">
+              <StepsBox title="Kreator wydarzeń">
                 {createCampSteps.map((step) => {
                   const isSubActive = pathname === step.href;
                   const isDisabled = step.requiresId && !actualTripId;

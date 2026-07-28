@@ -3,9 +3,9 @@
 import type { TagDef } from "./types";
 
 export const DEFAULT_TITLE = "Pakuj walizki!";
-export const DEFAULT_SUBJECT = "Zaproszenie na wspólny wyjazd Rehability ✈️";
+export const DEFAULT_SUBJECT = "Zaproszenie na wspólne wydarzenie Rehability ✈️";
 export const DEFAULT_BODY =
-  "Cześć {inviteeName},\n\nTwoja znajoma {inviterName} serdecznie zaprasza Cię do wspólnego udziału w wyjeździe {campName}.\n\nCzeka na Was wspaniały czas, relaks, świetne jedzenie i niezapomniane wspomnienia!";
+  "Cześć {inviteeName},\n\nTwoja znajoma {inviterName} serdecznie zaprasza Cię do wspólnego udziału w wydarzeniu {campName}.\n\nCzeka na Was wspaniały czas, relaks, świetne jedzenie i niezapomniane wspomnienia!";
 export const DEFAULT_BUTTON = "Zobacz szczegóły i dołącz";
 export const DEFAULT_HIGHLIGHT_ICONS = ["FlowerLotus", "ForkKnife", "Sparkle"];
 export const DEFAULT_HIGHLIGHT_LABELS = ["Relaks i SPA", "Pyszne jedzenie", "Wspólne chwile"];
@@ -20,7 +20,7 @@ export const TEMPLATE_TAGS: TagDef[] = [
   },
   {
     name: "campName",
-    label: "Nazwa wyjazdu",
+    label: "Nazwa wydarzenia",
     bg: "rgba(3,63,99,0.1)",
     color: "#033f63",
     border: "rgba(3,63,99,0.25)",

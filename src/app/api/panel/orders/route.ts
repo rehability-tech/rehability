@@ -260,7 +260,7 @@ export async function POST(req: NextRequest) {
         status: 409,
       },
       SERVICE_NOT_FOUND: {
-        error: "Usługa nie należy do tego wyjazdu.",
+        error: "Usługa nie należy do tego wydarzenia.",
         status: 404,
       },
       SERVICE_TOO_LONG: {

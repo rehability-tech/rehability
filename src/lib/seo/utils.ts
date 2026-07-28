@@ -1,4 +1,4 @@
-// Wspólne utility SEO używane na stronach SEO wyjazdów I bloga. Dwa miejsca
+// Wspólne utility SEO używane na stronach SEO wydarzeń I bloga. Dwa miejsca
 // dzielą tę samą logikę dopasowania słów kluczowych, scoringu i typów rekomendacji,
 // żeby nie rozjeżdżały się reguły.
 
@@ -28,8 +28,8 @@ export interface SeoCheck {
 }
 
 // Polskie stopwordy + krótkie słowa nie liczą się jako "kluczowe" tokeny.
-// Dzięki temu długi ogon typu "wyjazd regeneracyjny dla kobiet Jarnołówek czerwiec"
-// pasuje do tytułu zawierającego "wyjazd Jarnołówek czerwiec" — bo "dla", "i", "w"
+// Dzięki temu długi ogon typu "wydarzenie regeneracyjne dla kobiet Jarnołówek czerwiec"
+// pasuje do tytułu zawierającego "wydarzenie Jarnołówek czerwiec" — bo "dla", "i", "w"
 // są wszechobecne i ich obecność nic nie znaczy.
 const PL_STOPWORDS = new Set([
   "i",

@@ -49,7 +49,7 @@ type ScheduleEntry = {
   postId: string | null;
 };
 
-// Wspólny styl "kropli" zgodny z systemem designu (identyczny jak w wyjazdach).
+// Wspólny styl "kropli" zgodny z systemem designu (identyczny jak w wydarzeniach).
 const CARD =
   "rounded-[24px] rounded-tr-none bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_20px_55px_-36px_rgba(3,63,99,0.3)]";
 

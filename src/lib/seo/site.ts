@@ -16,20 +16,21 @@ export const SITE_NAME = "Rehability Prudnik";
 export const SITE_LEGAL_NAME = "Rehability Piotr Siemaszko";
 
 export const SITE_DEFAULT_TITLE =
-  "Rehability Prudnik — Fizjoterapia, Masaż Kobido i Wyjazdy Holistyczne";
+  "Rehability Prudnik — Fizjoterapia, Masaż Kobido i Wydarzenia Holistyczne";
 
 export const SITE_TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
 
 export const SITE_DEFAULT_DESCRIPTION =
   "Medyczny fundament w świecie wellness. Specjalistyczna fizjoterapia, " +
   "diagnostyka USG-RUSI, masaże lecznicze i Kobido w gabinecie w Prudniku " +
-  "oraz holistyczne wyjazdy regeneracyjne prowadzone przez fizjoterapeutów.";
+  "oraz holistyczne wydarzenia regeneracyjne prowadzone przez fizjoterapeutów.";
 
 export const SITE_KEYWORDS = [
   "fizjoterapia Prudnik",
   "masaż Kobido Prudnik",
-  "wyjazdy holistyczne",
-  "trening siłowy dla kobiet w domu",
+  "wydarzenia holistyczne",
+  "kursy online fizjoterapia",
+  "trening siłowy w domu",
   "masaż tkanek głębokich Nysa",
   "USG RUSI Prudnik",
   "rehabilitacja Prudnik",
@@ -46,7 +47,7 @@ export const SITE_OG_IMAGE = {
   url: "/images/og-default.jpg",
   width: 1200,
   height: 630,
-  alt: `${SITE_NAME} — fizjoterapia, masaże i wyjazdy holistyczne`,
+  alt: `${SITE_NAME} — fizjoterapia, masaże i wydarzenia holistyczne`,
 } as const;
 
 // NAP (Name + Address + Phone) — używane w LocalBusiness JSON-LD i stopkach.

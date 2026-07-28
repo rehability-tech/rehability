@@ -19,6 +19,13 @@ const BodySchema = z.object({
   buyerType: z.enum(["private", "company"]).optional(),
   company: z.string().trim().optional(),
   nip: z.string().trim().optional(),
+  // Dane rozliczeniowe (do faktur) — utrwalane w metadata PI, a po opłaceniu
+  // w rekordzie CoursePurchase. Opcjonalne, żeby nie łamać istniejących wywołań.
+  name: z.string().trim().optional(),
+  email: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  postal: z.string().trim().optional(),
+  city: z.string().trim().optional(),
 });
 
 export async function POST(req: Request) {
@@ -48,7 +55,17 @@ export async function POST(req: Request) {
       { status: 422 },
     );
   }
-  const { slug, buyerType, company, nip } = parsed.data;
+  const {
+    slug,
+    buyerType,
+    company,
+    nip,
+    name,
+    email: billingEmail,
+    address,
+    postal,
+    city,
+  } = parsed.data;
 
   const course = await prisma.course.findFirst({
     where: { slug, status: "PUBLISHED" },
@@ -92,6 +109,12 @@ export async function POST(req: Request) {
   if (buyerType) metadata.buyerType = buyerType;
   if (company) metadata.company = company.slice(0, 400);
   if (nip) metadata.nip = nip.slice(0, 40);
+  // Snapshot rozliczeniowy (limity znaków Stripe: 500/wartość).
+  if (name) metadata.buyerName = name.slice(0, 200);
+  if (billingEmail) metadata.buyerEmail = billingEmail.slice(0, 200);
+  if (address) metadata.address = address.slice(0, 300);
+  if (postal) metadata.postalCode = postal.slice(0, 20);
+  if (city) metadata.city = city.slice(0, 120);
 
   let paymentIntent: Stripe.PaymentIntent;
   try {

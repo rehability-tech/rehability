@@ -83,7 +83,7 @@ export default function CrmExplorer({
       contacts.filter((c) => c.sources.includes(s)).length;
     return {
       subscribed,
-      trips: bySource("Wyjazdy"),
+      trips: bySource("Wydarzenia"),
       vod: bySource("VOD"),
       newsletter: bySource("Newsletter"),
     };
@@ -134,7 +134,7 @@ export default function CrmExplorer({
               </span>
             </h1>
             <p className="text-sm text-brand-secondary/60 mt-2 font-medium">
-              {stats.subscribed} subskrybuje · {stats.trips} z wyjazdów ·{" "}
+              {stats.subscribed} subskrybuje · {stats.trips} z wydarzeń ·{" "}
               {stats.vod} z VOD · {stats.newsletter} z newslettera
             </p>
           </div>

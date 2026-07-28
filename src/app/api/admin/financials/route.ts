@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       startDate = startOfYear(now); // Od 1 stycznia bieżącego roku
     }
 
-    // 2. Pobieramy opłacone rezerwacje na Wyjazdy z wybranego okresu
+    // 2. Pobieramy opłacone rezerwacje na Wydarzenia z wybranego okresu
     const bookings = await prisma.booking.findMany({
       where: {
         status: { in: ["DEPOSIT_PAID", "FULLY_PAID"] },
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 2b. Realny przychód VOD — kupione dostępy do kursów (Enrollment).
-    // Cena kursu jest w zł (całe), tak jak amountPaid/100 dla wyjazdów.
+    // Cena kursu jest w zł (całe), tak jak amountPaid/100 dla wydarzeń.
     const enrollments = await prisma.enrollment.findMany({
       where: { createdAt: { gte: startDate } },
       select: { createdAt: true, course: { select: { price: true } } },

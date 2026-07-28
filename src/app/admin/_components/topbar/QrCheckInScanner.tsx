@@ -72,7 +72,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
       setPhase("processing");
 
       try {
-        const res = await fetch(`/api/admin/wyjazdy/${tripId}/check-in`, {
+        const res = await fetch(`/api/admin/wydarzenia/${tripId}/check-in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ qrToken }),
@@ -224,7 +224,7 @@ export function QrCheckInScanner({ tripId }: { tripId: string }) {
     const pid = result.participant.id;
     await stopScanner();
     setOpen(false);
-    router.push(`/admin/wyjazdy/${tripId}/uczestnicy/${pid}`);
+    router.push(`/admin/wydarzenia/${tripId}/uczestnicy/${pid}`);
   };
 
   return (

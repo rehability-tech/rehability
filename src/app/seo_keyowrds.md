@@ -12,13 +12,13 @@ _Frazy transakcyjne, generujące pacjentów do gabinetu stacjonarnego._
 | **Leczenie rwy kulszowej Prudnik**            | Sprzedażowa         | Dodanie w opisie usług (terapia manualna / ból pleców).                      |
 | **Rehability Piotr Siemaszko opinie**         | Brandowa / Zaufanie | Dodanie na stronie głównej sekcji "Opinie Pacjentów" ze snippetami z Google. |
 
-### 🏕️ Filar 2: Campy i Wyjazdy (Ogólnopolsko)
+### 🏕️ Filar 2: Campy i Wydarzenia (Ogólnopolsko)
 
-_Frazy transakcyjne, generujące rezerwacje na wyjazdy._
+_Frazy transakcyjne, generujące rezerwacje na wydarzenia._
 
 | Słowo kluczowe Docelowe | Typ Intencji | Akcja / Wdrożenie na stronie                             |
 | :---------------------- | :----------- | :------------------------------------------------------- |
-| **Wyjazdy holistyczne** | Sprzedażowa  | Główna fraza dla podstrony `/wyjazdy`.                   |
+| **Wydarzenia holistyczne** | Sprzedażowa  | Główna fraza dla podstrony `/wydarzenia`.                   |
 | **Holistyczny weekend** | Sprzedażowa  | Synonim do użycia w nagłówkach H2 i tekstach ofertowych. |
 | **Holistyczne wakacje** | Sprzedażowa  | Idealne do promowania dłuższych, letnich edycji campów.  |
 

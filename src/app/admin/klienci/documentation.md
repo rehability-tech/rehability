@@ -147,14 +147,14 @@ tripsCount = liczba rezerwacji bez statusu CANCELLED
 resolveLoyalty(totalSpent, tripsCount):
   VIP        ⇐ totalSpent > 5000 PLN  LUB  tripsCount >= 3
   RETURNING  ⇐ tripsCount >= 2
-  NEW        ⇐ pozostali (1 wyjazd)
+  NEW        ⇐ pozostali (1 wydarzenie)
 ```
 
 | Segment | Kryterium | Kolor (UI) | Ikona |
 | --- | --- | --- | --- |
-| VIP | > 5000 zł lub ≥ 3 wyjazdy | żółty (brand-yellow) | `Crown` |
-| RETURNING | ≥ 2 wyjazdy | niebieski | `ArrowsClockwise` |
-| NEW | 1 wyjazd | zielony | `Sparkle` |
+| VIP | > 5000 zł lub ≥ 3 wydarzenia | żółty (brand-yellow) | `Crown` |
+| RETURNING | ≥ 2 wydarzenia | niebieski | `ArrowsClockwise` |
+| NEW | 1 wydarzenie | zielony | `Sparkle` |
 
 Prezentacja (etykieta + klasy Tailwind) wynika z `LOYALTY_META`; komponenty
 dokładają jedynie ikonę. Dzięki temu zmiana koloru/nazwy segmentu to jedna edycja.
@@ -164,7 +164,7 @@ dokładają jedynie ikonę. Dzięki temu zmiana koloru/nazwy segmentu to jedna e
 ## 5. Moduł Hiper-personalizacji „AI LTV Boost"
 
 Cel biznesowy: zwiększanie wartości klienta przez generowanie
-ultra-spersonalizowanych zaproszeń na kolejny wyjazd, z darmowym dodatkiem
+ultra-spersonalizowanych zaproszeń na kolejne wydarzenie, z darmowym dodatkiem
 powiązanym z ulubioną usługą SPA klienta.
 
 ### 5.1. Lokalizacja i wygląd
@@ -180,11 +180,11 @@ Funkcja `buildContext()` składa zwięzły, czytelny dla LLM opis klienta:
 Imię klienta: <name>
 Status lojalnościowy: <VIP|Powracający|Nowy>
 Łączna wartość (LTV): <X> zł
-Liczba odbytych wyjazdów: <n>
+Liczba odbytych wydarzeń: <n>
 Ulubiona usługa SPA: <najczęściej rezerwowana>   (jeśli istnieje)
 Alergie: <...>                                    (jeśli podane)
 Dieta: <...>
-Ostatni wyjazd: <tytuł>
+Ostatni wydarzenie: <tytuł>
 ```
 
 „Ulubiona usługa" wyliczana jest w `useMemo` przez zliczenie wystąpień nazw

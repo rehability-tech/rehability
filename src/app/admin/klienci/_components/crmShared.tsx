@@ -92,8 +92,8 @@ export const SOURCE_META: Record<
   string,
   { label: string; className: string; icon: React.ReactNode }
 > = {
-  Wyjazdy: {
-    label: "Wyjazdy",
+  Wydarzenia: {
+    label: "Wydarzenia",
     className: "bg-brand-primary/10 text-brand-primary border-brand-primary/20",
     icon: <Tent size={12} weight="fill" />,
   },
@@ -114,7 +114,7 @@ export const SOURCE_META: Record<
   },
 };
 
-export const ALL_SOURCES = ["Wyjazdy", "VOD", "Newsletter", "Ręczny"] as const;
+export const ALL_SOURCES = ["Wydarzenia", "VOD", "Newsletter", "Ręczny"] as const;
 
 export const STATUS_META: Record<
   ContactStatus,
@@ -152,7 +152,7 @@ export const LOYALTY_ICON: Record<Loyalty, React.ReactNode> = {
 
 /**
  * Wylicza „score" kontaktu 0–10 z dostępnych sygnałów zaangażowania
- * (lojalność, liczba wyjazdów, liczba źródeł, status, wydatki). Wizualizacja
+ * (lojalność, liczba wydarzeń, liczba źródeł, status, wydatki). Wizualizacja
  * w `ScoreBars` (jak SCORE w referencyjnym CRM).
  */
 export function computeScore(c: CrmContact): number {

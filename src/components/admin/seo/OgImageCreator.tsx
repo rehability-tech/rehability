@@ -67,7 +67,7 @@ interface OgImageCreatorProps {
   initialTitle?: string;
   initialCategory?: string;
   initialImage?: string;
-  /** Domyślny podtytuł — różny dla kursów / bloga / wyjazdów. */
+  /** Domyślny podtytuł — różny dla kursów / bloga / wydarzeń. */
   initialSubtitle?: string;
 }
 

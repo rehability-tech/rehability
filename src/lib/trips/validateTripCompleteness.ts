@@ -1,11 +1,11 @@
 // ==========================================
-// WALIDACJA KOMPLETNOŚCI WYJAZDU DO PUBLIKACJI
+// WALIDACJA KOMPLETNOŚCI WYDARZENIA DO PUBLIKACJI
 // ==========================================
-// Reużywalna funkcja sprawdzająca, czy Wyjazd spełnia wszystkie wymagania
+// Reużywalna funkcja sprawdzająca, czy Wydarzenie spełnia wszystkie wymagania
 // niezbędne do statusu "PUBLISHED". Używana w endpointach API:
-//   - /api/admin/wyjazdy/status   (twarda blokada przy zmianie statusu)
-//   - /api/admin/wyjazdy/[id]     (auto-cofnięcie do DRAFT po edycji treści)
-//   - /api/admin/wyjazdy/save     (auto-cofnięcie do DRAFT po edycji danych)
+//   - /api/admin/wydarzenia/status   (twarda blokada przy zmianie statusu)
+//   - /api/admin/wydarzenia/[id]     (auto-cofnięcie do DRAFT po edycji treści)
+//   - /api/admin/wydarzenia/save     (auto-cofnięcie do DRAFT po edycji danych)
 
 type TripLike = {
   heroImage?: string | null;
@@ -27,7 +27,7 @@ export function validateTripCompleteness(trip: TripLike): TripCompletenessResult
 
   if (!trip.heroImage) missing.push("zdjęcia (tła)");
   if (!trip.location) missing.push("lokalizacji");
-  if (!trip.startDate || !trip.endDate) missing.push("daty wyjazdu");
+  if (!trip.startDate || !trip.endDate) missing.push("daty wydarzenia");
 
   let blocksCount = 0;
   let hasMapBlock = false;
@@ -96,7 +96,7 @@ export function validateTripCompleteness(trip: TripLike): TripCompletenessResult
 
   if (trip.allowBringFriend && !hasBookingOptionsBlock) {
     missing.push(
-      'bloku "Opcje rezerwacji" w treści (wymagany, gdy włączono "Zabierz przyjaciółkę")',
+      'bloku "Opcje rezerwacji" w treści (wymagany, gdy włączono "Zabierz osobę towarzyszącą")',
     );
   }
 

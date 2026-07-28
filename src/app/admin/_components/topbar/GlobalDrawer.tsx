@@ -28,8 +28,8 @@ const drawerSections = [
     highlight: true,
   },
   {
-    label: "System Wyjazdów",
-    href: "/admin/wyjazdy",
+    label: "System Wydarzeń",
+    href: "/admin/wydarzenia",
     icon: Tent,
     iconBg: "bg-brand-primary/10 text-brand-primary",
   },

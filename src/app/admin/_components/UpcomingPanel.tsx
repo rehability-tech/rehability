@@ -93,7 +93,7 @@ function TripCard({ trip }: { trip: TripData }) {
             {trip.daysUntil > 0 ? trip.daysUntil : 0}
           </span>
           <p className="font-montserrat text-[10px] font-bold uppercase tracking-wider text-white/70 -mt-1">
-            {trip.daysUntil > 0 ? "dni do startu" : "wyjazd w toku"}
+            {trip.daysUntil > 0 ? "dni do startu" : "wydarzenie w toku"}
           </p>
         </div>
       </div>
@@ -102,7 +102,7 @@ function TripCard({ trip }: { trip: TripData }) {
         <div>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-yellow/90 font-montserrat text-[9px] font-extrabold uppercase tracking-wide text-[#033f63] mb-2">
             <Sparkle size={9} weight="fill" />
-            Najbliższy wyjazd
+            Najbliższe wydarzenie
           </span>
           <p className="font-jakarta font-extrabold text-white text-[20px] leading-tight drop-shadow-sm">
             {trip.title}
@@ -160,10 +160,10 @@ function TripCard({ trip }: { trip: TripData }) {
         </div>
 
         <Link
-          href={`/admin/wyjazdy/${trip.id}`}
+          href={`/admin/wydarzenia/${trip.id}`}
           className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-brand-secondary hover:bg-brand-yellow shadow-[0_6px_18px_-8px_rgba(0,0,0,0.35)] transition-colors group"
         >
-          <span className="font-montserrat text-[12px] font-bold">Przejdź do wyjazdu</span>
+          <span className="font-montserrat text-[12px] font-bold">Przejdź do wydarzenia</span>
           <ArrowRight
             size={13}
             weight="bold"
@@ -186,7 +186,7 @@ export default function UpcomingPanel() {
     <div className="flex flex-col gap-3 h-full">
       <div className="flex items-center gap-2 px-1">
         <span className="font-montserrat text-[10px] font-bold uppercase tracking-widest text-brand-secondary/40">
-          Nadchodzący wyjazd
+          Nadchodzące wydarzenie
         </span>
       </div>
 
@@ -209,24 +209,24 @@ export default function UpcomingPanel() {
           </div>
         )}
 
-        {/* Brak wyjazdów */}
+        {/* Brak wydarzeń */}
         {!isLoading && !data?.trip && (
           <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-brand-secondary/30 gap-3 p-8">
             <CalendarX size={36} weight="duotone" className="opacity-50" />
             <p className="font-jakarta font-bold text-[14px]">
-              Brak nadchodzących wyjazdów
+              Brak nadchodzących wydarzeń
             </p>
             <Link
-              href="/admin/wyjazdy/dodaj"
+              href="/admin/wydarzenia/dodaj"
               className="flex items-center gap-1 text-[12px] font-montserrat font-semibold text-brand-primary hover:underline"
             >
-              Dodaj pierwszy wyjazd
+              Dodaj pierwsze wydarzenie
               <ArrowRight size={11} />
             </Link>
           </div>
         )}
 
-        {/* Karta wyjazdu */}
+        {/* Karta wydarzenia */}
         {!isLoading && data?.trip && <TripCard trip={data.trip} />}
       </motion.div>
     </div>

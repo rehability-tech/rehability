@@ -53,11 +53,11 @@ export default function NotFound() {
               Strona główna
             </Link>
             <Link
-              href="/wyjazdy"
+              href="/wydarzenia"
               className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-white/60 hover:bg-white/90 text-brand-secondary font-semibold text-[14px] border border-white/60 transition"
             >
               <MagnifyingGlass size={18} weight="bold" />
-              Zobacz wyjazdy
+              Zobacz wydarzenia
             </Link>
           </div>
         </div>

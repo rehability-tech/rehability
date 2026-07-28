@@ -22,18 +22,18 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
   // Na chacie chowamy topbar na mobile (zostaje pełnoekranowy czat ze strzałką wstecz).
   const isChatPage = pathname?.includes("/chat");
 
-  // Kontekst konkretnego wyjazdu (/admin/wyjazdy/[id], poza kreatorem "dodaj").
+  // Kontekst konkretnego wydarzenia (/admin/wydarzenia/[id], poza kreatorem "dodaj").
   // Potrzebny też skanerowi QR (przyjmuje tripId).
-  const campIdMatch = pathname?.match(/\/admin\/wyjazdy\/([a-zA-Z0-9_-]+)/);
+  const campIdMatch = pathname?.match(/\/admin\/wydarzenia\/([a-zA-Z0-9_-]+)/);
   const NON_TRIP_SEGMENTS = new Set(["dodaj", "nowy", "edycja"]);
   const isTripContext = !!campIdMatch && !NON_TRIP_SEGMENTS.has(campIdMatch[1]);
 
-  // Strzałka "wstecz" dla sekcji Wyjazdy / Blog / Kursy (VOD). Na mobile dolny
+  // Strzałka "wstecz" dla sekcji Wydarzenia / Blog / Kursy (VOD). Na mobile dolny
   // pasek zastępuje globalną nawigację pod-menu sekcji, więc back pozwala wrócić
   // poziom wyżej: korzeń sekcji → dashboard, a głębsze widoki (lista, kreator,
-  // konkretny wyjazd/kurs) → korzeń sekcji.
-  const sectionRoot = pathname?.startsWith("/admin/wyjazdy")
-    ? "/admin/wyjazdy"
+  // konkretne wydarzenie/kurs) → korzeń sekcji.
+  const sectionRoot = pathname?.startsWith("/admin/wydarzenia")
+    ? "/admin/wydarzenia"
     : pathname?.startsWith("/admin/blog")
       ? "/admin/blog"
       : pathname?.startsWith("/admin/kursy")

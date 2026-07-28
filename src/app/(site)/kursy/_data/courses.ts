@@ -89,9 +89,9 @@ export function formatCourseDuration(min: number): string {
 // Standardowe korzyści dla każdego kursu VOD (zakładka „O kursie", fallback).
 export const COURSE_BENEFITS: string[] = [
   "**Dożywotni dostęp** do platformy VOD – ćwiczysz, kiedy chcesz i gdzie chcesz.",
-  "**Wideo w jakości 4K** z wieloma kątami kamery, byś dokładnie widział każdy ruch.",
+  "**Wideo w jakości 4K** z wieloma kątami kamery, aby dokładnie widzieć każdy ruch.",
   "**E-book ze skryptem (PDF)** – ściągawka do wydrukowania i powieszenia na lustrze.",
-  "Bezpieczeństwo i pewność, że wykonujesz ruchy ułożone przez dyplomowaną specjalistkę.",
+  "Bezpieczeństwo i pewność, że wykonujesz ruchy ułożone przez dyplomowanego specjalistę.",
 ];
 
 // Lista „Zawartość" w podsumowaniu zamówienia (checkout).
@@ -141,7 +141,7 @@ export const DEFAULT_FAQ: CourseFaq[] = [
   },
   {
     q: "Czy ćwiczenia są bezpieczne?",
-    a: "Tak. Wszystkie sekwencje ułożyła dyplomowana specjalistka, a każdy ruch tłumaczymy krok po kroku wraz z modyfikacjami dla różnych poziomów. W razie wątpliwości zdrowotnych skonsultuj się z lekarzem.",
+    a: "Tak. Wszystkie sekwencje ułożył dyplomowany specjalista, a każdy ruch tłumaczymy krok po kroku wraz z modyfikacjami dla różnych poziomów. W razie wątpliwości zdrowotnych skonsultuj się z lekarzem.",
   },
   {
     q: "Na jakich urządzeniach obejrzę materiały?",
@@ -271,14 +271,14 @@ export const COURSES: Course[] = [
     id: "c7",
     slug: "swiadome-dno-miednicy",
     title: "Świadome dno miednicy: Podstawy treningu i relaksacji",
-    category: "Zdrowie kobiet",
+    category: "Zdrowie miednicy",
     rating: 4.8,
     reviews: 21,
     durationMin: 100,
     price: 149,
     image: "/images/kursy/kurs-7.png",
     excerpt:
-      "Świadomy trening i relaksacja mięśni dna miednicy – fundament kobiecego zdrowia i komfortu na co dzień.",
+      "Świadomy trening i relaksacja mięśni dna miednicy – fundament stabilności, komfortu i zdrowia na co dzień.",
   },
   {
     id: "c8",
@@ -308,12 +308,28 @@ export const COURSES: Course[] = [
   },
 ];
 
-export function getCourseBySlug(slug: string): Course | undefined {
+// Statyczny fallback po slug z hardkodowanej listy COURSES (dane demo).
+// UWAGA: to NIE jest źródło produkcyjne — realny kurs pobiera async
+// `getCourseBySlug` z `@/lib/courses-db`. Nazwa celowo inna, by uniknąć kolizji
+// i przypadkowego zaimportowania danych demo zamiast bazy.
+export function getStaticCourseBySlug(slug: string): Course | undefined {
   return COURSES.find((c) => c.slug === slug);
 }
 
 // Unikalne kategorie wyliczone z katalogu (kolejność wystąpienia) + "Wszystkie".
+// Kategorie kursów VOD — JAWNA lista, NIEZALEŻNA od relikta `COURSES`.
+// Trafia prosto do promptu AI w kreatorze kursu („Dostępne kategorie…”), więc
+// jest realnym sygnałem o profilu platformy. Musi być NEUTRALNA płciowo i
+// pokrywać pełne spektrum treningu (siłownia, sport, praca z ciałem), a nie
+// tylko wellness — inaczej AI ściąga każdy brief w stronę relaksu.
 export const COURSE_CATEGORIES: string[] = [
   "Wszystkie",
-  ...Array.from(new Set(COURSES.map((c) => c.category))),
+  "Fizjoterapia",
+  "Trening siłowy",
+  "Mobilność",
+  "Prewencja",
+  "Automasaż",
+  "Ruch na co dzień",
+  "Regeneracja i stres",
+  "Zdrowie miednicy",
 ];

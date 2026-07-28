@@ -16,9 +16,9 @@ export default function UserTopbar({ user }: UserTopbarProps) {
   // Na chacie chowamy topbar na mobile (zostaje pełnoekranowy czat ze strzałką wstecz).
   const isChatPage = pathname?.includes("/chat");
 
-  // Kontekst konkretnego wyjazdu (/panel/wyjazdy/[bookingId]).
-  // Wtedy pokazujemy back, który wraca do listy wyjazdów ("głównego menu").
-  const isTripContext = !!pathname?.match(/\/panel\/wyjazdy\/([a-zA-Z0-9_-]+)/);
+  // Kontekst konkretnego wydarzenia (/panel/wydarzenia/[bookingId]).
+  // Wtedy pokazujemy back, który wraca do listy wydarzeń ("głównego menu").
+  const isTripContext = !!pathname?.match(/\/panel\/wydarzenia\/([a-zA-Z0-9_-]+)/);
 
   return (
     <header
@@ -27,12 +27,12 @@ export default function UserTopbar({ user }: UserTopbarProps) {
         isChatPage && "max-md:hidden",
       )}
     >
-      {/* LEWA STRONA: Back (kontekst wyjazdu) + Wyszukiwarka */}
+      {/* LEWA STRONA: Back (kontekst wydarzenia) + Wyszukiwarka */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {isTripContext && (
           <Link
-            href="/panel/wyjazdy"
-            aria-label="Wróć do listy wyjazdów"
+            href="/panel/wydarzenia"
+            aria-label="Wróć do listy wydarzeń"
             className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full text-brand-secondary/60 hover:text-brand-primary hover:bg-white/60 transition-colors"
           >
             <ArrowLeft size={20} weight="bold" />

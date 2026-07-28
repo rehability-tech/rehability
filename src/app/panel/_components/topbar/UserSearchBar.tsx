@@ -23,7 +23,7 @@ type SearchItem = {
 
 const mockSearchData: SearchItem[] = [
   { id: "1", title: "Mój Start", href: "/panel", icon: SquaresFour },
-  { id: "2", title: "Moje Wyjazdy", href: "/panel/wyjazdy", icon: Tent },
+  { id: "2", title: "Moje Wydarzenia", href: "/panel/wydarzenia", icon: Tent },
   {
     id: "3",
     title: "Platforma VOD",

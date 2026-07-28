@@ -20,7 +20,7 @@ export function renderCampaignHtml(
     : [];
 
   return generateEmailHtml(sections, {
-    // Kampania nie jest powiązana z wyjazdem — neutralny kontekst.
+    // Kampania nie jest powiązana z wydarzeniem — neutralny kontekst.
     tripContext: {
       title: campaign.subject,
       description: "",

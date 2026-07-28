@@ -2,7 +2,7 @@
 
 /* ===========================================================================
  *  Edytor treści strony sprzedażowej kursu — wizualnie IDENTYCZNY z edytorem
- *  bloga/wyjazdów: te same bloki (RichTextInput), karty z najechaniowym paskiem
+ *  bloga/wydarzeń: te same bloki (RichTextInput), karty z najechaniowym paskiem
  *  (uchwyt + kosz), przeciąganie kolejności (Framer Motion) i menu „Dodaj blok".
  *  Zestaw bloków jest węższy (tekstowy): nagłówek, akapit, wyróżnik, lista, cytat.
  *
@@ -36,14 +36,14 @@ import {
   type CourseFaq,
 } from "@/app/(site)/kursy/_data/courses";
 
-// Reużywamy gotowych bloków edytora wyjazdów (RichTextInput w środku) — dzięki
+// Reużywamy gotowych bloków edytora wydarzeń (RichTextInput w środku) — dzięki
 // temu wygląd i UX są dokładnie takie jak na blogu.
-import HeadingBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/HeadingBlock";
-import ParagraphBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/ParagraphBlock";
-import HighlightBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/HighlightBlock";
-import BulletListBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/BulletListBlock";
-import SpacerBlock from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/blocks/SpacerBlock";
-import RichTextInput from "@/app/admin/wyjazdy/dodaj/edytor-tresci/_components/lib/RichTextInput";
+import HeadingBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/HeadingBlock";
+import ParagraphBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/ParagraphBlock";
+import HighlightBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/HighlightBlock";
+import BulletListBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/BulletListBlock";
+import SpacerBlock from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/blocks/SpacerBlock";
+import RichTextInput from "@/app/admin/wydarzenia/dodaj/edytor-tresci/_components/lib/RichTextInput";
 import NeonInputGlow from "@/app/admin/blog/dodaj/_components/NeonInputGlow";
 
 // ---- model edytora (jak na blogu: id + type + content z HTML) ----
@@ -135,7 +135,7 @@ export function fromEditFaq(faq: EditFaq[]): CourseFaq[] | null {
   return out.length ? out : null;
 }
 
-// Domyślna zawartość świeżo dodanego bloku (zgodna z blokami wyjazdów).
+// Domyślna zawartość świeżo dodanego bloku (zgodna z blokami wydarzeń).
 function defaultContent(type: BlockKind): any {
   switch (type) {
     case "heading":

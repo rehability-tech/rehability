@@ -28,9 +28,9 @@ const ECOSYSTEM_CARDS = [
   {
     id: "campy",
     icon: Mountains,
-    title: "Wyjazdy Wellness",
+    title: "Wydarzenia",
     description:
-      "Ekskluzywne wyjazdy holistyczne. Całkowity reset dla ciała i umysłu z dala od miasta, łączący mądry ruch z głębokim relaksem.",
+      "Warsztaty, treningi, weekendy regeneracyjne i akcje specjalne. Mądry ruch połączony z głębokim relaksem — na jedno popołudnie albo na dłużej.",
   },
   {
     id: "masaze",

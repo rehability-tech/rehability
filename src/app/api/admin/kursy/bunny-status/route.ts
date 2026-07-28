@@ -7,7 +7,8 @@ import {
 } from "@/lib/bunny";
 
 // Status przetwarzania wideo w Bunny — odpytywany przez VideoUploader, żeby
-// przełączyć podgląd na player dopiero, gdy enkodowanie się zakończy (Finished).
+// przełączyć podgląd na player, gdy tylko wideo jest grywalne: status „Finished"
+// (4) LUB pojawi się pierwsza rozdzielczość (hasResolution) — bez czekania na 4.
 export async function GET(request: Request): Promise<NextResponse> {
   const { isAuthorized, response } = await requireAdmin();
   if (!isAuthorized) return response as NextResponse;

@@ -52,12 +52,13 @@ const FizjoBlock = ({ className = "" }: { className?: string }) => (
   >
     <div className="relative w-full aspect-[3/4] h-[700px] max-[1024px]:h-[400px] rounded-t-[200px] rounded-b-[40px] overflow-hidden shadow-xl bg-gray-100">
       <Image
-        src="/images/hero/fizjoterapia_hero.jpg"
+        src="/images/hero/fizjoterapia_hero_portrait.jpg"
         alt="Fizjoterapia w trakcie"
         fill
         priority
         fetchPriority="high"
-        sizes="(max-width: 1024px) 90vw, 33vw"
+        sizes="(max-width: 1024px) 90vw, 400px"
+        quality={80}
         className="object-cover"
       />
     </div>
@@ -102,7 +103,7 @@ const CampyBlock = () => (
     <div className="mask-shape-2 w-full aspect-square relative bg-gray-100">
       <Image
         src="/images/hero/campy_hero.jpg"
-        alt="Wyjazdy i wyjazdy"
+        alt="Wydarzenia i wydarzenia"
         fill
         loading="eager"
         sizes="(max-width: 675px) 320px, (max-width: 1024px) 45vw, 350px"
@@ -111,7 +112,7 @@ const CampyBlock = () => (
       />
     </div>
     <HeroBadge
-      text="Wyjazdy holistyczne"
+      text="Wydarzenia holistyczne"
       style={delay(0.35)}
       className="absolute bottom-12 left-12 max-[1024px]:left-12 max-[1024px]:bottom-12 z-20 max-[1024px]:origin-bottom-left"
       icon={<BusIcon size={18} />}
@@ -129,7 +130,7 @@ const BottomTextBlock = () => (
     </h3>
     <p className="typography-paragraph text-brand-secondary/80">
       Poznaj autorskie metody diagnostyki i terapii. Rozwiń swój warsztat dzięki
-      kursom VOD i wyjazdom stacjonarnym.
+      kursom VOD i wydarzeniom stacjonarnym.
     </p>
     <Button variant="primary" showArrow href="/kursy">
       Dołącz do platformy

@@ -172,6 +172,20 @@ export function HlsPlayer({
       setMuted(v.muted);
       setVolume(v.volume);
     };
+    // Flush końcowy: przy chowaniu karty / nawigacji dosyłamy bieżącą pozycję
+    // (throttle 10 s mógłby zgubić ostatni interwał). onProgress używa fetch
+    // keepalive, więc request przeżywa zamknięcie strony.
+    const flush = () => {
+      if (!onProgress) return;
+      const t = Math.floor(v.currentTime);
+      if (t > 0 && t !== lastReportRef.current) {
+        lastReportRef.current = t;
+        onProgress(t, v.duration || 0);
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
     v.addEventListener("play", onPlayEv);
     v.addEventListener("pause", onPauseEv);
     v.addEventListener("ended", onEndedEv);
@@ -179,6 +193,8 @@ export function HlsPlayer({
     v.addEventListener("loadedmetadata", onMeta);
     v.addEventListener("durationchange", onMeta);
     v.addEventListener("volumechange", onVol);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       v.removeEventListener("play", onPlayEv);
       v.removeEventListener("pause", onPauseEv);
@@ -187,6 +203,8 @@ export function HlsPlayer({
       v.removeEventListener("loadedmetadata", onMeta);
       v.removeEventListener("durationchange", onMeta);
       v.removeEventListener("volumechange", onVol);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [onPlay, onPause, onEnded, onProgress, startAt]);
 

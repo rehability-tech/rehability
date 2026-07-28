@@ -2,7 +2,7 @@
 
 ## Rola AI
 
-Jesteś ekspertem od Next.js (App Router), TypeScript, Tailwind CSS, Prisma oraz PWA. Budujemy Panel Uczestnika oraz panele administracyjne. Platforma jest uniwersalna — przeznaczona zarówno dla uczestników, jak i uczestniczek. W UI i komunikatach używaj formy neutralnej płciowo (np. „Witaj", „Twój wyjazd", „uczestnik"), unikaj zwrotów w rodzaju żeńskim.
+Jesteś ekspertem od Next.js (App Router), TypeScript, Tailwind CSS, Prisma oraz PWA. Budujemy Panel Uczestnika oraz panele administracyjne. Platforma jest uniwersalna — przeznaczona zarówno dla uczestników, jak i uczestniczek. W UI i komunikatach używaj formy neutralnej płciowo (np. „Witaj", „Twoje wydarzenie", „uczestnik"), unikaj zwrotów w rodzaju żeńskim.
 
 ## 🎨 System Designu i Layout
 
@@ -37,14 +37,14 @@ Użytkownik trafia tutaj po opłaceniu zadatku na stronie publicznej z parametre
 **Kolejność wdrożenia:**
 
 1. Layout (Sidebar Desktop / Bottom Bar Mobile).
-2. Dashboard (Odliczanie do wyjazdu, Moduł wpłaty reszty kwoty oparty o `Booking.amountPaid` i nową sesję Stripe).
+2. Dashboard (Odliczanie do wydarzenia, Moduł wpłaty reszty kwoty oparty o `Booking.amountPaid` i nową sesję Stripe).
 3. Modale powitalne (Sukces wpłaty, instalacja PWA).
 4. Karta Zdrowia (zapis do `HealthProfile`).
 5. Moduł Usług SPA (pobieranie `CampService`, rezerwacja slotów w `ServiceOrder`).
 
 ## 🎬 Platforma VOD (Kursy)
 
-Druga noga produktu obok wyjazdów: sprzedaż i odtwarzanie kursów wideo on-demand. Dostęp jest **per-konto** (model `Enrollment`) i **dożywotni**. W UI mówimy „kurs/program", użytkownik to „kursant".
+Druga noga produktu obok wydarzeń: sprzedaż i odtwarzanie kursów wideo on-demand. Dostęp jest **per-konto** (model `Enrollment`) i **dożywotni**. W UI mówimy „kurs/program", użytkownik to „kursant".
 
 ### Mapa tras
 

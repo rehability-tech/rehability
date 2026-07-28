@@ -34,7 +34,7 @@ export async function GET() {
 
   try {
     // GLOBALNA BAZA USŁUG = katalog ExtraService ∪ wszystkie usługi ze wszystkich
-    // wyjazdów (TripService). Usługi tworzone/edytowane "tylko dla wyjazdu" żyją
+    // wydarzeń (TripService). Usługi tworzone/edytowane "tylko dla wydarzenia" żyją
     // wyłącznie w TripService — tutaj zbieramy je wszystkie w jedną listę, żeby
     // "Wybierz z bazy" pokazywało komplet (z opisem i zdjęciem).
     const [extra, tripServices] = await Promise.all([
@@ -43,7 +43,7 @@ export async function GET() {
     ]);
 
     // Deduplikacja po (nazwa | czas | cena) — zachowuje warianty (np. ta sama
-    // nazwa, inna cena/czas), a scala identyczne kopie z różnych wyjazdów.
+    // nazwa, inna cena/czas), a scala identyczne kopie z różnych wydarzeń.
     // Przy kolizji wzbogacamy brakujące zdjęcie/opis z kopii, która je ma.
     const map = new Map<string, AggregatedService>();
     const keyOf = (name: string, duration: number, price: number) =>

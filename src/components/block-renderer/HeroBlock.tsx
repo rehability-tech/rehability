@@ -44,7 +44,7 @@ export default function HeroBlock({
             width={1920}
             height={1080}
             className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 hover:scale-105"
-            alt={title || "Tło wyjazdu"}
+            alt={title || "Tło wydarzenia"}
           />
         )}
         <div className="absolute inset-0 bg-[#0B3B4C]/40" />
@@ -91,7 +91,7 @@ export default function HeroBlock({
           variants={fadeUpVariants}
           className="font-jakarta font-bold text-[40px] md:text-[56px] leading-[1.05] mb-8 drop-shadow-md uppercase max-w-[800px]"
         >
-          {title || "TYTUŁ WYJAZDU"}
+          {title || "TYTUŁ WYDARZENIA"}
         </motion.h1>
 
         {/* PODTYTUŁ (Zastąpiono input statycznym tekstem) */}

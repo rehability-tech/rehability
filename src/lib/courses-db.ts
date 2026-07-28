@@ -50,7 +50,6 @@ type DbCourse = {
   description: unknown;
   content: unknown;
   faq: unknown;
-  testimonials: unknown;
   metaTitle: string | null;
   metaDescription: string | null;
   focusKeyword: string | null;
@@ -97,7 +96,7 @@ function mapCourse(c: DbCourse): Course {
     views: c.views,
     durationMin: c.durationMin,
     price: c.price,
-    image: c.image || FALLBACK_IMAGE,
+    image: courseCover(c.image, c.video),
     excerpt: c.excerpt,
     format: c.format === "single" ? "single" : "sections",
     // Json z bazy bywa zniekształcony (np. {} zamiast tablicy) — bez tablicy
@@ -109,9 +108,10 @@ function mapCourse(c: DbCourse): Course {
       ? (c.content as CourseBlock[])
       : undefined,
     curriculum,
-    testimonials: Array.isArray(c.testimonials)
-      ? (c.testimonials as CourseReview[])
-      : undefined,
+    // Opinie NIE pochodzą już z (usuniętej) kolumny testimonials — realne
+    // opinie dokładają ścieżki szczegółów (getCourseBySlug / getCourseForPlayer
+    // / getAdminCourseDetail) z tabeli CourseReview; w katalogu jest po prostu brak.
+    testimonials: undefined,
     faq: Array.isArray(c.faq) ? (c.faq as CourseFaq[]) : undefined,
     videoPending: isVideoPending(c),
     metaTitle: c.metaTitle,
@@ -263,7 +263,7 @@ export async function getCourseForPlayer(
     rating: c.rating,
     reviews: c.reviews,
     durationMin: c.durationMin,
-    image: c.image || FALLBACK_IMAGE,
+    image: courseCover(c.image, c.video),
     format: c.format,
     video: c.video,
     videoHls: toHls(c.video),
@@ -305,7 +305,7 @@ export type AdminCourseDetail = {
   lessonsWithVideo: number;
   /** Liczba kupionych dostępów (Enrollment). */
   students: number;
-  /** Przychód kursu w zł (students × cena). */
+  /** Przychód kursu w zł (suma realnych zakupów z CoursePurchase). */
   revenue: number;
   /** Moduły z lekcjami i informacją o wideo (do panelu admina). */
   modules: AdminModule[];
@@ -360,6 +360,14 @@ export async function getAdminCourseDetail(
   );
   const students = row._count.enrollments;
 
+  // Przychód z realnych zakupów (CoursePurchase, grosze → zł) — nie students×cena,
+  // dzięki czemu edycja ceny kursu nie zmienia historycznego przychodu.
+  const revenueAgg = await prisma.coursePurchase.aggregate({
+    where: { courseId: row.id },
+    _sum: { amount: true },
+  });
+  const revenue = Math.round((revenueAgg._sum.amount ?? 0) / 100);
+
   // Kadr na okładkę: z głównego wideo lub pierwszej lekcji z nagraniem.
   // Podpisujemy token-auth pull zone (inaczej Bunny zwraca 403).
   const videoUrl =
@@ -380,7 +388,7 @@ export async function getAdminCourseDetail(
     lessonsCount,
     lessonsWithVideo,
     students,
-    revenue: students * course.price,
+    revenue,
     modules,
     videoThumb,
   };
@@ -397,7 +405,7 @@ export type CourseParticipant = {
   enrolledAt: Date;
   /** Liczba ukończonych lekcji w tym kursie. */
   lessonsCompleted: number;
-  /** Postęp 0–100 (ukończone / wszystkie lekcje). */
+  /** Postęp 0–100 (ważony czasem oglądania; fallback: ukończone / wszystkie lekcje). */
   progress: number;
   /** Łączny czas oglądania w sekundach (suma LessonProgress.seconds). */
   watchSeconds: number;
@@ -420,10 +428,19 @@ export async function getCourseParticipants(
 ): Promise<CourseParticipants> {
   const modules = await prisma.courseModule.findMany({
     where: { courseId },
-    select: { lessons: { select: { id: true } } },
+    select: { lessons: { select: { id: true, durationSec: true } } },
   });
-  const lessonIds = modules.flatMap((m) => m.lessons.map((l) => l.id));
+  const lessons = modules.flatMap((m) => m.lessons);
+  const lessonIds = lessons.map((l) => l.id);
   const lessonsTotal = lessonIds.length;
+  // Czas trwania per lekcja + łączny czas kursu (mianownik postępu ważonego
+  // czasem). Lekcje bez znanej długości (durationSec ≤ 0) są wykluczone —
+  // spójnie z lessonsTimeProgress w getVodOverview.
+  const durById = new Map(lessons.map((l) => [l.id, l.durationSec]));
+  const totalDuration = lessons.reduce(
+    (s, l) => s + (l.durationSec > 0 ? l.durationSec : 0),
+    0,
+  );
 
   const enrollments = await prisma.enrollment.findMany({
     where: { courseId },
@@ -440,6 +457,7 @@ export async function getCourseParticipants(
           where: { userId: { in: userIds }, lessonId: { in: lessonIds } },
           select: {
             userId: true,
+            lessonId: true,
             completed: true,
             seconds: true,
             updatedAt: true,
@@ -449,22 +467,37 @@ export async function getCourseParticipants(
 
   const byUser = new Map<
     string,
-    { completed: number; seconds: number; last: Date | null }
+    { completed: number; seconds: number; timeWatched: number; last: Date | null }
   >();
   for (const p of progress) {
     const agg = byUser.get(p.userId) ?? {
       completed: 0,
       seconds: 0,
+      timeWatched: 0,
       last: null as Date | null,
     };
     if (p.completed) agg.completed += 1;
     agg.seconds += p.seconds;
+    // Wkład czasowy lekcji: ukończona → pełny czas; w trakcie → min(obejrzane, czas).
+    // Liczymy tylko lekcje ze znaną długością (spójnie z lessonsTimeProgress).
+    const dur = durById.get(p.lessonId) ?? 0;
+    if (dur > 0) agg.timeWatched += p.completed ? dur : Math.min(p.seconds, dur);
     if (!agg.last || p.updatedAt > agg.last) agg.last = p.updatedAt;
     byUser.set(p.userId, agg);
   }
 
   const participants: CourseParticipant[] = enrollments.map((e) => {
-    const agg = byUser.get(e.userId) ?? { completed: 0, seconds: 0, last: null };
+    const agg =
+      byUser.get(e.userId) ??
+      { completed: 0, seconds: 0, timeWatched: 0, last: null };
+    // Postęp ważony CZASEM (spójny z widokiem kursanta / lessonsTimeProgress);
+    // gdy żadna lekcja nie ma znanej długości → fallback po liczbie lekcji.
+    const progress =
+      totalDuration > 0
+        ? Math.min(100, Math.round((agg.timeWatched / totalDuration) * 100))
+        : lessonsTotal
+          ? Math.round((agg.completed / lessonsTotal) * 100)
+          : 0;
     return {
       userId: e.userId,
       name: e.user.name,
@@ -472,9 +505,7 @@ export async function getCourseParticipants(
       image: e.user.image,
       enrolledAt: e.createdAt,
       lessonsCompleted: agg.completed,
-      progress: lessonsTotal
-        ? Math.round((agg.completed / lessonsTotal) * 100)
-        : 0,
+      progress,
       watchSeconds: agg.seconds,
       lastActivity: agg.last,
     };
@@ -510,6 +541,79 @@ export async function enrollUserInCourse(userId: string, courseId: string) {
     where: { userId_courseId: { userId, courseId } },
     update: {},
     create: { userId, courseId },
+  });
+}
+
+/**
+ * Utrwala rekord zakupu kursu (do faktur i realnego przychodu). Idempotentne
+ * po paymentIntentId — ponowne dostarczenie webhooka nie nadpisuje pierwotnego
+ * snapshotu kwoty/danych. Enrollment nadaje dostęp osobno; to jest tylko ślad
+ * finansowy, dzięki któremu edycja ceny kursu nie zmienia historycznego przychodu.
+ */
+export async function recordCoursePurchase(input: {
+  userId: string;
+  courseId: string;
+  paymentIntentId: string;
+  amount: number; // grosze (kwota realnie zapłacona)
+  currency?: string | null;
+  buyerType?: string | null;
+  buyerName?: string | null;
+  buyerEmail?: string | null;
+  company?: string | null;
+  nip?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+}) {
+  return prisma.coursePurchase.upsert({
+    where: { paymentIntentId: input.paymentIntentId },
+    update: {},
+    create: {
+      userId: input.userId,
+      courseId: input.courseId,
+      paymentIntentId: input.paymentIntentId,
+      amount: input.amount,
+      currency: input.currency ?? "pln",
+      buyerType: input.buyerType ?? null,
+      buyerName: input.buyerName ?? null,
+      buyerEmail: input.buyerEmail ?? null,
+      company: input.company ?? null,
+      nip: input.nip ?? null,
+      address: input.address ?? null,
+      postalCode: input.postalCode ?? null,
+      city: input.city ?? null,
+    },
+  });
+}
+
+/**
+ * Zapis zakupu na podstawie PaymentIntenta Stripe — wspólne dla webhooka i
+ * fallbacku na /panel/vod. Czyta userId/courseId oraz snapshot rozliczeniowy
+ * z metadata. Zwraca null, gdy brak kluczowych metadanych (kurs darmowy nie ma PI).
+ */
+export async function recordCoursePurchaseFromStripe(pi: {
+  id: string;
+  amount_received?: number | null;
+  amount?: number | null;
+  currency?: string | null;
+  metadata?: Record<string, string> | null;
+}) {
+  const meta = pi.metadata ?? {};
+  if (!meta.userId || !meta.courseId) return null;
+  return recordCoursePurchase({
+    userId: meta.userId,
+    courseId: meta.courseId,
+    paymentIntentId: pi.id,
+    amount: pi.amount_received ?? pi.amount ?? 0,
+    currency: pi.currency ?? "pln",
+    buyerType: meta.buyerType ?? null,
+    buyerName: meta.buyerName ?? null,
+    buyerEmail: meta.buyerEmail ?? null,
+    company: meta.company ?? null,
+    nip: meta.nip ?? null,
+    address: meta.address ?? null,
+    postalCode: meta.postalCode ?? null,
+    city: meta.city ?? null,
   });
 }
 
@@ -618,7 +722,7 @@ export type CourseAdminStats = {
   enrollmentsByCourse: Record<string, number>;
   /** Łączna liczba kursantów (wszystkie zapisy). */
   studentsTotal: number;
-  /** Łączny przychód VOD w zł (suma cen kupionych kursów). */
+  /** Łączny przychód VOD w zł (suma realnych zakupów z CoursePurchase). */
   revenueTotal: number;
   /** Przychód VOD w ostatnich 6 miesiącach (do sparkline'a). */
   revenueSeries: { name: string; value: number }[];
@@ -626,22 +730,25 @@ export type CourseAdminStats = {
 
 /** Realne statystyki sprzedaży kursów liczone z tabeli Enrollment. */
 export async function getCourseAdminStats(): Promise<CourseAdminStats> {
-  const enrollments = await prisma.enrollment.findMany({
-    select: {
-      courseId: true,
-      createdAt: true,
-      course: { select: { price: true } },
-    },
-  });
+  const [enrollments, purchases] = await Promise.all([
+    prisma.enrollment.findMany({ select: { courseId: true } }),
+    prisma.coursePurchase.findMany({
+      select: { amount: true, createdAt: true },
+    }),
+  ]);
 
   const enrollmentsByCourse: Record<string, number> = {};
-  let revenueTotal = 0;
   for (const e of enrollments) {
     enrollmentsByCourse[e.courseId] = (enrollmentsByCourse[e.courseId] ?? 0) + 1;
-    revenueTotal += e.course?.price ?? 0;
   }
 
-  // Seria 6 miesięcy — przychód wg miesiąca utworzenia zapisu.
+  // Przychód z realnych zakupów (grosze → zł) — nie liczba_kursantów × AKTUALNA
+  // cena, więc edycja ceny kursu nie zmienia historycznego przychodu.
+  const revenueTotal = Math.round(
+    purchases.reduce((s, p) => s + p.amount, 0) / 100,
+  );
+
+  // Seria 6 miesięcy — przychód wg miesiąca zakupu.
   const now = new Date();
   const buckets = Array.from({ length: 6 }, (_, idx) => {
     const d = startOfMonth(subMonths(now, 5 - idx));
@@ -649,20 +756,23 @@ export async function getCourseAdminStats(): Promise<CourseAdminStats> {
     return {
       key: format(d, "yyyy-MM"),
       name: label.charAt(0).toUpperCase() + label.slice(1),
-      value: 0,
+      grosze: 0,
     };
   });
   const byKey = new Map(buckets.map((b) => [b.key, b]));
-  for (const e of enrollments) {
-    const b = byKey.get(format(e.createdAt, "yyyy-MM"));
-    if (b) b.value += e.course?.price ?? 0;
+  for (const p of purchases) {
+    const b = byKey.get(format(p.createdAt, "yyyy-MM"));
+    if (b) b.grosze += p.amount;
   }
 
   return {
     enrollmentsByCourse,
     studentsTotal: enrollments.length,
     revenueTotal,
-    revenueSeries: buckets.map(({ name, value }) => ({ name, value })),
+    revenueSeries: buckets.map(({ name, grosze }) => ({
+      name,
+      value: Math.round(grosze / 100),
+    })),
   };
 }
 

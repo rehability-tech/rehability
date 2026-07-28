@@ -143,7 +143,7 @@ function renderHtml(params: {
        </p>
        <p style="margin:0 0 28px 0;color:#475569;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;">
         Twoja znajoma <strong style="color:#287d88;">${esc(inviterName)}</strong>
-        serdecznie zaprasza Cię do wspólnego udziału w wyjeździe
+        serdecznie zaprasza Cię do wspólnego udziału w wydarzeniu
         <strong style="color:#287d88;">${esc(campName)}</strong>.
         ${esc(body)}
        </p>`;
@@ -151,7 +151,7 @@ function renderHtml(params: {
   const heroSection = heroImage
     ? `<tr>
         <td style="line-height:0;font-size:0;">
-          <img src="${esc(heroImage)}" alt="Wyjazd Rehability" width="600"
+          <img src="${esc(heroImage)}" alt="Wydarzenie Rehability" width="600"
             style="width:100%;max-width:600px;height:240px;object-fit:cover;border-radius:24px 0 0 0;display:block;" />
         </td>
       </tr>`
@@ -187,7 +187,7 @@ function renderHtml(params: {
     galleryRows
       ? `<p style="margin:0 0 12px 0;color:#287d88;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;
            font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;text-align:center;">
-           Klimat wyjazdu
+           Klimat wydarzenia
          </p>
          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
            style="margin-bottom:32px;">
@@ -201,7 +201,7 @@ function renderHtml(params: {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Zaproszenie na wyjazd</title>
+    <title>Zaproszenie na wydarzenie</title>
     <!--[if !mso]><!-->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -223,7 +223,7 @@ function renderHtml(params: {
   <body style="margin:0;padding:0;background-color:#eef4f5;background-image:radial-gradient(circle at 0% 0%,rgba(40,125,136,0.22) 0%,transparent 45%),radial-gradient(circle at 100% 32%,rgba(242,217,103,0.28) 0%,transparent 48%),radial-gradient(circle at 50% 100%,rgba(40,125,136,0.12) 0%,transparent 55%);font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#eef4f5;">
-      ${esc(inviterName)} zaprasza Cię na wyjazd ${esc(campName)} — dołącz do wspólnego wyjazdu!
+      ${esc(inviterName)} zaprasza Cię na wydarzenie ${esc(campName)} — dołącz do wspólnego wydarzenia!
     </div>
 
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
@@ -344,7 +344,7 @@ function renderText(params: {
   body: string;
 }): string {
   return [
-    `${params.inviterName} zaprasza Cię na wyjazd "${params.campName}".`,
+    `${params.inviterName} zaprasza Cię na wydarzenie "${params.campName}".`,
     "",
     params.body,
     "",
@@ -365,10 +365,10 @@ export async function sendFriendInvitationEmail(
   const resend = getResend();
   if (!resend) return;
 
-  // Link prowadzi na stronę wyjazdu z kontekstem zaproszenia (?inv=token) — tam
+  // Link prowadzi na stronę wydarzenia z kontekstem zaproszenia (?inv=token) — tam
   // pokazujemy delikatny tag "Zaproszenie od ...". Stara /zaproszenie/[token] działa
   // dalej jako fallback (stare maile).
-  const invitationLink = `${getAppUrl()}/wyjazdy/${params.campSlug}?inv=${params.token}`;
+  const invitationLink = `${getAppUrl()}/wydarzenia/${params.campSlug}?inv=${params.token}`;
   const campDate = formatCampDate(params.campStart, params.campEnd);
   const currentYear = new Date().getFullYear();
 
@@ -396,11 +396,11 @@ export async function sendFriendInvitationEmail(
 
   const subjectTemplate =
     params.emailSubject?.trim() ||
-    `Zaproszenie na wyjazd "${params.campName}" ✈️`;
+    `Zaproszenie na wydarzenie "${params.campName}" ✈️`;
   const subject = substituteVars(subjectTemplate, templateVars);
 
   // ── Wybór renderera ─────────────────────────────────────────────────────────
-  // Jeśli wyjazd ma zapisane sekcje z edytora — renderujemy DOKŁADNIE ten e-mail
+  // Jeśli wydarzenie ma zapisane sekcje z edytora — renderujemy DOKŁADNIE ten e-mail
   // (WYSIWYG, 1:1 z podglądem). W przeciwnym razie fallback na stary szablon.
   const sections = Array.isArray(params.emailSections)
     ? (params.emailSections as EmailSection[])

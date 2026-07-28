@@ -3,7 +3,7 @@ import { runCron } from "@/lib/cron/runCron";
 
 // GET/POST /api/cron/bookings/cleanup
 // 1. Zwalnia zablokowane terminy SPA (ServiceOrder w PENDING starsze niż 15 min).
-// 2. Anuluje porzucone rezerwacje wyjazdów (Booking w PENDING bez wpłaty,
+// 2. Anuluje porzucone rezerwacje wydarzeń (Booking w PENDING bez wpłaty,
 //    nieaktywne dłużej niż 60 min) — inaczej "wisiałyby" w liczniku miejsc
 //    bez końca. Razem z nimi anulujemy ich osierocone zaproszenia partnerek.
 
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       data: { status: "CANCELLED" },
     });
 
-    // ── 2. Porzucone rezerwacje wyjazdów (zadatek nieopłacony) ────────────
+    // ── 2. Porzucone rezerwacje wydarzeń (zadatek nieopłacony) ────────────
     // Liczymy bezczynność po updatedAt — wznowienie płatności (resume-payment)
     // bumpuje updatedAt, więc aktywnie płacące osoby nie zostaną anulowane.
     // Guard `amountPaid: 0` + `depositPaidAt: null` — nigdy nie ruszamy opłaconych.

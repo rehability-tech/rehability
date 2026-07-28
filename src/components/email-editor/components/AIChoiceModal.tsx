@@ -114,7 +114,7 @@ export default function AIChoiceModal({ isOpen, onAI, onManual, showWarning = fa
                       Generuj z AI
                     </p>
                     <p className="font-montserrat text-[11px] text-white/70 mt-0.5">
-                      Gemini napisze treść na podstawie danych wyjazdu
+                      Gemini napisze treść na podstawie danych wydarzenia
                     </p>
                   </div>
                 </div>

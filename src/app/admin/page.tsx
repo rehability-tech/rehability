@@ -61,18 +61,18 @@ export default function AdminHubPage() {
                 Panel administracyjny
               </h1>
               <p className="font-montserrat text-white/70 font-medium text-[14px] mt-3 leading-relaxed">
-                Przegląd platformy VOD i wyjazdów — najważniejsze liczby, alerty
+                Przegląd platformy VOD i wydarzeń — najważniejsze liczby, alerty
                 i nadchodzące wydarzenia w jednym miejscu.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
               <Link
-                href="/admin/wyjazdy"
+                href="/admin/wydarzenia"
                 className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 h-12 rounded-[16px] bg-white/15 backdrop-blur-md text-white font-bold text-[13.5px] border border-white/25 hover:bg-white/25 transition-all duration-300 shrink-0"
               >
                 <Suitcase size={18} weight="bold" />
-                Wyjazdy
+                Wydarzenia
               </Link>
               <Link
                 href="/admin/kursy"
@@ -98,7 +98,7 @@ export default function AdminHubPage() {
           </div>
         </div>
 
-        {/* Szybkie akcje + Nadchodzący wyjazd */}
+        {/* Szybkie akcje + Nadchodzące wydarzenie */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-5 items-stretch">
           <div className="xl:col-span-5 flex flex-col">
             <QuickActionsShowcase />

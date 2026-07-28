@@ -19,7 +19,7 @@ export default function GallerySection({ images, onSlotClick, readonly = false }
   return (
     <div style={{ margin: "0 0 22px" }}>
       <p style={{ margin: "0 0 10px", color: "#287d88", fontSize: 10, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", textAlign: "center" }}>
-        Klimat wyjazdu
+        Klimat wydarzenia
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 7 }}>
         {slots.map(({ url, i }) => (

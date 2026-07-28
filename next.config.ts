@@ -93,36 +93,47 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // 301 ze starych ścieżek /campy/* → /wyjazdy/* po refactorze nazewnictwa.
+    // 301 ze starych ścieżek po dwóch zmianach nazewnictwa: /campy/* → /wyjazdy/*
+    // → /wydarzenia/*. Oba warianty kierujemy OD RAZU na docelowy adres (bez
+    // łańcucha przekierowań), bo linki /campy nadal krążą w mailach i w Google.
     // Potrzebne dla SEO i dla Stripe Checkout sesji w locie wystawionych przed deployem.
-    return [
-      { source: "/campy", destination: "/wyjazdy", permanent: true },
+    const legacy = ["campy", "wyjazdy"];
+
+    return legacy.flatMap((old) => [
+      { source: `/${old}`, destination: "/wydarzenia", permanent: true },
       {
-        source: "/campy/:path*",
-        destination: "/wyjazdy/:path*",
+        source: `/${old}/:path*`,
+        destination: "/wydarzenia/:path*",
         permanent: true,
       },
       {
-        source: "/panel/campy",
-        destination: "/panel/wyjazdy",
+        source: `/panel/${old}`,
+        destination: "/panel/wydarzenia",
         permanent: true,
       },
       {
-        source: "/panel/campy/:path*",
-        destination: "/panel/wyjazdy/:path*",
+        source: `/panel/${old}/:path*`,
+        destination: "/panel/wydarzenia/:path*",
         permanent: true,
       },
       {
-        source: "/admin/campy",
-        destination: "/admin/wyjazdy",
+        source: `/admin/${old}`,
+        destination: "/admin/wydarzenia",
         permanent: true,
       },
       {
-        source: "/admin/campy/:path*",
-        destination: "/admin/wyjazdy/:path*",
+        source: `/admin/${old}/:path*`,
+        destination: "/admin/wydarzenia/:path*",
         permanent: true,
       },
-    ];
+      // API: karty otwarte przed deployem i zainstalowane PWA wołają jeszcze stare
+      // endpointy. 308 zachowuje metodę (POST/PATCH), więc zapisy nie giną.
+      ...["/api", "/api/admin", "/api/panel", "/api/public"].map((prefix) => ({
+        source: `${prefix}/${old}/:path*`,
+        destination: `${prefix}/wydarzenia/:path*`,
+        permanent: true,
+      })),
+    ]);
   },
 };
 

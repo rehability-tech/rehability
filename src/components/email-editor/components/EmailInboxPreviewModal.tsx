@@ -37,13 +37,13 @@ export default function EmailInboxPreviewModal({
 
   const previewValues: Record<string, string> = {
     inviterName: previewInviterName,
-    campName: tripContext.title || "Nazwa wyjazdu",
+    campName: tripContext.title || "Nazwa wydarzenia",
     inviteeName: previewInviteeName,
   };
 
   const resolvedSubject = subject
     ? templateToHtml(subject, previewValues).replace(/<[^>]+>/g, "")
-    : "Zaproszenie na wspólny wyjazd";
+    : "Zaproszenie na wspólne wydarzenie";
 
   if (typeof window === "undefined") return null;
 
