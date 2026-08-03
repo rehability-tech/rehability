@@ -9,6 +9,7 @@ import {
   enrollUserInCourse,
   recordCoursePurchaseFromStripe,
 } from "@/lib/courses-db";
+import { showSandboxContent } from "@/lib/sandbox/context";
 import { VodClient } from "./_components/VodClient";
 
 export const metadata = {
@@ -63,9 +64,13 @@ export default async function VodPage({
     }
   }
 
+  // Katalog „do kupienia" respektuje podgląd piaskownicy; kursy już posiadane
+  // (overview) idą przez Enrollment, więc nie podlegają filtrowaniu.
+  const includeSandbox = await showSandboxContent(session);
+
   const [overview, catalog] = await Promise.all([
     getVodOverview(userId),
-    getCourses(),
+    getCourses({ includeSandbox }),
   ]);
 
   // Brak kupionych kursów → tryb „locked" (sekcje nauki pod nakładką), ale

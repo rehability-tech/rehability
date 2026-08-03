@@ -105,6 +105,15 @@ isSchedulePublished Boolean @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   views        Int      @default(0)
 
+  // ── SANDBOX ───────────────────────────────────────────────────
+  // Wydarzenie „piaskownicowe": istnieje w bazie i da się je w pełni
+  // przeklikać, ale publiczny katalog, sitemap i rezerwacje widzą je
+  // TYLKO dla admina i kont z `User.sandboxAccess`. Wymiar prostopadły
+  // do `status` — sandboxowe wydarzenie może być PUBLISHED i zachowywać
+  // się jak produkcyjne, nie wychodząc przy tym do klientów.
+  sandbox      Boolean  @default(false)
+  // ──────────────────────────────────────────────────────────────
+
   bookings     Booking[]
   events       TripEvent[]
   pageViews    TripView[]
@@ -450,6 +459,12 @@ model User {
 
   role          Role      @default(USER)
 
+  // --- Sandbox (piaskownica) ---
+  // Konto testowe: widzi treści oznaczone jako `sandbox` po włączeniu podglądu.
+  // Admin ma ten dostęp z urzędu (rola), więc flagę nadajemy zwykłym kontom.
+  sandboxAccess    Boolean   @default(false)
+  sandboxGrantedAt DateTime?
+
   // --- Powiadomienia (OneSignal + in-app) ---
   isNotificationEnabled  Boolean   @default(false)
   notificationPromptedAt DateTime?
@@ -494,6 +509,9 @@ model Course {
   image        String?  // miniatura (opcjonalnie; VOD bierze z wideo)
   // DRAFT | PUBLISHED | ARCHIVED
   status       String   @default("PUBLISHED")
+  // Kurs „piaskownicowy" — widoczny w katalogu, /panel/vod i checkoucie
+  // wyłącznie dla admina i kont z `User.sandboxAccess`. Patrz `Trip.sandbox`.
+  sandbox      Boolean  @default(false)
   // elastyczne pola treści
   description  Json?   // bloki zakładki „O kursie"
   content      Json?   // bloki zakładki „Zawartość" (opis co kurs zawiera)
@@ -519,7 +537,8 @@ model Course {
   favorites     CourseFavorite[]
   purchases     CoursePurchase[]
 
-  @@index([status])
+  // Złożony indeks obsługuje też zapytania po samym `status` (reguła prefiksu).
+  @@index([status, sandbox])
 }
 
 // Ulubione/„zapisane" kursy użytkownika. Gość trzyma to w localStorage; po

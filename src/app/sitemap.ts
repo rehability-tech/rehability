@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo/site";
+import { activeTripDateCutoff } from "@/lib/trips/bookingWindow";
 
 type Entry = MetadataRoute.Sitemap[number];
 
@@ -21,9 +22,18 @@ const staticEntries: Entry[] = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
+    // `sandbox: false` w każdym zapytaniu — treści z piaskownicy nigdy nie
+    // trafiają do sitemapy, nawet gdy mają status PUBLISHED.
     const [trips, posts, courses] = await Promise.all([
+      // Minione wydarzenia wypadają z sitemapy od razu, nie czekając na crona
+      // archiwizującego — nie zapraszamy Google na termin, który już był.
       prisma.trip.findMany({
-        where: { status: "PUBLISHED", noIndex: false },
+        where: {
+          status: "PUBLISHED",
+          noIndex: false,
+          sandbox: false,
+          endDate: { gte: activeTripDateCutoff() },
+        },
         select: { id: true, updatedAt: true },
         orderBy: { updatedAt: "desc" },
       }),
@@ -33,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         orderBy: { publishedAt: "desc" },
       }),
       prisma.course.findMany({
-        where: { status: "PUBLISHED", noIndex: false },
+        where: { status: "PUBLISHED", noIndex: false, sandbox: false },
         select: { slug: true, updatedAt: true },
         orderBy: { updatedAt: "desc" },
       }),

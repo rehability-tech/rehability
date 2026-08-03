@@ -11,6 +11,7 @@ import {
   getCourseWatchState,
   getVodOverview,
 } from "@/lib/courses-db";
+import { showSandboxContent } from "@/lib/sandbox/context";
 import { VodCoursePlayer } from "./_components/VodCoursePlayer";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = await getCourseForPlayer(slug);
+  // Tytuł zakładki — sam odtwarzacz i tak jest za bramką Enrollment, więc
+  // kursy sandbox pobieramy bez filtra (inaczej tester widziałby „Kurs – VOD").
+  const course = await getCourseForPlayer(slug, { includeSandbox: true });
   return { title: course ? `${course.title} – VOD` : "Kurs – VOD" };
 }
 
@@ -36,7 +39,10 @@ export default async function VodCoursePage({
   }
 
   const { slug } = await params;
-  const course = await getCourseForPlayer(slug);
+  // Piaskownica nie filtruje odtwarzacza: dostęp i tak rozstrzyga Enrollment
+  // tuż niżej. Dzięki temu kursant, któremu kurs przeniesiono do sandboxa
+  // (albo tester z wyłączonym podglądem), nie traci kupionego dostępu.
+  const course = await getCourseForPlayer(slug, { includeSandbox: true });
   if (!course) notFound();
 
   // Gating — bez dostępu (Enrollment) kierujemy do zakupu.
@@ -44,6 +50,8 @@ export default async function VodCoursePage({
   if (!enrolled) {
     redirect(`/kursy/${slug}/checkout`);
   }
+
+  const includeSandbox = await showSandboxContent(session);
 
   const [
     allCourses,
@@ -53,7 +61,8 @@ export default async function VodCoursePage({
     watchState,
     overview,
   ] = await Promise.all([
-    getCourses(),
+    // Karuzela „Podobne kursy" to już zwykły katalog — respektuje podgląd.
+    getCourses({ includeSandbox }),
     getCompletedLessonIds(session.user.id, course.id),
     getCourseLessonSeconds(session.user.id, course.id),
     getUserCourseReview(session.user.id, course.id),

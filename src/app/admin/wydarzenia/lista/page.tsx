@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { TripCard } from "../_components/TripCard/TripCard";
 import { FeaturedTripZone } from "../_components/FeaturedTripZone";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 
 import { Trip } from "@/generated/prisma";
 
@@ -93,6 +94,23 @@ export default function AdminCampyList() {
   };
 
   const handleFeatureCamp = async (tripId: string | null) => {
+    // Wydarzenia po terminie nie trafiają na stronę główną — łapiemy to od razu,
+    // bo tą samą ścieżką idzie przeciągnięcie karty do strefy wyróżnienia
+    // (gwiazdka jest już wtedy nieaktywna). Serwer i tak odrzuci takie żądanie.
+    if (tripId) {
+      const target = trips.find((t) => t.id === tripId);
+      if (target && isTripPast(target)) {
+        toast.error(
+          "To wydarzenie ma już po terminie — nie można wyróżnić go na stronie głównej.",
+        );
+        return;
+      }
+    }
+
+    // Zapamiętujemy stan sprzed zmiany, żeby po błędzie serwera wrócić dokładnie
+    // do niego — a nie zdejmować wyróżnienie ze wszystkich wydarzeń.
+    const previousTrips = trips;
+
     setTrips((prevTrips) =>
       prevTrips.map((trip) => ({
         ...trip,
@@ -107,18 +125,19 @@ export default function AdminCampyList() {
         body: JSON.stringify({ id: tripId }),
       });
 
-      if (!response.ok) throw new Error("Błąd podczas zapisywania");
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result?.error || "Błąd podczas zapisywania");
+      }
 
       if (tripId) {
         toast.success("Zmieniono wyróżnione wydarzenie na stronie głównej!");
       } else {
         toast.success("Usunięto wydarzenie ze strony głównej");
       }
-    } catch (error) {
-      toast.error("Wystąpił błąd podczas aktualizacji. Odśwież stronę.");
-      setTrips((prevTrips) =>
-        prevTrips.map((trip) => ({ ...trip, isFeatured: false })),
-      );
+    } catch (error: any) {
+      toast.error(error?.message || "Wystąpił błąd podczas aktualizacji.");
+      setTrips(previousTrips);
     }
   };
 

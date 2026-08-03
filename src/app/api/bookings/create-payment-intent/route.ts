@@ -10,6 +10,7 @@ import {
   getTripBookingWindow,
   bookingClosedMessage,
 } from "@/lib/trips/bookingWindow";
+import { canUseSandbox } from "@/lib/sandbox/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,11 +105,20 @@ export async function POST(req: Request) {
       endDate: true,
       registrationDeadline: true,
       registrationClosed: true,
+      sandbox: true,
     },
   });
 
   if (!trip || trip.status !== "PUBLISHED") {
     return NextResponse.json({ error: "Wydarzenie jest niedostępne." }, { status: 404 });
+  }
+
+  // Bramka piaskownicy — rezerwację testową może opłacić tylko admin/tester.
+  if (trip.sandbox && !(await canUseSandbox())) {
+    return NextResponse.json(
+      { error: "Wydarzenie jest niedostępne." },
+      { status: 404 },
+    );
   }
 
   // Okno zapisów. "Twarde" zamknięcia (wydarzenie zakończone / ręcznie zamknięte)

@@ -150,6 +150,29 @@ export function isTripPast(
   return now > endOfTripDay(trip.endDate);
 }
 
+/**
+ * Próg daty dla zapytań o wydarzenia jeszcze nieminione: `endDate >= cutoff`.
+ *
+ * Odpowiednik `isTripPast` po stronie BAZY — tam nie da się policzyć końca doby
+ * per wiersz, więc porównujemy same daty. `endDate` trzymamy jako północ UTC
+ * wybranego dnia, dlatego próg to północ UTC DZISIEJSZEJ daty liczonej w czasie
+ * polskim. Bez tego serwer w UTC (produkcja) trzymałby minione wydarzenie na
+ * listach jeszcze przez 2 godziny po północy czasu PL — i katalog rozjeżdżałby
+ * się z panelem, który liczy po `isTripPast`.
+ */
+export function activeTripDateCutoff(now: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TRIP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  return new Date(Date.UTC(part("year"), part("month") - 1, part("day")));
+}
+
 /** Komunikat dla uczestniczki, gdy zapisy są zamknięte. */
 export function bookingClosedMessage(
   reason: TripBookingClosedReason | null,

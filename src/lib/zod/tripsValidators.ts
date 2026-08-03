@@ -31,6 +31,10 @@ export const tripSchema = z.object({
   // Ręczne zamknięcie zapisów (wydarzenie widoczne, ale bez formularza).
   registrationClosed: z.boolean().optional().default(false),
 
+  // Piaskownica — wydarzenie widoczne wyłącznie dla admina i testerów.
+  // Wymiar niezależny od `status`: sandboxowe wydarzenie może być PUBLISHED.
+  sandbox: z.boolean().optional().default(false),
+
   capacity: z.coerce
     .number({
       message: "Podaj prawidłową liczbę miejsc",

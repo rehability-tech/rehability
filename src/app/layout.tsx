@@ -5,6 +5,7 @@ import { DebugNav } from "./_components/DebugNav";
 import { FavoritesProvider } from "./_components/FavoritesProvider";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import PWARegister from "@/components/PWARegister";
+import SandboxPreviewBar from "@/components/sandbox/SandboxPreviewBar";
 import { Analytics } from "@vercel/analytics/next";
 import {
   SITE_URL,
@@ -180,6 +181,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen  ">
+        {/* Ostrzeżenie o włączonym podglądzie piaskownicy. Komponent kliencki —
+            czyta jawne ciasteczko, więc layout zostaje statyczny (ISR bez zmian). */}
+        <SandboxPreviewBar />
         <PWARegister />
         <DebugNav />
         <FavoritesProvider>

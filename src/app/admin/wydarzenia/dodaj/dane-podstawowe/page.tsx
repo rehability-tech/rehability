@@ -64,6 +64,7 @@ function BasicDataFormContent() {
     null,
   );
   const [registrationClosed, setRegistrationClosed] = useState(false);
+  const [sandbox, setSandbox] = useState(false);
   const [capacity, setCapacity] = useState("");
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
@@ -97,6 +98,7 @@ function BasicDataFormContent() {
               : null,
           );
           setRegistrationClosed(!!data.registrationClosed);
+          setSandbox(!!data.sandbox);
           setCapacity(data.capacity?.toString() || "");
           setPrice(data.price?.toString() || "");
           setDeposit(data.deposit?.toString() || "");
@@ -238,6 +240,7 @@ function BasicDataFormContent() {
           endDate,
           registrationDeadline,
           registrationClosed,
+          sandbox,
           capacity,
           price,
           deposit,
@@ -431,6 +434,50 @@ function BasicDataFormContent() {
                   Natychmiast ukrywa formularz rezerwacji (np. gdy pokoje są już
                   zaklepane). Wydarzenie zostaje widoczne ze stroną szczegółów. Tę
                   samą akcję możesz wykonać szybciej z poziomu listy wydarzeń.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {/* Tryb sandbox — wydarzenie widoczne tylko dla admina i testerów */}
+          <div
+            className={`border rounded-[16px] p-5 md:p-6 mt-4 transition-all duration-300 ${
+              sandbox
+                ? "bg-brand-yellow/15 border-brand-yellow shadow-sm"
+                : "bg-gray-50 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <label className="flex items-start gap-4 cursor-pointer group">
+              <div
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out mt-0.5 ${
+                  sandbox
+                    ? "bg-brand-primary"
+                    : "bg-gray-300 group-hover:bg-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${
+                    sandbox ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={sandbox}
+                  onChange={(e) => setSandbox(e.target.checked)}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[15px] font-bold text-[#0B3B4C] font-jakarta transition-colors group-hover:text-brand-primary">
+                  Tryb sandbox (środowisko testowe)
+                </span>
+                <p className="text-[13px] text-gray-500 font-montserrat mt-1 leading-relaxed max-w-2xl">
+                  Wydarzenie zobaczą wyłącznie administratorzy i osoby z listy
+                  testerów — nie trafi do katalogu, sitemapy ani powiadomień.
+                  Możesz je normalnie opublikować i przeklikać całą ścieżkę
+                  rezerwacji, a gdy będzie gotowe, wypuść je na produkcję
+                  w panelu Sandbox.
                 </p>
               </div>
             </label>

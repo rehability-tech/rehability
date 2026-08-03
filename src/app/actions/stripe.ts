@@ -2,6 +2,7 @@
 
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { canUseSandbox } from "@/lib/sandbox/context";
 
 export interface CreateCheckoutInput {
   tripId: string;
@@ -54,8 +55,14 @@ export async function createCheckoutSession(
   if (validationError) return { ok: false, error: validationError };
 
   try {
+    // Wydarzenie z piaskownicy zarezerwuje tylko admin/tester — dla reszty
+    // filtr `sandbox: false` sprawia, że rekord się nie znajdzie.
     const trip = await prisma.trip.findUnique({
-      where: { id: input.tripId, status: "PUBLISHED" },
+      where: {
+        id: input.tripId,
+        status: "PUBLISHED",
+        ...((await canUseSandbox()) ? {} : { sandbox: false }),
+      },
       select: {
         id: true,
         title: true,

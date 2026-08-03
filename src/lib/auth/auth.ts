@@ -111,18 +111,29 @@ export const authOptions: NextAuthOptions = {
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true },
+          select: { id: true, role: true, sandboxAccess: true },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role; // Pociągnie wartość typu Enum z bazy (USER lub ADMIN)
+          // Dostęp do piaskownicy czytamy z bazy przy każdym odświeżeniu tokenu,
+          // więc odebranie flagi w /admin/sandbox działa bez wylogowania testera.
+          token.sandboxAccess = dbUser.sandboxAccess;
+        } else {
+          token.sandboxAccess = false;
         }
       }
 
       // 3. Twarde nadpisanie uprawnień dla administratorów z tablicy (zabezpieczenie)
       if (token.email && ADMIN_EMAILS.includes(token.email)) {
         token.role = "ADMIN";
+      }
+
+      // 4. Admin ma dostęp do piaskownicy z urzędu — flaga na koncie jest tylko
+      //    dla zwykłych kont testowych.
+      if (token.role === "ADMIN") {
+        token.sandboxAccess = true;
       }
 
       return token;
@@ -132,6 +143,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.sandboxAccess = token.sandboxAccess ?? false;
       }
       return session;
     },

@@ -11,6 +11,7 @@ import {
   Archive,
   ArrowsLeftRight,
   CalendarBlank,
+  CalendarX,
   CaretRight,
   CheckCircle,
   CircleNotch,
@@ -19,6 +20,7 @@ import {
   FileDashed,
   Image as ImageIcon,
   LockKey,
+  Flask,
   LockKeyOpen,
   MapPin,
   PencilSimple,
@@ -34,6 +36,7 @@ import { Tooltip } from "@/components/ui/ToolTip";
 import { Trip } from "@/generated/prisma";
 import { validateTripCompleteness } from "@/lib/trips/validateTripCompleteness";
 import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 
 // ==========================================
 // 1. FUNKCJE POMOCNICZE
@@ -169,7 +172,16 @@ export function TripCard({
   useEffect(() => setMounted(true), []);
 
   const isDraft = confirmedStatus === "DRAFT";
-  const canDrag = !isFeaturedZone && !isDraft;
+  // Termin minął — niezależnie od statusu. Blokuje wyróżnianie na stronie głównej
+  // (przez gwiazdkę i przez przeciąganie do strefy „Wyróżniony").
+  const isPastDate = isTripPast(trip);
+  // Plakietka na liście: status jeszcze nie nadążył za datą (cron archiwizujący
+  // chodzi raz na dobę). Bez niej zakończone wydarzenie świeci zielonym „Aktywny";
+  // przy ARCHIVED sam StatusBadge mówi już „Zakończony".
+  const isPast = isPastDate && confirmedStatus !== "ARCHIVED";
+  // Wyróżnionego nie przeciągamy (jest już w strefie), szkicu i minionego też nie —
+  // strefa docelowa i tak by ich nie przyjęła.
+  const canDrag = !isFeaturedZone && !isDraft && !isPastDate;
   const enrolled = activeBookings; // Liczba zapisanych uczestniczek (bez anulowanych)
   const hasBookings = activeBookings > 0; // Blokuje usuwanie wydarzenia
   const capacity = trip.capacity || 0;
@@ -272,9 +284,11 @@ export function TripCard({
         content={
           isFeaturedZone
             ? "Odznacz ze strony głównej"
-            : isDraft
-              ? "Opublikuj, aby móc wyróżnić"
-              : "Wyróżnij na stronie głównej"
+            : isPastDate
+              ? "Wydarzenie po terminie — nie można wyróżnić na stronie głównej"
+              : isDraft
+                ? "Opublikuj, aby móc wyróżnić"
+                : "Wyróżnij na stronie głównej"
         }
         position="top"
       >
@@ -286,13 +300,15 @@ export function TripCard({
               onFeature(trip.id);
             }
           }}
-          disabled={isUpdating || (!isFeaturedZone && isDraft)}
+          // Odznaczanie (isFeaturedZone) zostaje dostępne zawsze — także dla
+          // wydarzenia, które minęło już po wyróżnieniu.
+          disabled={isUpdating || (!isFeaturedZone && (isDraft || isPastDate))}
           className={cn(
             "p-1.5 rounded-md transition-all disabled:opacity-50",
             isFeaturedZone
               ? "text-amber-500 hover:bg-white/80 hover:shadow-sm" // Wyróżniony
-              : isDraft
-                ? "text-gray-300 cursor-not-allowed" // Nie można wyróżnić szkicu
+              : isDraft || isPastDate
+                ? "text-gray-300 cursor-not-allowed" // Szkic albo po terminie
                 : "text-gray-400 hover:text-amber-500 hover:bg-white/80 hover:shadow-sm", // Zwykła karta
           )}
         >
@@ -327,14 +343,24 @@ export function TripCard({
                 isMobile ? "right-[-10px] mt-3" : "right-0 mt-2", // Lekka korekta pozycji na mobile
               )}
             >
+              {/* Po terminie publikacja jest zablokowana — serwer odrzuci ją
+                  z kodem 409, więc nie udajemy tu, że opcja jest dostępna. */}
               <button
                 onClick={() => handleStatusChange("PUBLISHED")}
                 disabled={
-                  confirmedStatus === "PUBLISHED" || !canPublish || isUpdating
+                  confirmedStatus === "PUBLISHED" ||
+                  !canPublish ||
+                  isPastDate ||
+                  isUpdating
+                }
+                title={
+                  isPastDate
+                    ? "Termin minął — wydarzenia po terminie nie można opublikować"
+                    : undefined
                 }
                 className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-40 transition-colors"
               >
-                {canPublish ? (
+                {canPublish && !isPastDate ? (
                   <CheckCircle size={16} className="text-emerald-500" />
                 ) : (
                   <LockKey size={16} />
@@ -482,6 +508,16 @@ export function TripCard({
           <div className="flex flex-col gap-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={confirmedStatus} />
+              {isPast && (
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-[#0B3B4C] px-2 py-0.5 rounded-md">
+                  <CalendarX size={12} weight="bold" /> Po terminie
+                </span>
+              )}
+              {trip.sandbox && (
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-secondary bg-brand-yellow/50 px-2 py-0.5 rounded-md">
+                  <Flask size={12} weight="fill" /> Sandbox
+                </span>
+              )}
               {regClosed && confirmedStatus === "PUBLISHED" && (
                 <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
                   <LockKey size={12} weight="fill" className="text-amber-500" />{" "}

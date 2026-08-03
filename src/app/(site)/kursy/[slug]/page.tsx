@@ -16,6 +16,7 @@ import {
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { getCourseBySlug, getCourses, isUserEnrolled } from "@/lib/courses-db";
+import { canUseSandbox } from "@/lib/sandbox/context";
 import { formatCourseDuration, DEFAULT_FAQ } from "../_data/courses";
 import { SITE_NAME, absoluteUrl } from "@/lib/seo/site";
 import { CourseTabs } from "../_components/CourseTabs";
@@ -23,6 +24,9 @@ import { CourseViewBeacon } from "./_components/CourseViewBeacon";
 import { Reveal } from "../../blog/[blogSlug]/_components/Reveal";
 
 export async function generateStaticParams() {
+  // Bez `includeSandbox` — kursy z piaskownicy nie mają być prerenderowane
+  // ani wchodzić do statycznych ścieżek. Renderują się dynamicznie, dla osób
+  // uprawnionych.
   const courses = await getCourses();
   return courses.map((c) => ({ slug: c.slug }));
 }
@@ -33,7 +37,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const course = await getCourseBySlug(slug);
+  // Metadane liczymy też dla kursów sandbox (żeby tester nie dostał tytułu
+  // „Kurs nie znaleziony"), ale niżej twardo wymuszamy na nich noindex.
+  const course = await getCourseBySlug(slug, { includeSandbox: true });
   if (!course) return { title: "Kurs nie znaleziony" };
 
   const title = course.metaTitle?.trim() || course.title;
@@ -46,7 +52,11 @@ export async function generateMetadata({
     alternates: {
       canonical: course.canonicalUrl?.trim() || `/kursy/${course.slug}`,
     },
-    robots: course.noIndex ? { index: false, follow: false } : undefined,
+    // Kurs w piaskownicy nigdy nie trafia do indeksu — niezależnie od `noIndex`.
+    robots:
+      course.sandbox || course.noIndex
+        ? { index: false, follow: false }
+        : undefined,
     openGraph: {
       title,
       description,
@@ -62,12 +72,18 @@ export default async function CourseDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = await getCourseBySlug(slug);
+
+  // Kurs z piaskownicy otwiera się po samym adresie dla osoby uprawnionej —
+  // celowo bez wymogu włączonego podglądu, żeby link wysłany testerowi działał
+  // od razu. Dla wszystkich pozostałych kurs po prostu nie istnieje.
+  const session = await getServerSession(authOptions);
+  const includeSandbox = await canUseSandbox(session);
+
+  const course = await getCourseBySlug(slug, { includeSandbox });
   if (!course) notFound();
 
   // Czy zalogowany użytkownik ma już dostęp → zamiast „Otrzymaj dostęp”
   // pokazujemy „Przejdź do panelu” + status „Odblokowane”.
-  const session = await getServerSession(authOptions);
   const owned = session?.user?.id
     ? await isUserEnrolled(session.user.id, slug)
     : false;

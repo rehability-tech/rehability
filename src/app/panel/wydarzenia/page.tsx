@@ -8,6 +8,7 @@ import PendingTripState from "./_components/PendingTripState";
 import EmptyTripState from "./_components/EmptyTripState";
 import TripCard from "@/app/(site)/wydarzenia/_components/TripCard"; // Karta ofertowa cross-sell
 import { isTripPast } from "@/lib/trips/bookingWindow";
+import { sandboxFilter, showSandboxContent } from "@/lib/sandbox/context";
 
 export default async function MyTripsPage() {
   const session = await getServerSession(authOptions);
@@ -79,6 +80,10 @@ export default async function MyTripsPage() {
       status: "PUBLISHED",
       id: { notIn: userTripIds }, // Wykluczamy te, które już zarezerwowała
       endDate: { gte: todayStart },
+      // Propozycje to zwykły katalog — wydarzenia z piaskownicy dokleja
+      // wyłącznie włączony podgląd. Rezerwacje z listy wyżej idą po `Booking`,
+      // więc nic z nich nie znika.
+      ...sandboxFilter(await showSandboxContent()),
     },
     orderBy: { startDate: "asc" },
   });

@@ -61,6 +61,8 @@ const patchSchema = z.object({
   ogImage: z.string().nullable().optional(),
   canonicalUrl: z.string().nullable().optional(),
   noIndex: z.boolean().optional(),
+  /** Piaskownica — kurs widoczny tylko dla admina i testerów. */
+  sandbox: z.boolean().optional(),
   /** Pełna struktura programu — synchronizowana w miejscu po ID. */
   modules: z.array(moduleSchema).optional(),
 });
@@ -114,6 +116,7 @@ export async function GET(
       ogImage: course.ogImage ?? "",
       canonicalUrl: course.canonicalUrl ?? "",
       noIndex: course.noIndex ?? false,
+      sandbox: course.sandbox ?? false,
       // Treść strony sprzedażowej — edytowana w kreatorze (krok „Treść").
       description: course.description ?? null,
       content: course.content ?? null,
@@ -255,6 +258,7 @@ export async function PATCH(
     if (data.canonicalUrl !== undefined)
       scalar.canonicalUrl = data.canonicalUrl?.trim() || null;
     if (data.noIndex !== undefined) scalar.noIndex = data.noIndex;
+    if (data.sandbox !== undefined) scalar.sandbox = data.sandbox;
 
     // Czas materiału z realnych długości wideo (Bunny): „single" = długość filmu,
     // „sections" = suma lekcji. Liczymy tylko, gdy przyszedł `format` (pełny patch
@@ -394,12 +398,21 @@ export async function PATCH(
 
     const updated = await prisma.course.findUnique({
       where: { id },
-      select: { id: true, slug: true, title: true, status: true },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        status: true,
+        sandbox: true,
+      },
     });
 
     // Nowa publikacja kursu (DRAFT/ARCHIVED → PUBLISHED) — push do wszystkich.
+    // Kurs z piaskownicy pomijamy: nikt poza testerami i tak go nie otworzy,
+    // a powiadomienie poszłoby do CAŁEJ bazy.
     if (
       data.status === "PUBLISHED" &&
+      !updated?.sandbox &&
       previousStatus !== null &&
       previousStatus !== "PUBLISHED" &&
       updated?.slug &&
@@ -414,9 +427,11 @@ export async function PATCH(
     }
 
     // Jeśli kurs jest opublikowany i przybyły nowe lekcje — powiadom kursantów.
+    // W piaskownicy nie wysyłamy nic (patrz wyżej).
     if (
       lessonCountBefore !== null &&
       updated?.status === "PUBLISHED" &&
+      !updated.sandbox &&
       updated.slug &&
       updated.title
     ) {

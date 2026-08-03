@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 import { z } from "zod";
 
 // ==========================================
@@ -31,7 +32,36 @@ export async function POST(req: Request) {
     // Wyciągamy bezpiecznie zwalidowane dane
     const { id } = validatedBody.data;
 
-    // 3. LOGIKA BIZNESOWA: Transakcja Prismy
+    // 3. BRAMKA: wydarzenia po terminie nie trafiają na stronę główną.
+    // Strona główna i tak odsiewa je po dacie, więc wyróżnienie minionego
+    // wydarzenia niczego by nie pokazało — za to po cichu wypchnęłoby stamtąd
+    // najbliższy nadchodzący termin (sortowanie stawia `isFeatured` pierwsze).
+    // Zdejmowanie wyróżnienia (`id: null`) zostaje dozwolone zawsze.
+    if (id) {
+      const trip = await prisma.trip.findUnique({
+        where: { id },
+        select: { endDate: true, title: true },
+      });
+
+      if (!trip) {
+        return NextResponse.json(
+          { error: "Nie znaleziono wydarzenia." },
+          { status: 404 },
+        );
+      }
+
+      if (isTripPast(trip)) {
+        return NextResponse.json(
+          {
+            error:
+              "To wydarzenie ma już po terminie — nie można wyróżnić go na stronie głównej.",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    // 4. LOGIKA BIZNESOWA: Transakcja Prismy
     // Gwarantujemy, że tylko jedno wydarzenie będzie wyróżnione
     await prisma.$transaction([
       // Krok A: Zdejmujemy flagę isFeatured ze wszystkich wydarzeń

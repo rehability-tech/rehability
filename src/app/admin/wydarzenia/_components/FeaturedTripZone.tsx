@@ -5,6 +5,7 @@ import { Star, DotsSixVertical } from "@phosphor-icons/react/dist/ssr";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TripCard } from "./TripCard/TripCard";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 import { Trip } from "@/generated/prisma";
 
 interface FeaturedCampZoneProps {
@@ -30,6 +31,21 @@ export function FeaturedTripZone({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [featuredTrip?.status]);
+
+  // AUTOMATYCZNE USUWANIE PO TERMINIE
+  // Strona główna pomija minione wydarzenia sama, a cron archiwizujący zdejmie
+  // flagę najpóźniej następnej doby — ale dopóki tego nie zrobi, karta wisiałaby
+  // w strefie „Wyróżniony" i sugerowałaa, że coś jest na głównej. Zwalniamy miejsce
+  // od razu, żeby wskoczyło tam kolejne wydarzenie.
+  useEffect(() => {
+    if (featuredTrip && isTripPast(featuredTrip)) {
+      onUpdateFeatured(null);
+      toast.info(
+        "Wyróżnione wydarzenie ma już po terminie — zostałoo zdjęte ze strony głównej.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featuredTrip?.id, featuredTrip?.endDate]);
 
   // HANDLERY DRAG & DROP
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {

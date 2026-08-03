@@ -28,6 +28,7 @@ import {
   PaintBrush,
   Eye,
   EyeSlash,
+  Flask,
   Crop,
   FilmSlate,
   PencilSimple,
@@ -2977,6 +2978,54 @@ export function CourseWizard({
                 <span
                   className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
                     draft.noIndex ? "translate-x-0.5" : "translate-x-[22px]"
+                  }`}
+                />
+              </span>
+            </button>
+          </motion.div>
+
+          {/* Tryb sandbox — kurs widoczny tylko dla admina i testerów */}
+          <motion.div variants={stepItem}>
+            <button
+              type="button"
+              onClick={() => set("sandbox", !draft.sandbox)}
+              className={`flex w-full items-center justify-between gap-3 rounded-xl border p-4 text-left transition-colors ${
+                draft.sandbox
+                  ? "border-brand-yellow bg-brand-yellow/15"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <Flask
+                  size={20}
+                  weight={draft.sandbox ? "fill" : "regular"}
+                  className={
+                    draft.sandbox
+                      ? "text-brand-primary shrink-0"
+                      : "text-gray-400 shrink-0"
+                  }
+                />
+                <span>
+                  <span className="block font-montserrat font-semibold text-[13.5px] text-brand-secondary">
+                    {draft.sandbox
+                      ? "Tryb sandbox — kurs testowy"
+                      : "Tryb produkcyjny"}
+                  </span>
+                  <span className="block font-montserrat text-[12px] text-gray-400">
+                    {draft.sandbox
+                      ? "Kurs zobaczą tylko administratorzy i testerzy. Wypuścisz go w panelu Sandbox."
+                      : "Po publikacji kurs będzie widoczny dla wszystkich."}
+                  </span>
+                </span>
+              </span>
+              <span
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  draft.sandbox ? "bg-brand-primary" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+                    draft.sandbox ? "translate-x-[22px]" : "translate-x-0.5"
                   }`}
                 />
               </span>

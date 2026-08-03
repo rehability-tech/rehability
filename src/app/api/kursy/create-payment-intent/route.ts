@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth/auth";
+import { canUseSandbox } from "@/lib/sandbox/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,8 +68,15 @@ export async function POST(req: Request) {
     city,
   } = parsed.data;
 
+  // Bramka piaskownicy — twarda, po stronie serwera. Kurs sandbox kupić może
+  // wyłącznie admin lub tester; dla reszty odpowiadamy 404, żeby nie zdradzać,
+  // że taki kurs w ogóle istnieje.
   const course = await prisma.course.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: {
+      slug,
+      status: "PUBLISHED",
+      ...((await canUseSandbox(session)) ? {} : { sandbox: false }),
+    },
     select: { id: true, title: true, price: true },
   });
   if (!course) {
