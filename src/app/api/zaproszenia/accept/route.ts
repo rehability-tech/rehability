@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveCheckoutPricing } from "@/lib/discounts/resolveCheckoutPricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,13 @@ export async function POST(req: Request) {
 
   const invitation = await prisma.booking.findUnique({
     where: { invitationToken: token },
-    select: { id: true, status: true, userId: true, expiresAt: true },
+    select: {
+      id: true,
+      status: true,
+      userId: true,
+      expiresAt: true,
+      tripId: true,
+    },
   });
 
   if (!invitation) {
@@ -71,13 +78,37 @@ export async function POST(req: Request) {
     );
   }
 
+  const claimerEmail = session.user.email.toLowerCase();
+
   await prisma.booking.update({
     where: { id: invitation.id },
     data: {
       userId: session.user.id,
-      email: session.user.email.toLowerCase(),
+      email: claimerEmail,
     },
   });
+
+  // Rezerwacja powstała z e-mailem wpisanym przez osobę zapraszającą, więc
+  // wyceniono ją cudzymi promocjami. Teraz znamy prawdziwego właściciela —
+  // przewyceniamy na JEGO e-mail, żeby jego rabat mailowy zadziałał.
+  // Kodu nie stosujemy: osoba przejmująca wpisze własny przy płatności.
+  const pricing = await resolveCheckoutPricing({
+    tripId: invitation.tripId,
+    email: claimerEmail,
+    rawCode: null,
+    viewer: session.user,
+  });
+
+  if (pricing) {
+    await prisma.booking.update({
+      where: { id: invitation.id },
+      data: {
+        amountTotal: pricing.price.finalAmount,
+        amountDeposit: pricing.depositGrosze,
+        ...pricing.snapshot,
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true, bookingId: invitation.id });
 }

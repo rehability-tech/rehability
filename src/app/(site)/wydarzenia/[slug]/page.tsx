@@ -17,6 +17,11 @@ import {
 } from "@/lib/trips/bookingWindow";
 
 import TripPageClient from "./_components/TripPageClient";
+import { resolveCheckoutPricing } from "@/lib/discounts/resolveCheckoutPricing";
+import {
+  toPublicPricing,
+  type PublicPricing,
+} from "@/lib/discounts/publicPricing";
 import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
 
 interface Props {
@@ -206,6 +211,34 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       }
     : null;
 
+  // Wycena liczona NA SERWERZE, bez kodu — dzięki temu aktywna przecena albo
+  // rabat mailowy są widoczne w cenie od razu, zanim ktokolwiek otworzy
+  // formularz. Kod uczestnik wpisuje dopiero w podsumowaniu.
+  const checkoutPricing = await resolveCheckoutPricing({
+    tripId: trip.id,
+    email: session?.user?.email?.toLowerCase() ?? null,
+    rawCode: null,
+    viewer: session?.user ?? null,
+  });
+
+  // Fallback na sam cennik — gdyby wycena z jakiegoś powodu nie wyszła,
+  // strona nadal ma sensowne liczby do wyświetlenia.
+  const pricing: PublicPricing = checkoutPricing
+    ? toPublicPricing(checkoutPricing)
+    : {
+        baseAmount: Math.round(Number(trip.price) * 100),
+        finalAmount: Math.round(Number(trip.price) * 100),
+        totalDiscount: 0,
+        lines: [],
+        depositGrosze: Math.round(Number(trip.deposit) * 100),
+        remainderGrosze:
+          Math.round(Number(trip.price) * 100) -
+          Math.round(Number(trip.deposit) * 100),
+        appliedCode: null,
+        couponOutranked: false,
+        isSandbox: false,
+      };
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -243,6 +276,7 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
       price={trip.price ? trip.price.toString() : undefined}
       priceValue={Number(trip.price)}
       depositValue={Number(trip.deposit)}
+      pricing={pricing}
       allowBringFriend={trip.allowBringFriend}
       blocks={blocks}
       mapUrl={trip.mapUrl}

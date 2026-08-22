@@ -35,6 +35,9 @@ export default async function MyTripsPage() {
     ...booking,
     amountTotal: Number(booking.amountTotal || 0),
     amountPaid: Number(booking.amountPaid || 0),
+    // Zadatek po rabacie (grosze). trip.deposit niżej to już tylko cennik.
+    amountDeposit: Number(booking.amountDeposit || 0),
+    totalDiscountAmount: Number(booking.totalDiscountAmount || 0),
     trip: booking.trip
       ? {
           ...booking.trip,

@@ -31,6 +31,7 @@ import {
   CaretDown,
   PencilSimple,
   PaperPlaneTilt,
+  Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { getAdminTripId, getAdminCourseSlug } from "@/lib/admin/nav";
@@ -368,6 +369,12 @@ export default function AdminSidebar() {
           exact: false,
         },
         {
+          name: "Rabaty",
+          href: `/admin/wydarzenia/${actualTripId}/rabaty`,
+          icon: <Tag size={16} />,
+          exact: false,
+        },
+        {
           name: "Czat",
           href: `/admin/wydarzenia/${actualTripId}/chat`,
           icon: <ChatCircleDots size={16} />,
@@ -388,6 +395,12 @@ export default function AdminSidebar() {
           name: "Uczestnicy",
           href: `/admin/kursy/${courseSlug}/uczestnicy`,
           icon: <Users size={16} />,
+          exact: false,
+        },
+        {
+          name: "Rabaty",
+          href: `/admin/kursy/${courseSlug}/rabaty`,
+          icon: <Tag size={16} />,
           exact: false,
         },
         {

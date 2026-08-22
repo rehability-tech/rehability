@@ -111,12 +111,16 @@ export const authOptions: NextAuthOptions = {
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true },
+          select: { id: true, role: true, sandboxAccess: true },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role; // Pociągnie wartość typu Enum z bazy (USER lub ADMIN)
+          // Dostęp do piaskownicy rabatów nadany per konto — czytany z bazy
+          // przy każdym żądaniu, więc odebranie go działa od razu (nie czeka
+          // na wygaśnięcie tokena).
+          token.sandboxAccess = dbUser.sandboxAccess;
         }
       }
 
@@ -132,6 +136,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.sandboxAccess = token.sandboxAccess ?? false;
       }
       return session;
     },

@@ -49,6 +49,14 @@ export interface ParticipantData {
   status?: string | null;
   amountPaid?: number | null;
   amountTotal?: number | null;
+  // Zadatek tej rezerwacji po rabacie (grosze) — nie mylić z cennikiem wydarzenia.
+  amountDeposit?: number | null;
+  // Snapshot rabatów: dlaczego ta osoba zapłaciła mniej.
+  originalAmount?: number | null;
+  totalDiscountAmount?: number | null;
+  discountCode?: string | null;
+  saleName?: string | null;
+  emailDiscountName?: string | null;
   isCheckedIn?: boolean;
   checkedInAt?: string | null;
   createdAt?: string | null;

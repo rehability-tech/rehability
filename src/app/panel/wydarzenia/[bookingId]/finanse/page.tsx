@@ -27,13 +27,22 @@ export default async function FinansePage({ params }: Props) {
 
   if (!booking) notFound();
 
-  const campPrice = Number(booking.trip.price);
-  const campDeposit = Number(booking.trip.deposit);
+  // Cena i zadatek TEJ rezerwacji (w groszach w bazie), nie z cennika:
+  // rezerwacja mogła dostać rabat, a cennik mógł się od tamtej pory zmienić.
+  // Pola z Trip zostają fallbackiem dla rezerwacji sprzed systemu rabatowego.
+  const campPrice =
+    booking.amountTotal > 0
+      ? booking.amountTotal / 100
+      : Number(booking.trip.price);
+  const campDeposit =
+    booking.amountDeposit > 0
+      ? booking.amountDeposit / 100
+      : Number(booking.trip.deposit);
   const servicesTotal = booking.serviceOrders.reduce(
     (sum, o) => sum + Number(o.price),
     0
   );
-  const campRemainder = campPrice - campDeposit;
+  const campRemainder = Math.max(0, campPrice - campDeposit);
 
   const orders = booking.serviceOrders.map((o) => ({
     id: o.id,

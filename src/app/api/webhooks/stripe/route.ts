@@ -13,6 +13,7 @@ import {
   CONTACT_SOURCES,
 } from "@/lib/crm/contactSync";
 import { recordCoursePurchaseFromStripe } from "@/lib/courses-db";
+import { registerDiscountUsage } from "@/lib/discounts/registerDiscountUsage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -118,7 +119,15 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       name: true,
       userId: true,
       amountPaid: true,
+      amountTotal: true,
+      amountDeposit: true,
       tripId: true,
+      // Snapshot rabatów — potrzebny do naliczenia zużycia po opłaceniu.
+      isSandbox: true,
+      discountCodeId: true,
+      discountCode: true,
+      saleId: true,
+      emailDiscountId: true,
       trip: {
         select: {
           title: true,
@@ -161,6 +170,21 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
   const formattedAmount = (paidNow / 100).toFixed(2);
   const userName = booking.name || booking.email;
 
+  // Rozjazd między kwotą oczekiwaną a pobraną logujemy GŁOŚNO, ale świadomie
+  // NIE blokujemy — pieniądze wpłynęły, więc musimy je zaksięgować. Cichy
+  // rozjazd oznaczałby, że ktoś płaci inną kwotę, niż wynika z wyceny.
+  const expectedGrosze =
+    paymentType === "deposit"
+      ? booking.amountDeposit
+      : booking.amountTotal - booking.amountPaid;
+
+  if (expectedGrosze > 0 && paidNow !== expectedGrosze) {
+    console.error(
+      `[stripe-webhook] AMOUNT MISMATCH booking=${booking.id} pi=${pi.id} ` +
+        `oczekiwano=${expectedGrosze} otrzymano=${paidNow}`,
+    );
+  }
+
   const userId =
     booking.userId ?? (await linkOrCreateUser(booking.email, booking.name));
 
@@ -171,17 +195,35 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
       .slice(0, 16)
       .toUpperCase()}`;
 
+    // Przy dużym rabacie zadatek potrafi pokryć całą cenę (deriveDeposit scala
+    // wtedy nieściągalną resztę w jedną wpłatę). Taka rezerwacja musi od razu
+    // wylądować w FULLY_PAID, inaczej utknęłaby z dopłatą 0 zł.
+    const coversFull = booking.amountTotal > 0 && paidNow >= booking.amountTotal;
+
     await prisma.booking.update({
       where: { id: booking.id },
       data: {
-        status: "DEPOSIT_PAID",
+        status: coversFull ? "FULLY_PAID" : "DEPOSIT_PAID",
         qrToken: newToken,
         amountPaid: paidNow,
         depositPaidAt: new Date(),
+        ...(coversFull ? { remainderPaidAt: new Date() } : {}),
         stripePaymentIntentId: pi.id,
         userId,
       },
     });
+
+    // Zużycie promocji naliczamy DOPIERO TERAZ — porzucony koszyk nie zjada
+    // puli. Guard idempotencji wyżej gwarantuje, że redeliverka tego samego
+    // eventu nie doliczy użycia drugi raz.
+    // `.catch`, nie `throw`: błąd powiadomienia nie może wywrócić webhooka
+    // i wywołać kolejnej próby ze strony Stripe.
+    registerDiscountUsage(booking, {
+      productTitle: booking.trip?.title,
+      panelPath: `/admin/wydarzenia/${booking.tripId}/rabaty`,
+    }).catch((err) =>
+      console.error("[stripe-webhook] registerDiscountUsage:", err),
+    );
 
     logCampEvent({
       kind: "DEPOSIT_PAID",
@@ -470,7 +512,20 @@ async function handleCoursePurchasePaid(pi: Stripe.PaymentIntent) {
   // Utrwalenie zakupu (kwota + snapshot rozliczeniowy) — idempotentne po
   // paymentIntentId. Zapisujemy PO dostępie, ale PRZED telemetrią, bo to dane
   // finansowe; oba upserty są retry-safe.
-  await recordCoursePurchaseFromStripe(pi);
+  const recorded = await recordCoursePurchaseFromStripe(pi);
+
+  // Zużycie promocji naliczamy dopiero po realnej wpłacie — porzucony koszyk
+  // nie zjada puli. `created` mówi, czy to PIERWSZY zapis tego PaymentIntenta;
+  // bez tego redeliverka webhooka (albo fallback na /panel/vod) dubliłaby
+  // licznik użyć.
+  if (recorded?.created) {
+    registerDiscountUsage(recorded.purchase, {
+      productTitle: pi.metadata?.slug ?? null,
+      panelPath: `/admin/kursy/${pi.metadata?.slug ?? ""}/rabaty`,
+    }).catch((err) =>
+      console.error("[stripe-webhook] registerDiscountUsage (VOD):", err),
+    );
+  }
 
   // Sync do bazy kontaktów (CRM/mailing) — źródło "VOD".
   prisma.user

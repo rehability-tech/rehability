@@ -9,6 +9,7 @@ import NotificationsDropdown from "./topbar/NotificationsDropdown";
 import ProfileMenu from "./topbar/ProfileMenu";
 import GlobalDrawer from "./topbar/GlobalDrawer";
 import { QrCheckInScanner } from "./topbar/QrCheckInScanner";
+import { SandboxSwitch } from "./topbar/SandboxSwitch";
 import { cn } from "@/lib/utils";
 import { AdminUser } from "./topbar/types";
 
@@ -68,6 +69,9 @@ export default function AdminTopbar({ user }: AdminTopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          {/* Piaskownica dotyczy konkretnego wydarzenia — komponent sam
+              chowa się poza jego kontekstem. */}
+          <SandboxSwitch />
           <NotificationsDropdown />
           <div className="hidden md:block h-6 w-px bg-brand-secondary/10 mx-1" />
           <ProfileMenu user={user} />

@@ -105,6 +105,24 @@ isSchedulePublished Boolean @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   views        Int      @default(0)
 
+  // ── System rabatowy / piaskownica ─────────────────────────────
+  // Piaskownica: wszystko utworzone lub zmienione przy włączonym trybie
+  // dostaje isSandbox=true i widzi to wyłącznie osoba z dostępem do
+  // piaskownicy. Tryb NIE wyłącza trwających promocji — izoluje tylko to,
+  // co w nim powstanie.
+  sandbox          Boolean   @default(false)
+  sandboxEnabledAt DateTime?
+  // Cena i zadatek obowiązujące TYLKO w piaskownicy (złotówki, jak price
+  // i deposit). "Opublikuj i wyłącz" przepisuje je do price/deposit
+  // i czyści te pola.
+  sandboxPrice   Decimal?
+  sandboxDeposit Decimal?
+
+  discountCodes  DiscountCode[]
+  sales          Sale[]
+  emailDiscounts EmailDiscount[]
+  // ──────────────────────────────────────────────────────────────
+
   bookings     Booking[]
   events       TripEvent[]
   pageViews    TripView[]
@@ -187,6 +205,33 @@ model Booking {
   stripePaymentIntentId String?   @unique
   amountTotal     Int       @default(0) // grosze
   amountPaid      Int       @default(0) // grosze
+  // Zadatek PO rabacie, w GROSZACH. Źródło prawdy dla resume-payment —
+  // bez tego pola wznowiona rezerwacja liczyłaby zadatek od nowa
+  // z trip.deposit i obciążyła pełną kwotą, ignorując udzielony rabat.
+  amountDeposit   Int       @default(0) // grosze
+
+  // --- Snapshot rabatów (WARTOŚCI, nie referencje) ---
+  // Świadomie BEZ kluczy obcych: skasowanie promocji nie psuje historii.
+  // Statystyki joinujemy po *Id, a *Name/discountCode służą do pokazania
+  // rekordu osieroconego (promocja usunięta po zakupie).
+  originalAmount      Int?      // grosze — cena bazowa przed rabatami
+  totalDiscountAmount Int       @default(0) // grosze — suma rabatów
+
+  discountCodeId     String?
+  discountCode       String?
+  discountCodeAmount Int?
+
+  saleId     String?
+  saleName   String?
+  saleAmount Int?
+
+  emailDiscountId     String?
+  emailDiscountName   String?
+  emailDiscountAmount Int?
+
+  // Rezerwacja z piaskownicy — nie liczy się do statystyk rabatów
+  // i nie zjada limitów użyć.
+  isSandbox Boolean @default(false)
 
   // --- Zaproszenia "zabierz przyjaciółkę" ---
   invitedById   String?
@@ -196,6 +241,10 @@ model Booking {
   expiresAt     DateTime?
 
   serviceOrders ServiceOrder[]
+
+  @@index([discountCodeId])
+  @@index([saleId])
+  @@index([emailDiscountId])
 }
 
 model Post {
@@ -450,6 +499,13 @@ model User {
 
   role          Role      @default(USER)
 
+  // --- Piaskownica ---
+  // Dostęp do trybu testowego nadawany PER KONTO. Administrator ma go zawsze
+  // z racji roli (patrz viewerCanUseSandbox) — ta flaga służy do nadania
+  // dostępu komuś, kto adminem nie jest (np. osoba testująca promocje).
+  sandboxAccess    Boolean   @default(false)
+  sandboxGrantedAt DateTime?
+
   // --- Powiadomienia (OneSignal + in-app) ---
   isNotificationEnabled  Boolean   @default(false)
   notificationPromptedAt DateTime?
@@ -512,6 +568,12 @@ model Course {
   // Używana w panelu do alertów „mało kursantów" dopiero po okresie karencji.
   publishedAt  DateTime?
 
+  // Kurs widoczny wyłącznie dla osób z dostępem do piaskownicy.
+  // Na razie nieużywane przez kod VOD — kolumna istnieje w bazie i czeka
+  // na analogiczny tryb testowy po stronie kursów (system rabatowy używa
+  // własnego przełącznika na Trip).
+  sandbox      Boolean  @default(false)
+
   modules       CourseModule[]
   enrollments   Enrollment[]
   courseReviews CourseReview[]
@@ -519,7 +581,13 @@ model Course {
   favorites     CourseFavorite[]
   purchases     CoursePurchase[]
 
-  @@index([status])
+  // System rabatowy — te same modele co przy wydarzeniach, patrz komentarz
+  // „WŁAŚCICIEL PROMOCJI" niżej w pliku.
+  discountCodes  DiscountCode[]
+  sales          Sale[]
+  emailDiscounts EmailDiscount[]
+
+  @@index([status, sandbox])
 }
 
 // Ulubione/„zapisane" kursy użytkownika. Gość trzyma to w localStorage; po
@@ -572,10 +640,35 @@ model CoursePurchase {
   address         String?
   postalCode      String?
   city            String?
+
+  // --- Snapshot rabatów (WARTOŚCI, nie referencje) ---
+  // Lustro pól z Booking. Świadomie bez kluczy obcych: skasowanie promocji
+  // nie może naruszyć historii zakupów. Statystyki joinujemy po *Id.
+  originalAmount      Int?      // grosze — cena przed rabatami
+  totalDiscountAmount Int       @default(0)
+
+  discountCodeId     String?
+  discountCode       String?
+  discountCodeAmount Int?
+
+  saleId     String?
+  saleName   String?
+  saleAmount Int?
+
+  emailDiscountId     String?
+  emailDiscountName   String?
+  emailDiscountAmount Int?
+
+  // Zakup z piaskownicy — nie liczy się do statystyk i nie zjada limitów.
+  isSandbox Boolean @default(false)
+
   createdAt       DateTime @default(now())
 
   @@index([courseId])
   @@index([userId])
+  @@index([discountCodeId])
+  @@index([saleId])
+  @@index([emailDiscountId])
 }
 
 model CourseReview {
@@ -799,4 +892,163 @@ model CampaignRecipient {
   @@unique([campaignId, contactId])
   @@index([campaignId, status])
   @@index([providerMessageId])
+}
+
+// ==========================================
+// SYSTEM RABATOWY (per wydarzenie)
+// ==========================================
+// Trzy niezależne źródła obniżki o WSPÓLNYM cyklu życia: isActive, okno
+// dat (validFrom/validUntil), limit użyć (usageLimit/usedCount) oraz
+// piaskownica (isSandbox). Każdy rekord należy do DOKŁADNIE jednego
+// wydarzenia — skasowanie wydarzenia kasuje jego promocje (cascade).
+//
+// Kwoty ZAWSZE w GROSZACH (jak Booking.amountTotal), waluta zawsze "pln".
+// Pola wartości (percent / amountGrosze / targetPriceGrosze) WYKLUCZAJĄ
+// SIĘ wzajemnie — przełączenie valueType zeruje nieużywane, żeby nie
+// została "sierota".
+//
+// Reguły nakładania żyją w src/lib/discounts/calculatePrice.ts.
+
+// WŁAŚCICIEL PROMOCJI
+// Każda promocja należy do DOKŁADNIE JEDNEGO produktu: wydarzenia ALBO kursu.
+// Prisma nie potrafi wyrazić „dokładnie jedno z dwóch", więc niezmiennik
+// pilnujemy w warstwie zapisu (`resolveDiscountOwner` w adminWrite.ts).
+//
+// Uwaga o unikalności kodu: w Postgresie NULL-e w indeksie unikalnym są
+// traktowane jako różne, więc @@unique([tripId, code]) nie blokuje kodów
+// kursowych (tripId = NULL) — stąd druga para @@unique([courseId, code]).
+
+// Kod rabatowy — działa dopiero po wpisaniu w koszyku.
+model DiscountCode {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Zawsze UPPERCASE, [A-Z0-9_-], 3–32 znaki.
+  code String
+  // Notatka wewnętrzna admina — nigdy nie trafia do klienta.
+  note String?
+
+  // "percent" | "amount"
+  valueType    String @default("percent")
+  percent      Int?   // 1–95
+  amountGrosze Int?   // 100–100000 (1–1000 zł)
+
+  // true  = dokłada się DO przeceny (sekwencyjnie, na wyniku automatu)
+  // false = KONKURUJE z przeceną (wygrywa niższa cena końcowa)
+  stackableWithSale Boolean @default(false)
+
+  isActive   Boolean   @default(true)
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  // null = bez limitu. Limit jest MIĘKKI — dwie równoległe płatności przy
+  // 19/20 obie przejdą. Twardy limit wymagałby rezerwacji miejsca na czas
+  // checkoutu; to świadomy kompromis.
+  usageLimit Int?
+  usedCount  Int  @default(0)
+  // Znacznik "wysłano powiadomienie o wyczerpaniu" — prawo do wysyłki
+  // rezerwuje atomowy updateMany po exhaustedNotifiedAt: null.
+  // Podniesienie limitu kasuje ten znacznik.
+  exhaustedNotifiedAt DateTime?
+
+  // Utworzone w piaskownicy — niewidoczne dla zwykłego klienta
+  // (sandboxFilter wkłada isSandbox:false do WHERE, więc kod zwraca not_found).
+  isSandbox Boolean @default(false)
+
+  @@unique([tripId, code])
+  @@unique([courseId, code])
+  @@index([tripId, isActive])
+  @@index([courseId, isActive])
+}
+
+// Przecena — działa automatycznie, bez wpisywania czegokolwiek.
+model Sale {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  name String
+  note String?
+
+  // "percent" | "fixed_price" (cena docelowa, NIE kwota rabatu)
+  valueType         String @default("percent")
+  percent           Int?   // 1–95
+  targetPriceGrosze Int?   // >= 200 (minimum Stripe)
+
+  isActive   Boolean   @default(true)
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  usageLimit          Int?
+  usedCount           Int  @default(0)
+  exhaustedNotifiedAt DateTime?
+
+  isSandbox Boolean @default(false)
+
+  @@index([tripId, isActive])
+  @@index([courseId, isActive])
+}
+
+// Rabat mailowy — działa automatycznie, gdy e-mail zalogowanej osoby
+// znajduje się na liście członków.
+model EmailDiscount {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  name String
+  note String?
+
+  // "percent" | "amount"
+  valueType    String @default("percent")
+  percent      Int?   // 1–95
+  amountGrosze Int?   // 100–100000 (1–1000 zł)
+
+  isActive   Boolean   @default(true)
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  usageLimit          Int?
+  usedCount           Int  @default(0)
+  exhaustedNotifiedAt DateTime?
+
+  isSandbox Boolean @default(false)
+
+  members EmailDiscountMember[]
+
+  @@index([tripId, isActive])
+  @@index([courseId, isActive])
+}
+
+model EmailDiscountMember {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  emailDiscountId String
+  emailDiscount   EmailDiscount @relation(fields: [emailDiscountId], references: [id], onDelete: Cascade)
+
+  // Zawsze lowercase — porównujemy z session.user.email.toLowerCase().
+  email String
+
+  @@unique([emailDiscountId, email])
+  @@index([email])
 }

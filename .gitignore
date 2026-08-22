@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...ale SZABLONY bez sekretow trzymamy w repo — inaczej na drugim
+# komputerze nie ma z czego odtworzyc konfiguracji bazy testowej.
+!.env*.example
 
 # vercel
 .vercel

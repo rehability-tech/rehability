@@ -64,11 +64,25 @@ export default function DashboardPayments({ booking, trip }: any) {
   const totalPricePLN =
     booking.amountTotal > 0 ? Number(booking.amountTotal) : Number(trip.price);
 
-  const depositAmountPLN = Number(trip.deposit);
-  const remainderAmountPLN = totalPricePLN - depositAmountPLN;
+  // Zadatek bierzemy z REZERWACJI, nie z cennika wydarzenia: rezerwacja
+  // mogła dostać rabat (wtedy zadatek jest proporcjonalnie niższy), a cennik
+  // mógł się od tamtej pory zmienić. trip.deposit to tylko fallback dla
+  // rezerwacji sprzed wdrożenia systemu rabatowego.
+  const depositAmountPLN =
+    Number(booking.amountDeposit) > 0
+      ? Number(booking.amountDeposit)
+      : Number(trip.deposit);
+  const remainderAmountPLN = Math.max(0, totalPricePLN - depositAmountPLN);
 
   // Kwota już opłacona (bezpośrednio z bazy, znormalizowana do PLN)
   const paymentValuePLN = Number(booking.amountPaid) || 0;
+
+  // Rabat — pokazujemy, skąd wzięła się niższa cena.
+  const discountPLN = Number(booking.totalDiscountAmount) || 0;
+  const discountLabel =
+    [booking.discountCode, booking.saleName, booking.emailDiscountName]
+      .filter(Boolean)
+      .join(" + ") || null;
 
   // --- STANY DLA OVERLAYA PŁATNOŚCI ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,6 +177,19 @@ export default function DashboardPayments({ booking, trip }: any) {
             className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-yellow"
           />
         </div>
+
+        {discountPLN > 0 && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-brand-yellow/40 bg-brand-yellow/15 px-3 py-2">
+            <span className="text-[11px] font-semibold text-brand-secondary/70">
+              {discountLabel
+                ? `Rabat · ${discountLabel}`
+                : "Rabat"}
+            </span>
+            <span className="text-[12px] font-bold text-brand-secondary whitespace-nowrap">
+              −{discountPLN.toLocaleString("pl-PL")} zł
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mt-4 flex-1">
           <PaymentChip

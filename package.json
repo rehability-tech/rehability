@@ -14,7 +14,12 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "discover-keywords": "npx tsx scripts/discover-keywords.mts",
-    "migrate:rename-camp-stories": "npx tsx scripts/rename-camp-stories-category.mts"
+    "migrate:rename-camp-stories": "npx tsx scripts/rename-camp-stories-category.mts",
+    "dev:test": "node scripts/with-env.mjs .env.neon-test -- next dev",
+    "db:test:push": "node scripts/with-env.mjs .env.neon-test -- prisma db push",
+    "db:test:studio": "node scripts/with-env.mjs .env.neon-test -- prisma studio",
+    "db:test:seed": "node scripts/with-env.mjs .env.neon-test -- npx tsx scripts/seed-dev.mts",
+    "db:test:reset": "node scripts/with-env.mjs .env.neon-test -- prisma db push --force-reset --accept-data-loss"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

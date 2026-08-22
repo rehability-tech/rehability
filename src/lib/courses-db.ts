@@ -3,6 +3,7 @@ import { subMonths, startOfMonth, format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
+import type { BookingDiscountSnapshot } from "@/lib/discounts/types";
 import {
   bunnyGuidFromEmbed,
   bunnySignedHlsUrl,
@@ -564,8 +565,20 @@ export async function recordCoursePurchase(input: {
   address?: string | null;
   postalCode?: string | null;
   city?: string | null;
+  /** Snapshot rabatów — WARTOŚCI, nie referencje (patrz schema.prisma). */
+  discounts?: BookingDiscountSnapshot | null;
 }) {
-  return prisma.coursePurchase.upsert({
+  const d = input.discounts;
+
+  // Czy rekord już istniał? Potrzebne po stronie webhooka: zużycie promocji
+  // wolno naliczyć TYLKO przy pierwszym zapisie, inaczej redeliverka
+  // webhooka (albo fallback na /panel/vod) dubliłaby licznik.
+  const before = await prisma.coursePurchase.findUnique({
+    where: { paymentIntentId: input.paymentIntentId },
+    select: { id: true },
+  });
+
+  const purchase = await prisma.coursePurchase.upsert({
     where: { paymentIntentId: input.paymentIntentId },
     update: {},
     create: {
@@ -582,8 +595,42 @@ export async function recordCoursePurchase(input: {
       address: input.address ?? null,
       postalCode: input.postalCode ?? null,
       city: input.city ?? null,
+      ...(d ?? {}),
     },
   });
+
+  return { purchase, created: !before };
+}
+
+/**
+ * Odczyt snapshotu rabatów z metadanych PaymentIntenta.
+ *
+ * CoursePurchase powstaje dopiero w webhooku, więc wycena musi „przejechać"
+ * przez Stripe. Zapisujemy tylko pola realnie użyte (limit 50 kluczy), stąd
+ * brak jakiegokolwiek klucza rabatowego = zakup bez promocji.
+ */
+function readDiscountSnapshot(
+  meta: Record<string, string>,
+): BookingDiscountSnapshot | null {
+  if (!meta.totalDiscountAmount && meta.isSandbox !== "1") return null;
+
+  const num = (value: string | undefined) =>
+    value != null && value !== "" ? Number(value) : null;
+
+  return {
+    originalAmount: num(meta.originalAmount) ?? 0,
+    totalDiscountAmount: num(meta.totalDiscountAmount) ?? 0,
+    discountCodeId: meta.discountCodeId ?? null,
+    discountCode: meta.discountCode ?? null,
+    discountCodeAmount: num(meta.discountCodeAmount),
+    saleId: meta.saleId ?? null,
+    saleName: meta.saleName ?? null,
+    saleAmount: num(meta.saleAmount),
+    emailDiscountId: meta.emailDiscountId ?? null,
+    emailDiscountName: meta.emailDiscountName ?? null,
+    emailDiscountAmount: num(meta.emailDiscountAmount),
+    isSandbox: meta.isSandbox === "1",
+  };
 }
 
 /**
@@ -614,6 +661,7 @@ export async function recordCoursePurchaseFromStripe(pi: {
     address: meta.address ?? null,
     postalCode: meta.postalCode ?? null,
     city: meta.city ?? null,
+    discounts: readDiscountSnapshot(meta),
   });
 }
 

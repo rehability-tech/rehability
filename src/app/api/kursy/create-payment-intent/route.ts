@@ -5,6 +5,9 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth/auth";
 
+import { resolveCoursePricing } from "@/lib/discounts/resolveCheckoutPricing";
+import { MIN_CHARGE_GROSZE } from "@/lib/discounts/types";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,9 @@ const BodySchema = z.object({
   address: z.string().trim().optional(),
   postal: z.string().trim().optional(),
   city: z.string().trim().optional(),
+  // Kod rabatowy jest SUGESTIĄ z przeglądarki — wycena liczona jest niżej
+  // od nowa z bazy, więc podmieniony klient i tak zapłaci właściwą kwotę.
+  discountCode: z.string().trim().max(64).nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -87,10 +93,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ alreadyOwned: true });
   }
 
-  const amount = Math.round((course.price ?? 0) * 100);
+  // ========================================================
+  // WYCENA — to samo wejście, co podgląd kodu w koszyku
+  // ========================================================
+  const pricing = await resolveCoursePricing({
+    courseId: course.id,
+    email,
+    rawCode: parsed.data.discountCode ?? null,
+    viewer: { role: (session?.user as { role?: string } | undefined)?.role, email },
+  });
+
+  if (!pricing) {
+    return NextResponse.json(
+      { error: "Ten kurs nie jest już dostępny." },
+      { status: 404 },
+    );
+  }
+
+  const amount = pricing.price.finalAmount;
+
+  // Rabat mógł zbić cenę poniżej progu Stripe — wtedy traktujemy zakup jak
+  // darmowy i nadajemy dostęp od razu, zamiast tworzyć płatność nie do
+  // przyjęcia przez Stripe.
+  const belowStripeMinimum =
+    amount < MIN_CHARGE_GROSZE && pricing.price.totalDiscount > 0;
 
   // Kurs darmowy → nadajemy dostęp od razu, bez Stripe.
-  if (amount <= 0) {
+  if (amount <= 0 || belowStripeMinimum) {
     await prisma.enrollment.upsert({
       where: { userId_courseId: { userId, courseId: course.id } },
       update: {},
@@ -115,6 +144,32 @@ export async function POST(req: Request) {
   if (address) metadata.address = address.slice(0, 300);
   if (postal) metadata.postalCode = postal.slice(0, 20);
   if (city) metadata.city = city.slice(0, 120);
+
+  // Snapshot rabatów przekazujemy przez metadata, bo CoursePurchase powstaje
+  // dopiero w webhooku. Zapisujemy tylko pola realnie użyte — Stripe ma limit
+  // 50 kluczy, a większość zakupów nie ma żadnego rabatu.
+  const snapshot = pricing.snapshot;
+  if (snapshot.totalDiscountAmount > 0 || snapshot.isSandbox) {
+    metadata.originalAmount = String(snapshot.originalAmount);
+    metadata.totalDiscountAmount = String(snapshot.totalDiscountAmount);
+    metadata.isSandbox = snapshot.isSandbox ? "1" : "0";
+
+    if (snapshot.discountCodeId) {
+      metadata.discountCodeId = snapshot.discountCodeId;
+      metadata.discountCode = snapshot.discountCode ?? "";
+      metadata.discountCodeAmount = String(snapshot.discountCodeAmount ?? 0);
+    }
+    if (snapshot.saleId) {
+      metadata.saleId = snapshot.saleId;
+      metadata.saleName = (snapshot.saleName ?? "").slice(0, 200);
+      metadata.saleAmount = String(snapshot.saleAmount ?? 0);
+    }
+    if (snapshot.emailDiscountId) {
+      metadata.emailDiscountId = snapshot.emailDiscountId;
+      metadata.emailDiscountName = (snapshot.emailDiscountName ?? "").slice(0, 200);
+      metadata.emailDiscountAmount = String(snapshot.emailDiscountAmount ?? 0);
+    }
+  }
 
   let paymentIntent: Stripe.PaymentIntent;
   try {

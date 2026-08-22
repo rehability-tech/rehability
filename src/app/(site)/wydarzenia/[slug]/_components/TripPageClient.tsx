@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   ShoppingCart,
@@ -10,6 +10,7 @@ import {
 
 import SingleTripHero from "./SingleTripHero";
 import TripBookingForm, { type CurrentUser } from "./TripBookingForm";
+import type { PublicPricing } from "@/lib/discounts/publicPricing";
 import BlockRenderer from "@/components/block-renderer/BlockRenderer";
 
 interface TripPageClientProps {
@@ -23,6 +24,8 @@ interface TripPageClientProps {
   price?: string;
   priceValue: number;
   depositValue: number;
+  /** Wycena z serwera (z uwzględnieniem przecen i rabatów mailowych). */
+  pricing: PublicPricing;
   allowBringFriend: boolean;
   blocks: any[];
   mapUrl?: string | null;
@@ -48,6 +51,7 @@ export default function TripPageClient({
   price,
   priceValue,
   depositValue,
+  pricing,
   allowBringFriend,
   blocks,
   mapUrl,
@@ -72,6 +76,23 @@ export default function TripPageClient({
       block: "start",
     });
   };
+
+  // Krok formularza raportowany przez TripBookingForm.
+  //
+  // Krok 1 (wybór wariantu) zostaje w przyklejonym boczku obok opisu — działa
+  // wtedy jak CTA przy czytaniu strony. Od kroku 2 wchodzimy w rezerwację na
+  // serio (logowanie, dane, podsumowanie, płatność) i formularz przejmuje
+  // główną kolumnę: opis znika, bo te kroki dusiły się w kolumnie ~1/3 ekranu.
+  const [formStep, setFormStep] = useState(initialStep ?? 1);
+  const isFormExpanded = bookingOpen && formStep >= 2;
+
+  // Przejście z boczka na pełną szerokość przestawia układ pod kursorem.
+  // Bez przewinięcia formularz potrafi wylądować poza ekranem — zwłaszcza gdy
+  // opis był długi i użytkownik był nisko na stronie.
+  useEffect(() => {
+    if (!isFormExpanded) return;
+    scrollToForm();
+  }, [isFormExpanded]);
 
   return (
     <main className="min-h-screen bg-gray-50/30 pb-32 font-montserrat relative">
@@ -108,37 +129,47 @@ export default function TripPageClient({
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
           {/* ======================================= */}
           {/* LEWA KOLUMNA: Opis i szczegóły wydarzenia */}
+          {/* Od kroku 2 chowamy opis — formularz potrzebuje całej szerokości */}
           {/* ======================================= */}
-          <motion.div
-            key="info"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="lg:col-span-7 xl:col-span-8 w-full flex flex-col text-left"
-          >
-            <BlockRenderer blocks={blocks} mapUrl={mapUrl} />
-          </motion.div>
+          {!isFormExpanded && (
+            <motion.div
+              key="info"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="lg:col-span-7 xl:col-span-8 w-full flex flex-col text-left"
+            >
+              <BlockRenderer blocks={blocks} mapUrl={mapUrl} />
+            </motion.div>
+          )}
 
           {/* ======================================= */}
-          {/* PRAWA KOLUMNA: Formularz (Przyklejony)  */}
+          {/* FORMULARZ                                */}
+          {/* Krok 1: przyklejony boczek obok opisu (działa jak CTA przy      */}
+          {/* czytaniu). Od kroku 2: pełna szerokość — logowanie, dane,       */}
+          {/* podsumowanie i płatność nie mieszczą się w kolumnie ~1/3 ekranu.*/}
           {/* ======================================= */}
           <motion.div
             ref={formRef}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-32 z-30"
+            className={
+              isFormExpanded
+                ? "lg:col-span-12 w-full max-w-3xl mx-auto z-30"
+                : "lg:col-span-5 xl:col-span-4 lg:sticky lg:top-32 z-30"
+            }
           >
             {bookingOpen ? (
               <TripBookingForm
                 tripId={tripId}
                 tripTitle={title}
-                price={priceValue}
-                deposit={depositValue}
                 allowBringFriend={allowBringFriend}
                 currentUser={currentUser}
                 initialVariant={initialVariant}
                 initialStep={initialStep}
+                initialPricing={pricing}
+                onStepChange={setFormStep}
               />
             ) : (
               <BookingClosedCard
@@ -169,7 +200,14 @@ export default function TripPageClient({
                   Cena za osobę
                 </span>
                 <span className="text-lg font-jakarta font-bold text-brand-secondary leading-tight">
-                  {priceValue.toLocaleString("pl-PL")} zł
+                  {/* Cena po rabacie — aktywna przecena musi być widoczna
+                      także na pasku, zanim ktoś otworzy formularz. */}
+                  {pricing.totalDiscount > 0 && (
+                    <span className="mr-1.5 text-[13px] font-medium text-brand-secondary/40 line-through">
+                      {(pricing.baseAmount / 100).toLocaleString("pl-PL")} zł
+                    </span>
+                  )}
+                  {(pricing.finalAmount / 100).toLocaleString("pl-PL")} zł
                 </span>
               </div>
               {bookingOpen ? (

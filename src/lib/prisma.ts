@@ -2,11 +2,26 @@ import { Prisma, PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  dbLogged: boolean | undefined;
 };
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({});
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// Poza produkcją wypisujemy JEDEN RAZ, z jaką bazą rozmawiamy — bez danych
+// logowania. Projekt ma bazę główną (Neon) i branch testowy przełączany przez
+// scripts/with-env.mjs; bez tej linii łatwo szukać danych w złym miejscu albo,
+// gorzej, zmieniać dane na produkcji będąc przekonanym, że to test.
+if (process.env.NODE_ENV !== "production" && !globalForPrisma.dbLogged) {
+  globalForPrisma.dbLogged = true;
+  try {
+    const url = new URL(process.env.DATABASE_URL ?? "");
+    console.log(`[prisma] baza: ${url.hostname}${url.pathname}`);
+  } catch {
+    console.warn("[prisma] DATABASE_URL nieustawiony lub w złym formacie");
+  }
+}
 
 // Kody błędów Prisma oznaczające PROBLEM Z POŁĄCZENIEM (nie z danymi).
 // To są jedyne sytuacje, w których ponawianie ma sens — np. Neon budzi się

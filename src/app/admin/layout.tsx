@@ -9,6 +9,8 @@ import OneSignalProvider from "@/components/notifications/OneSignalProvider";
 import NotificationPrompt from "@/components/notifications/NotificationPrompt";
 import AdminMobileNavBar from "./_components/AdminMobileNavBar";
 import AdminContentArea from "./_components/AdminContentArea";
+import { SandboxProvider } from "./_components/SandboxProvider";
+import { ConfirmProvider } from "./_components/ui/ConfirmProvider";
 
 export default async function AdminLayout({
   children,
@@ -36,6 +38,10 @@ export default async function AdminLayout({
       {/* 2. POPRAWIONY GRID 
         Na mobile to zwykły flex (jedna kolumna), a na desktopie (lg:) grid 2-kolumnowy o równej szerokości 260px
       */}
+      {/* Stan piaskownicy jest wspólny dla topbaru (przełącznik) i panelu
+          rabatów (baner + oznaczenia szkiców), więc provider obejmuje oba. */}
+      <ConfirmProvider>
+      <SandboxProvider>
       <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[260px_1fr] font-montserrat bg-[#F7FAFB]">
         {/* KLIENCKI KOMPONENT SIDEBARA */}
         <AdminSidebar />
@@ -76,6 +82,8 @@ export default async function AdminLayout({
           <AdminContentArea>{children}</AdminContentArea>
         </main>
       </div>
+      </SandboxProvider>
+      </ConfirmProvider>
     </>
   );
 }

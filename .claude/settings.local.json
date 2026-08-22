@@ -28,7 +28,13 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('next:',p.dependencies.next,'react:',p.dependencies.react,'framer:',p.dependencies['framer-motion']\\)\")",
       "Bash(grep -E \"\\\\\\\\\\(site\\\\\\\\\\)/page.tsx|\\\\\\\\\\(site\\\\\\\\\\)/_components/HeroSection|^src/app/layout.tsx|^next.config\")",
       "Bash(node -e \"const fs=require\\('fs'\\);const b=fs.readFileSync\\('src/app/panel/[bookingId]/harmonogram/page.tsx'\\);const s=b.toString\\('binary'\\);const idx=s.indexOf\\('M'\\);for\\(let i=s.indexOf\\('h1'\\); i<s.indexOf\\('h1'\\)+200; i++\\){const c=b[i];process.stdout.write\\(i+': 0x'+c.toString\\(16\\).padStart\\(2,'0'\\)+' '+\\(c>=32&&c<127?String.fromCharCode\\(c\\):'?'\\)+'\\\\n'\\)}\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(DATABASE_URL=\"postgresql://u:p@localhost:5432/db\" npx prisma validate)",
+      "Bash(DATABASE_URL=\"postgresql://u:p@localhost:5432/db\" npx prisma generate)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(timeout 560 npx next build)",
+      "Bash(node \"C:/Users/KocikDev/AppData/Local/Temp/claude/c--Users-KocikDev-Desktop-rehability/2129e23f-9a1a-40b3-b7be-a8d3414ea63e/scratchpad/check-db.mjs\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\mkoci\\Desktop\\piotr_siemaszko\\rehability\\src\\components\\sections\\admin\\editor",

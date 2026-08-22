@@ -7,6 +7,7 @@ import {
   getTripBookingWindow,
   bookingClosedMessage,
 } from "@/lib/trips/bookingWindow";
+import { MIN_CHARGE_GROSZE } from "@/lib/discounts/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,28 +91,38 @@ export async function POST(req: Request) {
   // ========================================================
   // 3. LOGIKA WYLICZANIA KWOT (BARDZO WAŻNA KONTROLA)
   // ========================================================
-  // UWAGA: amountToPay tutaj jest OBLICZANA W ZŁOTÓWKACH na potrzeby naszego kodu poniżej.
-  let amountToPayPLN = 0;
+  // Wszystko liczymy w GROSZACH — tak, jak leży w bazie.
+  //
+  // Zadatek bierzemy ze SNAPSHOTU rezerwacji (amountDeposit), a NIE z
+  // trip.deposit. Rezerwacja mogła dostać rabat, a cennik wydarzenia mógł się
+  // od tamtej pory zmienić — liczenie od nowa obciążyłoby pełną kwotą
+  // i skasowało udzielony rabat.
+  const amountGrosze = isDepositPaid
+    ? booking.amountTotal - booking.amountPaid
+    : booking.amountDeposit > 0
+      ? booking.amountDeposit
+      : // Fallback dla rezerwacji sprzed wdrożenia systemu rabatowego.
+        Math.round(Number(booking.trip.deposit) * 100);
 
-  if (isDepositPaid) {
-    // DOPŁACA RESZTĘ
-    // booking.amountTotal w bazie jest w GROSZACH (np. 180000)
-    // booking.amountPaid w bazie jest w GROSZACH (np. 60000)
-    const amountTotalPLN = Number(booking.amountTotal) / 100;
-    const amountPaidPLN = Number(booking.amountPaid) / 100;
-    amountToPayPLN = amountTotalPLN - amountPaidPLN;
-  } else {
-    // PŁACI ZADATEK
-    // booking.trip.deposit w bazie (zazwyczaj) trzymany jest w ZŁOTÓWKACH, bo to pole Decimal.
-    amountToPayPLN = Number(booking.trip.deposit);
+  if (amountGrosze <= 0) {
+    return NextResponse.json(
+      { error: "Ta rezerwacja jest już opłacona." },
+      { status: 409 },
+    );
+  }
+
+  if (amountGrosze < MIN_CHARGE_GROSZE) {
+    return NextResponse.json(
+      {
+        error:
+          "Pozostała kwota jest zbyt niska, aby opłacić ją online. Skontaktuj się z organizatorem.",
+      },
+      { status: 409 },
+    );
   }
 
   const paymentType = isDepositPaid ? "remainder" : "deposit";
-
-  // ========================================================
-  // 4. GENEROWANIE STRIPE PAYMENT INTENT (ZAMIANA NA GROSZE)
-  // ========================================================
-  const amountGrosze = Math.round(amountToPayPLN * 100);
+  const amountToPayPLN = amountGrosze / 100;
 
   const stripe = getStripe();
   let clientSecret = "";
@@ -122,11 +133,15 @@ export async function POST(req: Request) {
       const pi = await stripe.paymentIntents.retrieve(
         booking.stripePaymentIntentId,
       );
-      // Sprawdzamy czy metadata.paymentType pasuje do obecnego zamiaru i czy nie jest zapłacone
+      // Sprawdzamy czy metadata.paymentType pasuje do obecnego zamiaru i czy nie jest zapłacone.
+      // Kwoty PaymentIntenta nie da się zmienić, więc porównujemy ją także —
+      // po przewycenieniu rezerwacji (rabat, zmiana cennika) stary koszyk
+      // obciążyłby nieaktualną kwotą.
       if (
         pi.status !== "succeeded" &&
         pi.status !== "canceled" &&
-        pi.metadata.paymentType === paymentType
+        pi.metadata.paymentType === paymentType &&
+        pi.amount === amountGrosze
       ) {
         clientSecret = pi.client_secret!;
       }

@@ -20,6 +20,7 @@ import {
   PencilSimple,
   ChartLineUp,
   GraduationCap,
+  Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { useChatUnreadLinks } from "@/hooks/useChatUnreadLinks";
@@ -243,6 +244,13 @@ export default function AdminMobileNavBar() {
       href: `/admin/wydarzenia/${currentCampId}/sklep`,
       label: "Sklep",
       icon: Storefront,
+      wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
+    },
+    {
+      key: "rabaty",
+      href: `/admin/wydarzenia/${currentCampId}/rabaty`,
+      label: "Rabaty",
+      icon: Tag,
       wideOnly: true, // Ukryte pod "kebabem" na bardzo małych ekranach (<450px)
     },
     {

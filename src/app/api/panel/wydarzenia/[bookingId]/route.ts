@@ -145,6 +145,15 @@ export async function GET(
         remainderPaidAt: booking.remainderPaidAt,
         amountTotal: Number(booking.amountTotal || 0) / 100,
         amountPaid: Number(booking.amountPaid || 0) / 100,
+        // Zadatek TEJ rezerwacji (po rabacie). trip.deposit to tylko cennik —
+        // rezerwacja z rabatem ma własną, niższą kwotę.
+        amountDeposit: Number(booking.amountDeposit || 0) / 100,
+        // Snapshot rabatów — panel pokazuje, skąd wzięła się niższa cena.
+        originalAmount: Number(booking.originalAmount || 0) / 100,
+        totalDiscountAmount: Number(booking.totalDiscountAmount || 0) / 100,
+        discountCode: booking.discountCode,
+        saleName: booking.saleName,
+        emailDiscountName: booking.emailDiscountName,
       },
       trip: {
         id: booking.trip.id,

@@ -123,6 +123,15 @@ export const FinanceCard = ({
       : 0;
   const isFullyPaid = remaining === 0 && amountTotal > 0;
 
+  // Rabat udzielony przy rezerwacji. Nazwy pochodzą ze SNAPSHOTU, więc
+  // pokażą się nawet wtedy, gdy promocję już skasowano.
+  const discountGrosze = participant.totalDiscountAmount || 0;
+  const discountSources = [
+    participant.discountCode ? `kod ${participant.discountCode}` : null,
+    participant.saleName,
+    participant.emailDiscountName,
+  ].filter(Boolean) as string[];
+
   const transactions = useMemo(
     () => buildTransactions(participant),
     [participant],
@@ -212,6 +221,24 @@ export const FinanceCard = ({
                 </p>
               </div>
             </div>
+
+            {discountGrosze > 0 && (
+              <div className="mt-4 pt-4 border-t border-brand-secondary/10 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-brand-secondary/40 uppercase tracking-widest mb-0.5">
+                    Udzielony rabat
+                  </p>
+                  <p className="text-[11px] text-brand-secondary/60 truncate">
+                    {discountSources.length > 0
+                      ? discountSources.join(" + ")
+                      : "Promocja"}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-emerald-600 tabular-nums whitespace-nowrap">
+                  −{formatZl(discountGrosze)} zł
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Suma wszystkich wpłat (wydarzenie + usługi) */}

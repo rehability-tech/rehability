@@ -17,6 +17,18 @@ import {
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import { OrderSummary } from "./OrderSummary";
+import { DiscountCodeBox } from "@/app/(site)/wydarzenia/[slug]/_components/DiscountCodeBox";
+import { formatGrosze } from "@/lib/discounts/format";
+import type { PriceLine } from "@/lib/discounts/types";
+
+/** Wycena kursu w koszyku — kurs płaci się jednorazowo, więc bez zadatku. */
+type CoursePricing = {
+  baseAmount: number;
+  finalAmount: number;
+  totalDiscount: number;
+  lines: PriceLine[];
+  appliedCode: string | null;
+};
 import StripePaymentStep from "@/app/(site)/wydarzenia/[slug]/_components/StripePaymentStep";
 import type { Course } from "../_data/courses";
 
@@ -244,6 +256,69 @@ export function CheckoutClient({
   const [error, setError] = useState<string | null>(null);
   // Po utworzeniu PaymentIntent przechodzimy do kroku „Płatność" (PaymentElement).
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // ── Rabaty ──────────────────────────────────────────────────────────────
+  // `pricing` jest źródłem prawdy dla kwot w koszyku. Startuje z ceny
+  // katalogowej i aktualizuje się po każdej próbie kodu; realne obciążenie
+  // serwer i tak przelicza od nowa.
+  const basePriceGrosze = Math.round((course.price ?? 0) * 100);
+  const [pricing, setPricing] = useState<CoursePricing>({
+    baseAmount: basePriceGrosze,
+    finalAmount: basePriceGrosze,
+    totalDiscount: 0,
+    lines: [],
+    appliedCode: null,
+  });
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [codeStatus, setCodeStatus] = useState<{
+    ok: boolean;
+    message: string | null;
+  } | null>(null);
+
+  async function applyDiscountCode(code: string | null) {
+    setCheckingCode(true);
+    setCodeStatus(null);
+    try {
+      const res = await fetch("/api/kursy/validate-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: course.slug, code }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setCodeStatus({
+          ok: false,
+          message: data?.error ?? "Nie udało się sprawdzić kodu.",
+        });
+        return;
+      }
+
+      setPricing({
+        baseAmount: data.baseAmount,
+        finalAmount: data.finalAmount,
+        totalDiscount: data.totalDiscount,
+        lines: data.lines,
+        appliedCode: data.appliedCode,
+      });
+      setCodeStatus(
+        data.codeStatus?.message
+          ? { ok: data.codeStatus.ok, message: data.codeStatus.message }
+          : null,
+      );
+
+      // Kwoty PaymentIntenta nie da się zmienić — po zmianie kodu koszyk
+      // trzeba złożyć od nowa.
+      setClientSecret(null);
+    } catch {
+      setCodeStatus({
+        ok: false,
+        message: "Brak połączenia z serwerem. Spróbuj ponownie.",
+      });
+    } finally {
+      setCheckingCode(false);
+    }
+  }
   const [returnUrl, setReturnUrl] = useState("");
   const [form, setForm] = useState<FormShape>({
     name: account?.name ?? "",
@@ -291,6 +366,8 @@ export function CheckoutClient({
           address: form.address,
           postal: form.postal,
           city: form.city,
+          // Sugestia — serwer i tak przelicza wycenę od nowa.
+          discountCode: pricing.appliedCode ?? undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -460,7 +537,7 @@ export function CheckoutClient({
 
             <StripePaymentStep
               clientSecret={clientSecret}
-              depositLabel={`${course.price} PLN`}
+              depositLabel={formatGrosze(pricing.finalAmount)}
               returnUrl={returnUrl}
               email={form.email}
             />
@@ -580,6 +657,50 @@ export function CheckoutClient({
                 error={fieldErrors.city}
               />
             </div>
+          </div>
+
+          {/* Kod rabatowy + rozbicie ceny — te same komponenty co przy
+              rezerwacji wydarzenia, więc reguły i wygląd się nie rozjadą. */}
+          <div className="flex flex-col gap-3">
+            <DiscountCodeBox
+              appliedCode={pricing.appliedCode}
+              disabled={loading}
+              checking={checkingCode}
+              statusMessage={codeStatus?.message ?? null}
+              statusOk={codeStatus?.ok ?? false}
+              onApply={(code) => applyDiscountCode(code)}
+              onClear={() => applyDiscountCode(null)}
+            />
+
+            {pricing.totalDiscount > 0 && (
+              <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-4">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-brand-secondary/60">Cena kursu</span>
+                  <span className="text-brand-secondary/40 line-through">
+                    {formatGrosze(pricing.baseAmount)}
+                  </span>
+                </div>
+                {pricing.lines.map((line) => (
+                  <div
+                    key={line.id}
+                    className="mt-2 flex items-start justify-between gap-3 text-[13px]"
+                  >
+                    <span className="min-w-0 text-brand-primary">{line.label}</span>
+                    <span className="shrink-0 font-bold text-brand-primary">
+                      −{formatGrosze(line.amount)}
+                    </span>
+                  </div>
+                ))}
+                <div className="mt-3 flex items-center justify-between border-t border-brand-secondary/10 pt-3">
+                  <span className="text-[13px] font-semibold text-brand-secondary">
+                    Do zapłaty
+                  </span>
+                  <span className="font-jakarta text-lg font-bold text-brand-secondary">
+                    {formatGrosze(pricing.finalAmount)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <AnimatePresence initial={false}>

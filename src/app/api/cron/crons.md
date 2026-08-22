@@ -48,6 +48,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 | `/api/cron/blog/generate-schedule` | Generuje harmonogram wpisów bloga na **następny** miesiąc (trendy PL + fallback). Idempotentny. | **raz w miesiącu** | `0 3 1 * *` |
 | `/api/cron/blob/cleanup` | Kasuje pliki nieużywane nigdzie w bazie (starsze niż 24h): zdjęcia z Vercel Blob **oraz** wideo z Bunny Stream. | **raz w tygodniu** | `0 4 * * 0` |
 | `/api/cron/mailer-drain` | Domyka wysyłkę kampanii mailingowych: dla każdej kampanii w `SENDING` wysyła kolejną paczkę oczekujących odbiorców (Resend batch ≤100). Idempotentny — gdy 0 oczekujących, kampania przechodzi w `SENT`. | **co 1–2 min** (podczas wysyłek) | `*/2 * * * *` |
+| `/api/cron/rabaty/deactivate-expired` | Wyłącza (`isActive: false`) promocje po terminie: kody, przeceny i rabaty mailowe z minionym `validUntil`. | **raz dziennie** | `45 3 * * *` |
 
 ## Szczegóły / uzasadnienie
 
@@ -58,6 +59,7 @@ Pooled endpoint Neona wymaga dopisania parametrów do `DATABASE_URL`, inaczej co
 - **bookings/expire-invitations** — TTL zaproszenia to 24h, więc precyzja nie jest krytyczna; co 15–30 min w zupełności wystarcza. Można nawet co godzinę.
 - **notifications/cleanup** — czysto porządkowe, raz dziennie w nocy (np. 03:30 UTC = 04:30/05:30 PL). Progi: `READ_TTL_DAYS = 30`, `HARD_TTL_DAYS = 90`.
 - **blog/generate-schedule** — kalendarz zawsze miesiąc do przodu; odpalany 1. dnia miesiąca. Idempotentny: jeśli plan istnieje, zwraca `created: 0`. Można też wołać ręcznie z `?year=&month=` (month 0-indexed) lub `?offset=N`.
+- **rabaty/deactivate-expired** — WYŁĄCZNIE porządek w panelu. Egzekwowanie terminu dzieje się przy każdym użyciu, w `evaluateDiscount` ([src/lib/discounts/evaluate.ts](../../../lib/discounts/evaluate.ts)) — gdyby cron nie zadziałał, przeterminowany kod i tak nie przejdzie, a admin zobaczy go jako „aktywny, ale poza terminem". `validUntil` obowiązuje WŁĄCZNIE, do 23:59:59.999 czasu polskiego (`endOfTripDay`), więc cron nie gasi promocji rankiem jej ostatniego dnia. Pora `45 3 * * *` (UTC) ≈ 04:45/05:45 PL — po północy PL, czyli po realnym wygaśnięciu.
 - **blob/cleanup** — garbage collection storage. Zbiera referencje ze WSZYSTKICH pól z URL-ami/embedami (też JSON: `content` bloga, `blocks`/`invitationEmail*` wydarzenia, `sections` maili, a także `Course.video`/`Lesson.video`) i kasuje obiekty, których nigdzie nie ma — **zarówno bloby (Vercel Blob), jak i wideo (Bunny Stream)**. Wideo Bunny dopasowujemy po GUID-zie zawartym w embed URL-u (generous match jak przy blobach). Bunny czyszczone tylko gdy skonfigurowane (`BUNNY_STREAM_LIBRARY_ID` + `BUNNY_STREAM_API_KEY`) — inaczej krok jest pomijany. **Guard wieku** (`minAgeHours`, domyślnie 24h) chroni przed wyścigiem „wgrano plik → rekord jeszcze niezapisany". `?dryRun=1` = tylko raport (użyj przy pierwszym uruchomieniu!). `?minAgeHours=N` zmienia próg. Rzadko, bo to operacja nieodwracalna.
 
 ## Jak to spiąć
@@ -77,6 +79,7 @@ Wybierz jedno:
     { "path": "/api/cron/blog/reminders", "schedule": "0 7 * * *" },
     { "path": "/api/cron/bookings/expire-invitations", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/notifications/cleanup", "schedule": "30 3 * * *" },
+    { "path": "/api/cron/rabaty/deactivate-expired", "schedule": "45 3 * * *" },
     { "path": "/api/cron/blog/generate-schedule", "schedule": "0 3 1 * *" }
   ]
 }

@@ -10,6 +10,8 @@ import {
   getTripBookingWindow,
   bookingClosedMessage,
 } from "@/lib/trips/bookingWindow";
+import { resolveCheckoutPricing } from "@/lib/discounts/resolveCheckoutPricing";
+import { MIN_CHARGE_GROSZE } from "@/lib/discounts/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +42,10 @@ const BodySchema = z
       health: z.literal(true, { message: "Wymagane oświadczenie zdrowotne." }),
     }),
     friend: FriendSchema.optional(),
+    // Kod rabatowy jest SUGESTIĄ z przeglądarki — cała wycena liczona jest
+    // niżej od nowa z bazy, więc podmieniony klient i tak zapłaci tyle, ile
+    // wynika z promocji realnie obowiązujących na tym wydarzeniu.
+    discountCode: z.string().trim().max(64).nullable().optional(),
   })
   .refine((d) => d.variant !== "duo" || !!d.friend, {
     message: "Wariant Duo wymaga danych osoby towarzyszącej.",
@@ -130,15 +136,48 @@ export async function POST(req: Request) {
     );
   }
 
-  const depositGrosze = Math.round(Number(trip.deposit) * 100);
-  const totalGrosze = Math.round(Number(trip.price) * 100);
+  // ========================================================
+  // WYCENA — jedyne wejście, wspólne z podglądem w koszyku
+  // ========================================================
+  const pricing = await resolveCheckoutPricing({
+    tripId: trip.id,
+    email: sessionEmail,
+    rawCode: data.discountCode ?? null,
+    viewer: {
+      role: (session.user as { role?: string }).role,
+      email: sessionEmail,
+    },
+  });
 
-  if (depositGrosze <= 0) {
+  if (!pricing) {
+    return NextResponse.json({ error: "Wydarzenie jest niedostępne." }, { status: 404 });
+  }
+
+  const totalGrosze = pricing.price.finalAmount;
+  const depositGrosze = pricing.depositGrosze;
+
+  if (depositGrosze < MIN_CHARGE_GROSZE || totalGrosze < MIN_CHARGE_GROSZE) {
     return NextResponse.json(
-      { error: "Wydarzenie nie ma poprawnie ustawionego zadatku." },
+      { error: "Wydarzenie nie ma poprawnie ustawionej ceny lub zadatku." },
       { status: 500 },
     );
   }
+
+  // Odrzucony kod NIE jest błędem — wyceniamy bez niego i oddajemy
+  // `codeStatus`, żeby koszyk mógł wyjaśnić dlaczego.
+
+  // Osoba towarzysząca płaci ze swojej rezerwacji, więc wyceniamy ją osobno
+  // i WYŁĄCZNIE promocjami automatycznymi: kod należy do osoby, która go
+  // wpisała — automatyczne przyklejenie go do cudzego miejsca podwoiłoby
+  // koszt promocji i wyciekło kod osobie trzeciej.
+  const friendPricing = data.friend
+    ? await resolveCheckoutPricing({
+        tripId: trip.id,
+        email: data.friend.email.toLowerCase(),
+        rawCode: null,
+        viewer: null,
+      })
+    : null;
 
   const fullName = `${data.customer.firstName} ${data.customer.lastName}`.trim();
   const expiresAt = new Date(Date.now() + INVITATION_TTL_HOURS * 3600 * 1000);
@@ -171,6 +210,11 @@ export async function POST(req: Request) {
         name: fullName,
         phone: data.customer.phone,
         status: "PENDING",
+        // Przewyceniamy przejmowane zaproszenie: placeholder powstał z ceną
+        // sprzed rabatu (i na cudzy e-mail), a płaci już ta osoba.
+        amountTotal: totalGrosze,
+        amountDeposit: depositGrosze,
+        ...pricing.snapshot,
       },
     });
     bookerId = existingInvitation.id;
@@ -210,6 +254,8 @@ export async function POST(req: Request) {
           phone: data.customer.phone,
           status: "PENDING",
           amountTotal: totalGrosze,
+          amountDeposit: depositGrosze,
+          ...pricing.snapshot,
         },
         select: { id: true },
       });
@@ -225,7 +271,9 @@ export async function POST(req: Request) {
             name: friendName,
             email: data.friend.email,
             status: "PENDING_INVITATION",
-            amountTotal: totalGrosze,
+            amountTotal: friendPricing?.price.finalAmount ?? totalGrosze,
+            amountDeposit: friendPricing?.depositGrosze ?? depositGrosze,
+            ...(friendPricing?.snapshot ?? {}),
             invitedById: booker.id,
             invitationToken,
             expiresAt,
@@ -250,6 +298,8 @@ export async function POST(req: Request) {
         bookingId: bookerId,
         paymentType: "deposit",
         tripId: trip.id,
+        discountCode: pricing.snapshot.discountCode ?? "",
+        sandbox: pricing.isSandbox ? "1" : "0",
       },
     });
   } catch (err) {
@@ -301,5 +351,14 @@ export async function POST(req: Request) {
     paymentIntentId: paymentIntent.id,
     bookingId: bookerId,
     amount: depositGrosze,
+    // Kwoty odesłane przez serwer są ŹRÓDŁEM PRAWDY dla formularza — to na
+    // ich podstawie liczy on odcisk wyceny i wykrywa, że kod się zmienił.
+    baseAmount: pricing.price.baseAmount,
+    total: totalGrosze,
+    deposit: depositGrosze,
+    totalDiscount: pricing.price.totalDiscount,
+    lines: pricing.price.lines,
+    couponOutranked: pricing.price.couponOutranked,
+    codeStatus: pricing.codeStatus,
   });
 }

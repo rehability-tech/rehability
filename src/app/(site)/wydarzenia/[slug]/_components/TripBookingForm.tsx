@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { signIn, signOut } from "next-auth/react";
 import {
@@ -21,6 +21,12 @@ import { cn } from "@/lib/utils";
 import StripePaymentStep from "./StripePaymentStep";
 import Link from "next/link";
 import { MOCK_ACCOUNTS } from "@/lib/auth/mockAccounts";
+import {
+  pricingFingerprint,
+  type PublicPricing,
+} from "@/lib/discounts/publicPricing";
+import { DiscountCodeBox } from "./DiscountCodeBox";
+import { PriceBreakdown } from "./PriceBreakdown";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SPRING = { type: "spring", stiffness: 320, damping: 32 } as const;
@@ -44,19 +50,31 @@ const EMPTY_FRIEND: Friend = { firstName: "", lastName: "", email: "" };
 interface TripBookingFormProps {
   tripId: string;
   tripTitle: string;
-  price: number;
-  deposit: number;
   allowBringFriend: boolean;
   currentUser: CurrentUser | null;
   initialVariant?: Variant;
   initialStep?: number;
+  /** Wycena policzona na serwerze (bez kodu). Źródło prawdy dla cen w formularzu. */
+  initialPricing: PublicPricing;
+  /**
+   * Informuje stronę o aktualnym kroku. Od kroku 2 formularz przejmuje główną
+   * kolumnę — logowanie, dane, podsumowanie i płatność nie mieszczą się
+   * w wąskim boczku.
+   */
+  onStepChange?: (step: number) => void;
 }
 
-function formatPLN(value: number) {
-  return value.toLocaleString("pl-PL", {
+/**
+ * Formatuje GROSZE. Dwa miejsca po przecinku, bo kwota po rabacie rzadko
+ * wychodzi okrągła — a różnica „1 440 zł" vs „1 439,50 zł" to dokładnie ta,
+ * o którą klient zapyta.
+ */
+function formatGroszeExact(grosze: number) {
+  return (grosze / 100).toLocaleString("pl-PL", {
     style: "currency",
     currency: "PLN",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   });
 }
 
@@ -83,12 +101,12 @@ function clampStep(n: number | undefined, isLogged: boolean): Step {
 export default function TripBookingForm({
   tripId,
   tripTitle,
-  price,
-  deposit,
   allowBringFriend,
   currentUser,
   initialVariant,
   initialStep,
+  initialPricing,
+  onStepChange,
 }: TripBookingFormProps) {
   const isLogged = !!currentUser;
   const initialNameParts = splitName(currentUser?.name ?? null);
@@ -109,6 +127,20 @@ export default function TripBookingForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
+
+  // ── Rabaty ──────────────────────────────────────────────────────────────
+  // `pricing` jest ŹRÓDŁEM PRAWDY dla wszystkich kwot w formularzu. Startuje
+  // z wyceny policzonej na serwerze i aktualizuje się po każdej próbie kodu.
+  const [pricing, setPricing] = useState<PublicPricing>(initialPricing);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [codeStatus, setCodeStatus] = useState<{
+    ok: boolean;
+    message: string | null;
+  } | null>(null);
+
+  // Odcisk wyceny z chwili utworzenia PaymentIntenta. Kwoty PI nie da się
+  // zmienić, więc każda zmiana ceny musi unieważnić koszyk.
+  const [paidFingerprint, setPaidFingerprint] = useState<string | null>(null);
 
   const isDuo = variant === "duo";
 
@@ -165,6 +197,70 @@ export default function TripBookingForm({
     goTo(Math.max(1, step - 1) as Step);
   }
 
+  /**
+   * Unieważnia istniejący PaymentIntent i cofa na podsumowanie.
+   * Wołane po KAŻDEJ zmianie ceny — inaczej uczestnik zapłaciłby kwotę
+   * sprzed zmiany kodu.
+   */
+  function invalidatePaymentIntent(reason?: string) {
+    setClientSecret(null);
+    setBookingId(null);
+    setPaidFingerprint(null);
+    if (reason) setSubmitError(reason);
+    if (step === 5) goTo(4);
+  }
+
+  async function applyDiscountCode(code: string | null) {
+    setCheckingCode(true);
+    setCodeStatus(null);
+    try {
+      const res = await fetch("/api/bookings/validate-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId, code }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setCodeStatus({
+          ok: false,
+          message: data?.error ?? "Nie udało się sprawdzić kodu.",
+        });
+        return;
+      }
+
+      setPricing({
+        baseAmount: data.baseAmount,
+        finalAmount: data.finalAmount,
+        totalDiscount: data.totalDiscount,
+        lines: data.lines,
+        depositGrosze: data.depositGrosze,
+        remainderGrosze: data.remainderGrosze,
+        appliedCode: data.appliedCode,
+        couponOutranked: data.couponOutranked,
+        isSandbox: pricing.isSandbox,
+      });
+
+      setCodeStatus(
+        data.codeStatus?.message
+          ? { ok: data.codeStatus.ok, message: data.codeStatus.message }
+          : null,
+      );
+
+      // Cena mogła się zmienić — stary koszyk przestaje być ważny.
+      invalidatePaymentIntent();
+    } catch (err) {
+      console.error(err);
+      setCodeStatus({
+        ok: false,
+        message: "Brak połączenia z serwerem. Spróbuj ponownie.",
+      });
+    } finally {
+      setCheckingCode(false);
+    }
+  }
+
   async function handleCreatePayment() {
     if (!currentUser) return goTo(2);
 
@@ -184,6 +280,7 @@ export default function TripBookingForm({
           },
           consents: { rodo: true, health: true },
           friend: isDuo ? friend : undefined,
+          discountCode: pricing.appliedCode ?? undefined,
         }),
       });
 
@@ -196,10 +293,26 @@ export default function TripBookingForm({
         setSubmitting(false);
         return;
       }
-      const { clientSecret: secret, bookingId: newBookingId } =
-        await res.json();
-      setClientSecret(secret);
-      setBookingId(newBookingId);
+      const data = await res.json();
+
+      // Kwoty bierzemy Z ODPOWIEDZI SERWERA, nie z lokalnego stanu — serwer
+      // przeliczył wycenę od nowa i to jego wynik trafił do Stripe.
+      const serverPricing: PublicPricing = {
+        baseAmount: data.baseAmount,
+        finalAmount: data.total,
+        totalDiscount: data.totalDiscount,
+        lines: data.lines,
+        depositGrosze: data.deposit,
+        remainderGrosze: data.total - data.deposit,
+        appliedCode: data.codeStatus?.ok ? data.codeStatus.code : null,
+        couponOutranked: data.couponOutranked,
+        isSandbox: pricing.isSandbox,
+      };
+
+      setPricing(serverPricing);
+      setPaidFingerprint(pricingFingerprint(serverPricing));
+      setClientSecret(data.clientSecret);
+      setBookingId(data.bookingId);
       setSubmitting(false);
       goTo(5);
     } catch (err) {
@@ -210,6 +323,31 @@ export default function TripBookingForm({
       setSubmitting(false);
     }
   }
+
+  // Raportujemy krok na zewnątrz — także ten początkowy (powrót z logowania
+  // wchodzi na ?step=3 i od razu ma pokazać szeroki układ).
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
+
+  /**
+   * Pas bezpieczeństwa: gdyby cena zmieniła się już po utworzeniu koszyka
+   * (np. przecena wygasła w tle), nie pozwalamy zapłacić nieaktualnej kwoty.
+   * Serwer i tak przelicza wycenę przy tworzeniu PI, więc to zabezpieczenie
+   * jest wyłącznie UX-owe — nie może doprowadzić do zaniżonego obciążenia.
+   */
+  useEffect(() => {
+    if (
+      step === 5 &&
+      paidFingerprint &&
+      paidFingerprint !== pricingFingerprint(pricing)
+    ) {
+      invalidatePaymentIntent(
+        "Cena się zmieniła. Sprawdź podsumowanie i potwierdź ponownie.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, paidFingerprint, pricing]);
 
   const slideVariants = {
     enter: (dir: 1 | -1) => ({ opacity: 0, x: dir * 40, filter: "blur(6px)" }),
@@ -258,7 +396,7 @@ export default function TripBookingForm({
                 <Step1Variant
                   variant={variant}
                   setVariant={setVariant}
-                  price={price}
+                  pricing={pricing}
                   allowBringFriend={allowBringFriend}
                 />
               )}
@@ -295,9 +433,12 @@ export default function TripBookingForm({
                   currentUser={currentUser!}
                   customer={customer}
                   friend={friend}
-                  price={price}
-                  deposit={deposit}
+                  pricing={pricing}
                   submitError={submitError}
+                  submitting={submitting}
+                  checkingCode={checkingCode}
+                  codeStatus={codeStatus}
+                  onApplyCode={applyDiscountCode}
                 />
               )}
 
@@ -305,8 +446,8 @@ export default function TripBookingForm({
                 <Step5Payment
                   clientSecret={clientSecret}
                   bookingId={bookingId}
-                  deposit={deposit}
-                  price={price}
+                  pricing={pricing}
+                  onChangeCode={() => invalidatePaymentIntent()}
                 />
               )}
             </motion.div>
@@ -351,7 +492,7 @@ export default function TripBookingForm({
                 loadingLabel="Przetwarzanie…"
               >
                 <CreditCard size={16} weight="bold" />
-                Opłać zadatek · {formatPLN(deposit)}
+                Opłać zadatek · {formatGroszeExact(pricing.depositGrosze)}
               </PrimaryButton>
             )}
           </motion.footer>
@@ -434,7 +575,7 @@ function Stepper({ step }: { step: Step }) {
 
 /* ───────────────────────── Step 1: Variant ───────────────────────── */
 
-function Step1Variant({ variant, setVariant, price, allowBringFriend }: any) {
+function Step1Variant({ variant, setVariant, pricing, allowBringFriend }: any) {
   return (
     <Stagger>
       <Item>
@@ -453,7 +594,8 @@ function Step1Variant({ variant, setVariant, price, allowBringFriend }: any) {
           icon={<UserIcon size={22} weight="duotone" />}
           title="Tylko ja"
           subtitle="Jadę solo. Rezerwuję 1 miejsce."
-          pricePerPerson={price}
+          pricePerPerson={pricing.finalAmount}
+          basePricePerPerson={pricing.baseAmount}
         />
       </Item>
       {allowBringFriend && (
@@ -464,7 +606,8 @@ function Step1Variant({ variant, setVariant, price, allowBringFriend }: any) {
             icon={<UsersThree size={22} weight="duotone" />}
             title="Zabierz osobę towarzyszącą"
             subtitle="Dzielicie pokój, my zajmiemy się resztą."
-            pricePerPerson={price}
+            pricePerPerson={pricing.finalAmount}
+          basePricePerPerson={pricing.baseAmount}
             badge="Duo"
           />
         </Item>
@@ -644,19 +787,24 @@ function Step3Details({
       </Item>
 
       <Item>
+        {/* Imię i nazwisko obok siebie, gdy jest miejsce — formularz od kroku 3
+            zajmuje szeroką kolumnę, więc pola na całą szerokość wyglądałyby
+            źle. Na wąskim widoku wracają do jednej kolumny. */}
         <div className="flex flex-col gap-4">
-          <Field
-            label="Imię"
-            value={customer.firstName}
-            onChange={(v) => setCustomer({ ...customer, firstName: v })}
-            error={errors.firstName}
-          />
-          <Field
-            label="Nazwisko"
-            value={customer.lastName}
-            onChange={(v) => setCustomer({ ...customer, lastName: v })}
-            error={errors.lastName}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field
+              label="Imię"
+              value={customer.firstName}
+              onChange={(v) => setCustomer({ ...customer, firstName: v })}
+              error={errors.firstName}
+            />
+            <Field
+              label="Nazwisko"
+              value={customer.lastName}
+              onChange={(v) => setCustomer({ ...customer, lastName: v })}
+              error={errors.lastName}
+            />
+          </div>
           <Field
             label="Numer telefonu"
             type="tel"
@@ -686,18 +834,20 @@ function Step3Details({
               to równe 24 godziny.
             </p>
             <div className="flex flex-col gap-4 relative z-10">
-              <Field
-                label="Imię"
-                value={friend.firstName}
-                onChange={(v) => setFriend({ ...friend, firstName: v })}
-                error={errors.friendFirstName}
-              />
-              <Field
-                label="Nazwisko"
-                value={friend.lastName}
-                onChange={(v) => setFriend({ ...friend, lastName: v })}
-                error={errors.friendLastName}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Imię"
+                  value={friend.firstName}
+                  onChange={(v) => setFriend({ ...friend, firstName: v })}
+                  error={errors.friendFirstName}
+                />
+                <Field
+                  label="Nazwisko"
+                  value={friend.lastName}
+                  onChange={(v) => setFriend({ ...friend, lastName: v })}
+                  error={errors.friendLastName}
+                />
+              </div>
               <Field
                 label="Adres e-mail"
                 type="email"
@@ -756,9 +906,12 @@ function Step4Summary({
   currentUser,
   customer,
   friend,
-  price,
-  deposit,
+  pricing,
   submitError,
+  submitting,
+  checkingCode,
+  codeStatus,
+  onApplyCode,
 }: any) {
   return (
     <Stagger>
@@ -803,23 +956,20 @@ function Step4Summary({
       </Item>
 
       <Item>
+        <DiscountCodeBox
+          appliedCode={pricing.appliedCode}
+          disabled={submitting}
+          checking={checkingCode}
+          statusMessage={codeStatus?.message ?? null}
+          statusOk={codeStatus?.ok ?? false}
+          onApply={(code) => onApplyCode(code)}
+          onClear={() => onApplyCode(null)}
+        />
+      </Item>
+
+      <Item>
         <div className="rounded-[20px] bg-brand-secondary/5 border border-brand-secondary/10 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[13px] font-semibold text-brand-secondary/60">
-              Cena wydarzenia (za os.)
-            </span>
-            <span className="font-jakarta font-bold text-[15px] text-brand-secondary strike line-through opacity-50">
-              {formatPLN(price)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-3 border-t border-brand-secondary/10 mt-1">
-            <span className="text-[13px] font-bold text-brand-secondary">
-              Zadatek (płacisz teraz)
-            </span>
-            <span className="text-[24px] font-jakarta font-extrabold text-brand-primary drop-shadow-sm">
-              {formatPLN(deposit)}
-            </span>
-          </div>
+          <PriceBreakdown pricing={pricing} />
           <p className="text-[11px] font-medium text-brand-secondary/50 mt-3 leading-relaxed">
             Pozostałą kwotę uregulujesz w wygodnym dla siebie momencie za pomocą
             swojego panelu uczestnika, najpóźniej przed wydarzeniem.
@@ -845,11 +995,13 @@ function Step4Summary({
 
 /* ───────────────────────── Step 5: Payment ───────────────────────── */
 
-function Step5Payment({ clientSecret, bookingId, deposit, price }: any) {
+function Step5Payment({ clientSecret, bookingId, pricing, onChangeCode }: any) {
   const returnUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/panel/wydarzenia/${bookingId}?status=processing`
       : "";
+  const depositLabel = formatGroszeExact(pricing.depositGrosze);
+
   return (
     <Stagger>
       <Item>
@@ -857,18 +1009,40 @@ function Step5Payment({ clientSecret, bookingId, deposit, price }: any) {
           Płatność bezpieczna
         </h3>
         <p className="text-[13px] font-medium text-brand-secondary/60 mt-1 leading-relaxed">
-          Sfinalizuj płatność zadatku ({formatPLN(deposit)}). Twoja rezerwacja
+          Sfinalizuj płatność zadatku ({depositLabel}). Twoja rezerwacja
           zostanie natychmiast potwierdzona.
         </p>
       </Item>
+
+      {pricing.totalDiscount > 0 && (
+        <Item>
+          <p className="text-[12px] font-semibold text-brand-primary">
+            Rabat naliczony — oszczędzasz{" "}
+            {formatGroszeExact(pricing.totalDiscount)}.
+          </p>
+        </Item>
+      )}
+
       <Item>
         <div className="rounded-[24px] bg-white border border-gray-100 p-2 shadow-sm">
           <StripePaymentStep
             clientSecret={clientSecret}
-            depositLabel={formatPLN(deposit)}
+            depositLabel={depositLabel}
             returnUrl={returnUrl}
           />
         </div>
+      </Item>
+
+      {/* Kwoty PaymentIntenta nie da się zmienić — powrót do podsumowania
+          musi więc unieważnić koszyk i utworzyć go od nowa. */}
+      <Item>
+        <button
+          type="button"
+          onClick={onChangeCode}
+          className="mx-auto block text-[12px] font-bold text-brand-secondary/50 transition-colors hover:text-brand-primary"
+        >
+          Zmień dane lub kod rabatowy
+        </button>
       </Item>
     </Stagger>
   );
@@ -915,7 +1089,10 @@ function VariantCard({
   icon,
   title,
   subtitle,
+  /** Cena po rabacie, w GROSZACH. */
   pricePerPerson,
+  /** Cena z cennika (grosze) — pokazywana przekreśleniem, gdy jest rabat. */
+  basePricePerPerson,
   badge,
 }: any) {
   return (
@@ -973,7 +1150,13 @@ function VariantCard({
           Cena / osoba
         </span>
         <span className="font-jakarta font-bold text-[18px] text-brand-secondary whitespace-nowrap">
-          {formatPLN(pricePerPerson)}
+          {basePricePerPerson != null &&
+            basePricePerPerson > pricePerPerson && (
+              <span className="mr-2 text-[13px] font-medium text-brand-secondary/40 line-through">
+                {formatGroszeExact(basePricePerPerson)}
+              </span>
+            )}
+          {formatGroszeExact(pricePerPerson)}
         </span>
       </div>
       <AnimatePresence>

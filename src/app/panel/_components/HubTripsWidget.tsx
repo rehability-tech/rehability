@@ -109,7 +109,9 @@ export default function HubTripsWidget() {
       }
 
       setClientSecret(data.clientSecret);
-      setDepositAmount(data.deposit);
+      // Endpoint zwraca `amount` w ZŁOTÓWKACH — to kwota po rabacie,
+      // wyliczona z Booking.amountDeposit, a nie z cennika wydarzenia.
+      setDepositAmount(Number(data.amount) || 0);
     } catch (err: any) {
       setPaymentError(err.message);
     } finally {

@@ -153,6 +153,10 @@ Brakuje:
 
 **Rekomendacja:** rate-limit per-IP/per-user (np. Upstash/Vercel KV) na endpointach publicznych i płatniczych; CAPTCHA na newsletterze.
 
+**Częściowo zaadresowane (system rabatowy):** [`/api/bookings/validate-discount`](./bookings/validate-discount/route.ts) ma limit **10 prób/min na konto** ([src/lib/rate-limit.ts](../../lib/rate-limit.ts)) — ten endpoint jest wprost narzędziem do zgadywania kodów rabatowych, więc bez limitu dałoby się je wyliczyć brute-force'em. Wymaga też zalogowania i zwraca jednolite `not_found` (nie rozróżnia kodu nieistniejącego, z innego wydarzenia i z piaskownicy).
+
+⚠️ **Ograniczenie licznika:** żyje w pamięci PROCESU. Na serverless każda instancja ma własny, więc realny limit to `liczba instancji × 10/min`. To wciąż zabija naiwny skrypt, ale nie jest twardą gwarancją — twardy limit wymaga Redisa (Upstash/Vercel KV), zgodnie z rekomendacją wyżej.
+
 ### N2. Wyciek danych w logach i odpowiedziach błędów
 
 - [`/api/panel/orders`](./panel/orders/route.ts): `console.log(service)` (linia ~167) loguje cały obiekt usługi; odpowiedź 500 zwraca `debug: msg` (linia ~301) — ujawnia wewnętrzne kody błędów klientowi.
