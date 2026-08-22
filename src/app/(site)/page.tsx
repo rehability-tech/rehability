@@ -6,6 +6,7 @@ import { SocialProofSection } from "./_components/SocialProofSection";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth"; // <--- DODANY IMPORT
 import { authOptions } from "@/lib/auth/auth";
+import { activeTripDateCutoff } from "@/lib/trips/bookingWindow";
 
 // Strona główna. title.template z root layoutu doklei " | Rehability Prudnik",
 // więc trzymamy tu tylko mocne słowa kluczowe. Canonical przechodzi do "/".
@@ -89,16 +90,21 @@ async function getLatestPosts() {
 
 async function getFeaturedTrip() {
   try {
-    // Pomijamy wydarzenia już zakończone (po endDate) — próg = początek dziś.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const campRaw = await prisma.trip.findFirst({
       where: {
-        isFeatured: true,
         status: "PUBLISHED",
-        endDate: { gte: today },
+        // Minione wydarzenie znika ze strony głównej samo, bez akcji admina.
+        endDate: { gte: activeTripDateCutoff() },
+        // Strona główna jest na ISR (`revalidate`), więc NIE czyta ciasteczka
+        // podglądu — jeden wyrenderowany HTML trafiałby do wszystkich. Wydarzeń
+        // z piaskownicy nie pokazujemy tu nigdy; testuje się je na /wydarzenia.
+        sandbox: false,
       },
-      orderBy: { startDate: "asc" },
+      // Wyróżnione ma pierwszeństwo, ale `isFeatured` NIE jest warunkiem —
+      // inaczej po minięciu wyróżnionego wydarzenia cała sekcja znikałaby ze
+      // strony głównej, mimo kolejnych terminów w bazie. Gdy wyróżnionego brak
+      // (lub już się odbyło), automatycznie wchodzi najbliższe nadchodzące.
+      orderBy: [{ isFeatured: "desc" }, { startDate: "asc" }],
       select: {
         id: true,
         title: true,

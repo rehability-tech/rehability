@@ -32,7 +32,7 @@ export async function GET(
     where: { id: tripId },
     select: {
       title: true,
-      sandbox: true,
+      discountSandbox: true,
       sandboxEnabledAt: true,
       sandboxPrice: true,
       sandboxDeposit: true,
@@ -55,7 +55,7 @@ export async function GET(
   return NextResponse.json({
     tripId,
     tripTitle: trip.title,
-    enabled: trip.sandbox,
+    enabled: trip.discountSandbox,
     since: trip.sandboxEnabledAt,
     sandboxPriceGrosze:
       trip.sandboxPrice != null ? Math.round(Number(trip.sandboxPrice) * 100) : null,

@@ -4,6 +4,8 @@ import { AllTripsList } from "./_components/AllTripsList";
 import { TripsHero } from "./_components/TripsHero";
 import { FeaturedTrip } from "./_components/FeaturedTrip";
 import { prisma } from "@/lib/prisma";
+import { sandboxFilter, showSandboxContent } from "@/lib/sandbox/context";
+import { activeTripDateCutoff } from "@/lib/trips/bookingWindow";
 
 import type { Metadata } from "next";
 
@@ -23,13 +25,16 @@ export const metadata: Metadata = {
   },
 };
 
-async function getInitialCampsData() {
-  // Ukrywamy zakończone wydarzenia (po endDate). Próg: początek dzisiejszego dnia.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+async function getInitialCampsData(includeSandbox: boolean) {
+  // Ukrywamy zakończone wydarzenia. Próg liczony w czasie polskim — ten sam,
+  // którego używa panel (`isTripPast`), żeby katalog nie rozjeżdżał się z nim
+  // po północy.
   const activeWhere = {
     status: "PUBLISHED",
-    endDate: { gte: today },
+    endDate: { gte: activeTripDateCutoff() },
+    // Wydarzenia z piaskownicy dokleja się do katalogu tylko przy włączonym
+    // podglądzie (admin / tester).
+    ...sandboxFilter(includeSandbox),
   } as const;
 
   try {
@@ -47,6 +52,7 @@ async function getInitialCampsData() {
           price: true,
           startDate: true,
           endDate: true,
+          sandbox: true,
         },
       }),
       prisma.trip.findMany({
@@ -65,6 +71,7 @@ async function getInitialCampsData() {
           price: true,
           startDate: true,
           endDate: true,
+          sandbox: true,
         },
       }),
       prisma.trip.count({ where: activeWhere }),
@@ -90,8 +97,11 @@ async function getInitialCampsData() {
 }
 
 export default async function WydarzeniaPage() {
+  // Czyta ciasteczko podglądu → strona renderuje się dynamicznie. To zamierzone:
+  // katalog wydarzeń i tak musi odzwierciedlać bieżący stan bazy.
+  const includeSandbox = await showSandboxContent();
   const { featuredTrip, initialTrips, totalCount } =
-    await getInitialCampsData();
+    await getInitialCampsData(includeSandbox);
 
   return (
     <main className="min-h-screen pb-24">

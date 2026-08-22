@@ -74,6 +74,12 @@ export interface Course {
   createdAt?: string;
   /** Data pierwszej publikacji (ISO) lub null, gdy nigdy nie publikowany. */
   publishedAt?: string | null;
+  /**
+   * Kurs w piaskownicy — trafia do UI tylko dla admina i testerów. Karty
+   * i strona kursu pokazują wtedy plakietkę „SANDBOX", żeby nie pomylić
+   * treści testowej z produkcyjną.
+   */
+  sandbox?: boolean;
 }
 
 /** Formatuje czas materiału: 200 → „3h 20 min", 42 → „42 min", 0 → „—". */

@@ -21,7 +21,7 @@ export async function GET(
   const { id: slug } = await params;
   const course = await prisma.course.findFirst({
     where: { OR: [{ slug }, { id: slug }] },
-    select: { id: true, title: true, sandbox: true },
+    select: { id: true, title: true, discountSandbox: true },
   });
   if (!course) {
     return NextResponse.json({ error: "Kurs nie istnieje." }, { status: 404 });
@@ -37,7 +37,7 @@ export async function GET(
   return NextResponse.json({
     courseId: course.id,
     tripTitle: course.title,
-    enabled: course.sandbox,
+    enabled: course.discountSandbox,
     since: null,
     // Kurs nie ma cennika testowego — patrz publishSandbox.ts.
     sandboxPriceGrosze: null,

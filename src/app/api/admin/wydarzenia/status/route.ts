@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { validateTripCompleteness } from "@/lib/trips/validateTripCompleteness";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 import { createSystemUpdate } from "@/lib/notifications/send";
 import { notifyIndexNow } from "@/lib/seo/indexing";
 import { absoluteUrl } from "@/lib/seo/site";
@@ -54,6 +55,20 @@ export async function PATCH(req: Request) {
 
       previousStatus = trip.status;
 
+      // Po terminie nie ma czego publikować: wydarzenie i tak nie pojawi się
+      // w katalogu ani na stronie głównej (filtr daty), a `create-payment-intent`
+      // odrzuci każdą płatność jako "ENDED". Status "Aktywny" byłby wtedy tylko
+      // mylącą etykietą w panelu.
+      if (isTripPast(trip)) {
+        return NextResponse.json(
+          {
+            error:
+              "Termin tego wydarzenia już minął — nie można ustawić statusu „Opublikowany”. Użyj statusu „Zakończony”.",
+          },
+          { status: 409 },
+        );
+      }
+
       const { isComplete, missing } = validateTripCompleteness(trip);
 
       if (!isComplete) {
@@ -73,8 +88,14 @@ export async function PATCH(req: Request) {
       data: { status },
     });
 
-    // 5. SYSTEM_UPDATE [D] + PUSH [P] do uczestniczek — tylko przy pierwszej publikacji
-    if (status === "PUBLISHED" && previousStatus !== "PUBLISHED") {
+    // 5. SYSTEM_UPDATE [D] + PUSH [P] do uczestniczek — tylko przy pierwszej publikacji.
+    //    Wydarzenia z piaskownicy są tu wyłączone: push poszedłby do całej bazy,
+    //    a IndexNow zgłosiłby wyszukiwarkom adres, którego nikt nie może otworzyć.
+    if (
+      status === "PUBLISHED" &&
+      previousStatus !== "PUBLISHED" &&
+      !updatedCamp.sandbox
+    ) {
       createSystemUpdate({
         type: "CAMP",
         title: `Nowe wydarzenie: ${updatedCamp.title}`,

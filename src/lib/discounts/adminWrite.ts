@@ -25,7 +25,7 @@ type OwnerLoad =
 export async function loadTripForDiscounts(tripId: string): Promise<OwnerLoad> {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    select: { sandbox: true, title: true },
+    select: { discountSandbox: true, title: true },
   });
 
   if (!trip) {
@@ -43,7 +43,7 @@ export async function loadTripForDiscounts(tripId: string): Promise<OwnerLoad> {
 
   return {
     ok: true,
-    sandbox: trip.sandbox,
+    sandbox: trip.discountSandbox,
     title: trip.title,
     owner: tripOwner(tripId),
     response: null,
@@ -63,7 +63,7 @@ export async function loadCourseForDiscounts(
 ): Promise<OwnerLoad> {
   const course = await prisma.course.findFirst({
     where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
-    select: { id: true, sandbox: true, title: true },
+    select: { id: true, discountSandbox: true, title: true },
   });
 
   if (!course) {
@@ -81,7 +81,7 @@ export async function loadCourseForDiscounts(
 
   return {
     ok: true,
-    sandbox: course.sandbox,
+    sandbox: course.discountSandbox,
     title: course.title,
     owner: courseOwner(course.id),
     response: null,

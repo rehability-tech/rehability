@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/auth";
 import { getVodOverview, getCourses } from "@/lib/courses-db";
+import { showSandboxContent } from "@/lib/sandbox/context";
 import { MyCoursesClient } from "./_components/MyCoursesClient";
 
 export const metadata = {
@@ -17,9 +18,10 @@ export default async function MyCoursesPage() {
   }
 
   // Posiadana biblioteka (+ postęp) oraz pełny katalog do sekcji „do kupienia".
+  const includeSandbox = await showSandboxContent(session);
   const [overview, catalog] = await Promise.all([
     getVodOverview(session.user.id),
-    getCourses(),
+    getCourses({ includeSandbox }),
   ]);
   const ownedIds = new Set(overview.courses.map((c) => c.id));
   const buyable = catalog.filter((c) => !ownedIds.has(c.id));

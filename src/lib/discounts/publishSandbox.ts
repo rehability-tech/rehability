@@ -27,7 +27,7 @@ export async function publishSandbox(tripId: string): Promise<void> {
         ...(trip.sandboxDeposit != null ? { deposit: trip.sandboxDeposit } : {}),
         sandboxPrice: null,
         sandboxDeposit: null,
-        sandbox: false,
+        discountSandbox: false,
         sandboxEnabledAt: null,
       },
     }),
@@ -54,7 +54,7 @@ export async function publishSandbox(tripId: string): Promise<void> {
 export async function disableSandbox(tripId: string): Promise<void> {
   await prisma.trip.update({
     where: { id: tripId },
-    data: { sandbox: false, sandboxEnabledAt: null },
+    data: { discountSandbox: false, sandboxEnabledAt: null },
   });
 }
 
@@ -91,13 +91,13 @@ export async function setCourseSandbox(
 ): Promise<void> {
   await prisma.course.update({
     where: { id: courseId },
-    data: { sandbox: enabled },
+    data: { discountSandbox: enabled },
   });
 }
 
 export async function publishCourseSandbox(courseId: string): Promise<void> {
   await prisma.$transaction([
-    prisma.course.update({ where: { id: courseId }, data: { sandbox: false } }),
+    prisma.course.update({ where: { id: courseId }, data: { discountSandbox: false } }),
     prisma.discountCode.updateMany({
       where: { courseId, isSandbox: true },
       data: { isSandbox: false },
@@ -121,7 +121,7 @@ export async function enableSandbox(
   await prisma.trip.update({
     where: { id: tripId },
     data: {
-      sandbox: true,
+      discountSandbox: true,
       sandboxEnabledAt: now(),
       ...(prices.sandboxPrice !== undefined
         ? { sandboxPrice: prices.sandboxPrice }

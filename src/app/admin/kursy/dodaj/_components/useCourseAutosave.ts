@@ -56,6 +56,8 @@ export type Draft = {
   ogImage?: string;
   canonicalUrl?: string;
   noIndex?: boolean;
+  /** Tryb sandbox — kurs widoczny wyłącznie dla admina i testerów. */
+  sandbox?: boolean;
   /** Treść sekcji „O kursie" na stronie sprzedażowej. null = domyślny fallback. */
   description?: CourseBlock[] | null;
   /** Opis zakładki „Zawartość" (co kurs zawiera). null = domyślny fallback. */
@@ -109,6 +111,7 @@ function createBody(draft: Draft, status: CourseStatus) {
     ogImage: draft.ogImage ?? "",
     canonicalUrl: draft.canonicalUrl ?? "",
     noIndex: draft.noIndex ?? false,
+    sandbox: draft.sandbox ?? false,
     description: draft.description ?? null,
     content: draft.content ?? null,
     faq: draft.faq ?? null,
@@ -135,6 +138,7 @@ function patchBody(draft: Draft, status: CourseStatus) {
     ogImage: draft.ogImage ?? "",
     canonicalUrl: draft.canonicalUrl ?? "",
     noIndex: draft.noIndex ?? false,
+    sandbox: draft.sandbox ?? false,
     description: draft.description ?? null,
     content: draft.content ?? null,
     faq: draft.faq ?? null,

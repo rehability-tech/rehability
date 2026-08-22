@@ -18,6 +18,7 @@ import {
   VideoCamera,
   PencilSimpleLine,
   Archive,
+  Flask,
   Trash,
   CaretLeft,
   CaretDown,
@@ -452,6 +453,13 @@ function CourseCard({
         </span>
         {/* Status */}
         <StatusBadge status={course.status} />
+        {/* Piaskownica — kurs niewidoczny dla klientów */}
+        {course.sandbox && (
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold text-brand-secondary bg-brand-yellow/95 backdrop-blur-md rounded-full px-2 py-1 shadow-sm">
+            <Flask size={11} weight="fill" />
+            Sandbox
+          </span>
+        )}
         {/* Czas trwania / liczba lekcji (z realnych długości wideo) */}
         <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 text-[11px] font-semibold text-white drop-shadow">
           <Clock size={13} weight="fill" />
@@ -780,6 +788,12 @@ function CourseRow({
             {course.category}
           </span>
           <StatusPill status={course.status} />
+          {course.sandbox && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-secondary bg-brand-yellow/40 rounded-full px-2 py-0.5">
+              <Flask size={11} weight="fill" />
+              Sandbox
+            </span>
+          )}
           {course.videoPending && !draft && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-400/15 rounded-full px-2 py-0.5">
               <VideoCamera size={11} weight="fill" />

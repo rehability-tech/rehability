@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { sandboxFilter, showSandboxContent } from "@/lib/sandbox/context";
+import { activeTripDateCutoff } from "@/lib/trips/bookingWindow";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -7,13 +9,14 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") ?? "4")));
   const skip = (page - 1) * limit;
 
-  // Nie pokazujemy wydarzeń, które już się zakończyły (po endDate). Próg to
-  // początek dzisiejszego dnia, żeby wydarzenie byłoo widoczne przez cały ostatni dzień.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Nie pokazujemy wydarzeń, które już się zakończyły. Wydarzenie jest widoczne
+  // przez cały ostatni dzień (próg = północ dzisiejszej daty w czasie polskim).
+  // Doładowywanie listy („Pokaż więcej") musi widzieć dokładnie to samo, co
+  // pierwsza strona wyrenderowana serwerowo — stąd ten sam próg i filtr piaskownicy.
   const activeWhere = {
     status: "PUBLISHED",
-    endDate: { gte: today },
+    endDate: { gte: activeTripDateCutoff() },
+    ...sandboxFilter(await showSandboxContent()),
   } as const;
 
   try {
@@ -34,6 +37,7 @@ export async function GET(request: NextRequest) {
           price: true,
           startDate: true,
           endDate: true,
+          sandbox: true,
         },
       }),
       prisma.trip.count({ where: activeWhere }),

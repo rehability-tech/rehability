@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       allowBringFriend: validatedData.allowBringFriend, // <--- NOWA LINIA
       registrationDeadline: validatedData.registrationDeadline ?? null,
       registrationClosed: validatedData.registrationClosed ?? false,
+      sandbox: validatedData.sandbox ?? false,
       description: validatedData.description,
       lastAiPrompt: validatedData.lastAiPrompt,
       lastStage: lastStage || "dane-podstawowe",

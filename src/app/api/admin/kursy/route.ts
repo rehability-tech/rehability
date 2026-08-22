@@ -141,6 +141,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       videoDurationSec,
       image: body.image || null,
       status,
+      // Piaskownica — kurs zapisuje się normalnie, ale zobaczą go tylko admin
+      // i testerzy (patrz src/lib/sandbox).
+      sandbox: body.sandbox === true,
       // Data publikacji — ustawiamy, gdy kurs powstaje już jako opublikowany.
       publishedAt: status === "PUBLISHED" ? new Date() : null,
       // SEO / Open Graph

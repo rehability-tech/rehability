@@ -43,7 +43,7 @@ export async function POST(
   // Kopiujemy tylko do istniejących wydarzeń i nigdy do samego siebie.
   const targets = await prisma.trip.findMany({
     where: { id: { in: targetTripIds.filter((t) => t !== tripId) } },
-    select: { id: true, sandbox: true },
+    select: { id: true, discountSandbox: true },
   });
 
   if (targets.length === 0) {
@@ -88,7 +88,7 @@ export async function POST(
             validFrom: src.validFrom,
             validUntil: src.validUntil,
             usageLimit: src.usageLimit,
-            isSandbox: target.sandbox,
+            isSandbox: target.discountSandbox,
           },
         });
         copied += 1;
@@ -111,7 +111,7 @@ export async function POST(
           validFrom: src.validFrom,
           validUntil: src.validUntil,
           usageLimit: src.usageLimit,
-          isSandbox: target.sandbox,
+          isSandbox: target.discountSandbox,
         })),
       });
       copied = targets.length;
@@ -137,7 +137,7 @@ export async function POST(
             validFrom: src.validFrom,
             validUntil: src.validUntil,
             usageLimit: src.usageLimit,
-            isSandbox: target.sandbox,
+            isSandbox: target.discountSandbox,
             members: {
               create: src.members.map((member) => ({ email: member.email })),
             },

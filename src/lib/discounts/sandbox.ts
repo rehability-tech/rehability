@@ -25,7 +25,7 @@ export type SandboxViewer = {
 } | null;
 
 export type SandboxTrip = {
-  sandbox: boolean;
+  discountSandbox: boolean;
   price: unknown;
   deposit: unknown;
   sandboxPrice?: unknown;
@@ -54,10 +54,10 @@ export function viewerCanUseSandbox(viewer: SandboxViewer): boolean {
 
 /** Czy dla TEJ osoby i TEGO wydarzenia piaskownica jest realnie aktywna. */
 export function isSandboxActiveFor(
-  trip: { sandbox: boolean },
+  trip: { discountSandbox: boolean },
   viewer: SandboxViewer,
 ): boolean {
-  return trip.sandbox && viewerCanUseSandbox(viewer);
+  return trip.discountSandbox && viewerCanUseSandbox(viewer);
 }
 
 /**

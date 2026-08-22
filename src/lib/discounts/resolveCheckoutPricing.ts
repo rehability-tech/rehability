@@ -203,7 +203,7 @@ export async function resolveCheckoutPricing(args: {
       title: true,
       price: true,
       deposit: true,
-      sandbox: true,
+      discountSandbox: true,
       sandboxPrice: true,
       sandboxDeposit: true,
     },
@@ -242,12 +242,12 @@ export async function resolveCoursePricing(args: {
 
   const course = await prisma.course.findFirst({
     where: args.courseId ? { id: args.courseId } : { slug: args.slug },
-    select: { id: true, title: true, price: true, sandbox: true },
+    select: { id: true, title: true, price: true, discountSandbox: true },
   });
 
   if (!course) return null;
 
-  const inSandbox = course.sandbox && viewerCanUseSandbox(args.viewer);
+  const inSandbox = course.discountSandbox && viewerCanUseSandbox(args.viewer);
   // Course.price to Int w ZŁOTÓWKACH (inaczej niż Trip.price typu Decimal).
   const priceGrosze = Math.round((course.price ?? 0) * 100);
 

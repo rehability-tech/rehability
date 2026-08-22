@@ -23,6 +23,7 @@ import {
   type PublicPricing,
 } from "@/lib/discounts/publicPricing";
 import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
+import { canUseSandbox } from "@/lib/sandbox/context";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -55,6 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonicalUrl: true,
       noIndex: true,
       updatedAt: true,
+      sandbox: true,
     },
   });
 
@@ -85,8 +87,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const canonical = trip.canonicalUrl || absoluteUrl(`/wydarzenia/${trip.id}`);
 
   // DRAFT/ARCHIVED nigdy nie powinny zostać zindeksowane — niezależnie od
-  // `noIndex` (panel admina pozwala obejrzeć drafty przez URL).
-  const shouldIndex = trip.status === "PUBLISHED" && !trip.noIndex;
+  // `noIndex` (panel admina pozwala obejrzeć drafty przez URL). Tak samo
+  // wydarzenia z piaskownicy: nie mają prawa trafić do wyszukiwarki.
+  const shouldIndex =
+    trip.status === "PUBLISHED" && !trip.noIndex && !trip.sandbox;
 
   return {
     title,
@@ -163,8 +167,13 @@ export default async function SingleCampPage({ params, searchParams }: Props) {
 
   if (!trip) notFound();
 
+  // Piaskownica: wydarzenie testowe otwiera się po samym adresie, ale wyłącznie
+  // dla admina i testerów. Dla wszystkich pozostałych po prostu nie istnieje.
+  if (trip.sandbox && !(await canUseSandbox(session))) notFound();
+
   // INKREMENTACJA WYŚWIETLEŃ BEZPOŚREDNIO TUTAJ
-  if (trip.status === "PUBLISHED") {
+  // Wydarzenia z piaskownicy pomijamy — statystyki mają zostać czyste.
+  if (trip.status === "PUBLISHED" && !trip.sandbox) {
     try {
       await prisma.trip.update({
         where: { id: trip.id },

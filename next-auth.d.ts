@@ -6,15 +6,10 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role | string;
-      /**
-       * Dostęp do piaskownicy rabatów nadany per konto (User.sandboxAccess).
-       * Administrator ma dostęp niezależnie od tej flagi — patrz
-       * `viewerCanUseSandbox` w src/lib/discounts/sandbox.ts.
-       */
-      sandboxAccess: boolean;
+      /** Konto widzi treści sandbox (admin z urzędu, user przez flagę w bazie). */
+      sandboxAccess?: boolean;
     } & DefaultSession["user"];
   }
-
   interface User {
     id: string;
     role: Role | string;

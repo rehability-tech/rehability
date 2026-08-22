@@ -34,7 +34,7 @@ const TRIP = {
   title: "Camp Prudnik",
   price: 2000, // złotówki (Decimal w bazie)
   deposit: 500,
-  sandbox: false,
+  discountSandbox: false,
   sandboxPrice: null,
   sandboxDeposit: null,
 };
@@ -56,7 +56,7 @@ const COURSE = {
   id: "course-1",
   title: "Kurs testowy",
   price: 200,
-  sandbox: false,
+  discountSandbox: false,
 };
 
 beforeEach(() => {
@@ -122,7 +122,7 @@ describe("resolveCheckoutPricing — podstawy", () => {
 
 describe("resolveCheckoutPricing — piaskownica", () => {
   it("zwykły klient NIE widzi promocji testowych (filtr w zapytaniu)", async () => {
-    db.trip.findUnique.mockResolvedValue({ ...TRIP, sandbox: true });
+    db.trip.findUnique.mockResolvedValue({ ...TRIP, discountSandbox: true });
 
     await resolveCheckoutPricing({
       tripId: "trip-1",
@@ -146,7 +146,7 @@ describe("resolveCheckoutPricing — piaskownica", () => {
   });
 
   it("kod z piaskownicy zwraca klientowi not_found, nie testową nazwę", async () => {
-    db.trip.findUnique.mockResolvedValue({ ...TRIP, sandbox: true });
+    db.trip.findUnique.mockResolvedValue({ ...TRIP, discountSandbox: true });
     // Filtr odciął rekord — z perspektywy zapytania kodu po prostu nie ma.
     db.discountCode.findFirst.mockResolvedValue(null);
 
@@ -167,7 +167,7 @@ describe("resolveCheckoutPricing — piaskownica", () => {
   it("admin w piaskownicy dostaje cenę testową i widzi rekordy testowe", async () => {
     db.trip.findUnique.mockResolvedValue({
       ...TRIP,
-      sandbox: true,
+      discountSandbox: true,
       sandboxPrice: 100,
       sandboxDeposit: 50,
     });

@@ -32,6 +32,7 @@ import {
   PencilSimple,
   PaperPlaneTilt,
   Tag,
+  Flask,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { getAdminTripId, getAdminCourseSlug } from "@/lib/admin/nav";
@@ -226,7 +227,9 @@ export default function AdminSidebar() {
         ? "vod"
         : isInCrmSection
           ? "crm"
-          : null;
+          : pathname.startsWith("/admin/sandbox")
+            ? "srodowisko"
+            : null;
   const [openSection, setOpenSection] = useState<string | null>(activeSection);
   // Wejście do nowej sekcji (zmiana trasy) → rozwijamy ją automatycznie.
   useEffect(() => {
@@ -883,6 +886,21 @@ export default function AdminSidebar() {
               </StepsBox>
             )}
           </div>
+        </Section>
+
+        {/* ŚRODOWISKO — piaskownica (treści testowe + lista testerów) */}
+        <Section
+          title="Środowisko"
+          icon={Flask}
+          open={openSection === "srodowisko"}
+          onToggle={() => toggle("srodowisko")}
+        >
+          <NavLink
+            href="/admin/sandbox"
+            label="Sandbox"
+            icon={Flask}
+            active={pathname.startsWith("/admin/sandbox")}
+          />
         </Section>
       </nav>
 

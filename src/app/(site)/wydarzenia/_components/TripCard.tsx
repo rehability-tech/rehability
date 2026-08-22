@@ -3,10 +3,11 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarBlank, MapPin } from "@phosphor-icons/react/dist/ssr";
+import { CalendarBlank, MapPin, Flask, CalendarX } from "@phosphor-icons/react/dist/ssr";
 import { motion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { formatSingleDayOrNull } from "@/lib/trips/tripDates";
+import { isTripPast } from "@/lib/trips/bookingWindow";
 
 // Funkcja pomocnicza do dat
 const formatDateRange = (start: any, end: any) => {
@@ -70,6 +71,11 @@ export default function TripCard({ trip, variants }: TripCardProps) {
     return html.replace(/<[^>]*>?/gm, "");
   };
 
+  // Listingi odsiewają minione wydarzenia po dacie, ale karta może trafić tu
+  // z zacache'owanej listy albo z podglądu — wtedy stan „po terminie" musi być
+  // widoczny, a nie udawać nadchodzący termin.
+  const past = trip.endDate ? isTripPast({ endDate: trip.endDate }) : false;
+
   return (
     <motion.div
       variants={variants}
@@ -85,11 +91,25 @@ export default function TripCard({ trip, variants }: TripCardProps) {
         />
 
         {/* NAKŁADKA 1: Data (Lewy Górny Róg) */}
-        <div className="absolute top-4 left-4 z-30">
+        <div className="absolute top-4 left-4 z-30 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 font-montserrat text-[12px] font-semibold bg-white/90 backdrop-blur-md text-[#0B3B4C] w-fit px-3 py-1.5 rounded-full shadow-sm">
             <CalendarBlank size={16} className="text-[#287D88]" weight="bold" />
             <span>{formatDateRange(trip.startDate, trip.endDate)}</span>
           </div>
+          {/* Termin minął — wydarzenie zostaje na liście tylko informacyjnie */}
+          {past && (
+            <div className="flex items-center gap-1.5 font-montserrat text-[11px] font-bold uppercase tracking-wide bg-[#0B3B4C]/85 backdrop-blur-md text-white w-fit px-2.5 py-1.5 rounded-full shadow-sm">
+              <CalendarX size={14} weight="bold" />
+              Zakończone
+            </div>
+          )}
+          {/* Wydarzenie z piaskownicy — widzą je tylko admin i testerzy */}
+          {trip.sandbox && (
+            <div className="flex items-center gap-1.5 font-montserrat text-[11px] font-bold uppercase tracking-wide bg-brand-yellow text-[#0B3B4C] w-fit px-2.5 py-1.5 rounded-full shadow-sm">
+              <Flask size={14} weight="fill" />
+              Sandbox
+            </div>
+          )}
         </div>
 
         {/* NAKŁADKA 2: Lokalizacja (Prawy Dolny Róg) */}

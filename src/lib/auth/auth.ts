@@ -117,16 +117,25 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role; // Pociągnie wartość typu Enum z bazy (USER lub ADMIN)
-          // Dostęp do piaskownicy rabatów nadany per konto — czytany z bazy
-          // przy każdym żądaniu, więc odebranie go działa od razu (nie czeka
-          // na wygaśnięcie tokena).
+          // Dostęp do piaskownicy czytamy z bazy przy każdym odświeżeniu tokenu,
+          // więc odebranie flagi w /admin/sandbox działa bez wylogowania testera.
           token.sandboxAccess = dbUser.sandboxAccess;
+        } else {
+          // Konta nie ma w bazie — czyścimy flagę, żeby stary token nie niósł
+          // dostępu do piaskownicy po usunięciu użytkownika.
+          token.sandboxAccess = false;
         }
       }
 
       // 3. Twarde nadpisanie uprawnień dla administratorów z tablicy (zabezpieczenie)
       if (token.email && ADMIN_EMAILS.includes(token.email)) {
         token.role = "ADMIN";
+      }
+
+      // 4. Admin ma dostęp do piaskownicy z urzędu — flaga na koncie jest tylko
+      //    dla zwykłych kont testowych.
+      if (token.role === "ADMIN") {
+        token.sandboxAccess = true;
       }
 
       return token;

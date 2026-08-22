@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { ArrowLeft, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { authOptions } from "@/lib/auth/auth";
 import { getCourseBySlug } from "@/lib/courses-db";
+import { canUseSandbox } from "@/lib/sandbox/context";
 import { CheckoutClient } from "../../_components/CheckoutClient";
 
 export const metadata: Metadata = {
@@ -18,10 +19,15 @@ export default async function CheckoutPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = await getCourseBySlug(slug);
-  if (!course) notFound();
 
   const session = await getServerSession(authOptions);
+  // Kurs sandbox można kupić testowo tylko z uprawnieniem — spójnie ze stroną
+  // kursu i z bramką w `POST /api/kursy/create-payment-intent`.
+  const course = await getCourseBySlug(slug, {
+    includeSandbox: await canUseSandbox(session),
+  });
+  if (!course) notFound();
+
   const isLoggedIn = !!session?.user?.email;
   const loginUrl = `/logowanie?callbackUrl=${encodeURIComponent(`/kursy/${slug}/checkout`)}`;
 

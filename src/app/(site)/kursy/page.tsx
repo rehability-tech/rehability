@@ -9,6 +9,7 @@ import {
   getCourseCategories,
   getEnrolledSlugs,
 } from "@/lib/courses-db";
+import { showSandboxContent } from "@/lib/sandbox/context";
 
 export const metadata: Metadata = {
   title: "Platforma VOD – Programy treningowe online",
@@ -26,9 +27,12 @@ export const metadata: Metadata = {
 
 export default async function KursyPage() {
   const session = await getServerSession(authOptions);
+  // Kursy sandbox dokleja się do katalogu tylko przy włączonym podglądzie.
+  const includeSandbox = await showSandboxContent(session);
+
   const [courses, categories, ownedSlugs] = await Promise.all([
-    getCourses(),
-    getCourseCategories(),
+    getCourses({ includeSandbox }),
+    getCourseCategories({ includeSandbox }),
     session?.user?.id ? getEnrolledSlugs(session.user.id) : Promise.resolve([]),
   ]);
 

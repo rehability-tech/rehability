@@ -42,6 +42,24 @@ Użytkownik trafia tutaj po opłaceniu zadatku na stronie publicznej z parametre
 4. Karta Zdrowia (zapis do `HealthProfile`).
 5. Moduł Usług SPA (pobieranie `CampService`, rezerwacja slotów w `ServiceOrder`).
 
+## 🧪 Sandbox (środowisko testowe)
+
+Treści oznaczone jako sandbox żyją w bazie obok produkcyjnych, ale widzą je tylko **admin** i **konta z `User.sandboxAccess`**. Obejmuje `Trip.sandbox` i `Course.sandbox`.
+
+- **`sandbox` jest wymiarem NIEZALEŻNYM od `status`** — sandboxowe wydarzenie/kurs może być `PUBLISHED` i zachowywać się jak produkcyjne, nie wychodząc do klientów. „Wypuszczenie na produkcję" zdejmuje tylko flagę; statusu nie ruszamy.
+- **Rdzeń: `src/lib/sandbox/`**
+  - `constants.ts` — czysty moduł (bezpieczny w client/proxy): `SANDBOX_COOKIE` (celowo **nie** `httpOnly` — to preferencja widoku, nie poświadczenie), `SANDBOX_PREVIEW_EVENT`.
+  - `context.ts` — `getSandboxContext()`, `showSandboxContent()`, `canUseSandbox()`, `sandboxFilter()`.
+- **Dwa różne pytania — nie mylić:**
+  - `canUseSandbox` → czy wolno otworzyć/kupić POJEDYNCZĄ treść. Nie zależy od przełącznika (link wysłany testerowi ma działać od razu).
+  - `showSandbox` → czy doklejać treści testowe do LIST (katalogi, biblioteka VOD). Wymaga włączonego podglądu, żeby admin widział stronę oczami klienta.
+- **Domyślnie ukryte:** funkcje czytające treść „dla klienta" przyjmują `includeSandbox` z domyślną wartością `false` — przeoczenie parametru ukrywa treść testową, zamiast ją wyciekać.
+- **Enrollment wygrywa:** odtwarzacz VOD i biblioteka nie filtrują po sandbox — dostęp rozstrzyga `Enrollment`. Kursant nie traci kupionego kursu, gdy trafi on do piaskownicy.
+- **Twarde bramki serwerowe:** `create-payment-intent` (kursy i rezerwacje) oraz `actions/stripe.ts` odpowiadają 404 na treść sandbox bez uprawnień.
+- **Higiena:** treści sandbox nie trafiają do `sitemap.xml`, nie wywołują IndexNow, nie wysyłają powiadomień push przy publikacji i nie liczą się do statystyk (wyświetlenia, dashboard VOD). Strona główna (ISR) nigdy ich nie pokazuje.
+- **Panel: `/admin/sandbox`** — przełącznik podglądu, lista treści testowych z akcją „Wypuść", zarządzanie testerami (nadanie po e-mailu istniejącego konta). Globalny żółty pasek (`SandboxPreviewBar` w `src/app/layout.tsx`) ostrzega, że podgląd jest włączony.
+- **API:** `POST /api/sandbox/preview` (admin + testerzy), `GET|POST /api/admin/sandbox/testerzy`, `DELETE /api/admin/sandbox/testerzy/[id]`, `PATCH /api/admin/sandbox/tresci`.
+
 ## 🎬 Platforma VOD (Kursy)
 
 Druga noga produktu obok wydarzeń: sprzedaż i odtwarzanie kursów wideo on-demand. Dostęp jest **per-konto** (model `Enrollment`) i **dożywotni**. W UI mówimy „kurs/program", użytkownik to „kursant".

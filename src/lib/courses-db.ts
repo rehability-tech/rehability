@@ -59,8 +59,26 @@ type DbCourse = {
   noIndex: boolean;
   createdAt: Date;
   publishedAt: Date | null;
+  sandbox: boolean;
   modules: DbModule[];
 };
+
+// ===== SANDBOX (PIASKOWNICA) =====
+// Kursy `sandbox` żyją w bazie obok produkcyjnych i mogą mieć status PUBLISHED,
+// ale katalog, biblioteka VOD i checkout pokazują je wyłącznie osobom
+// uprawnionym. Każda funkcja czytająca kursy „dla klienta" przyjmuje więc
+// `includeSandbox` — DOMYŚLNIE `false`, żeby przeoczenie parametru w nowym
+// kodzie kończyło się ukryciem treści testowej, a nie jej wyciekiem.
+
+export type SandboxScope = {
+  /** `true` = pokaż też kursy sandbox (osoba uprawniona z włączonym podglądem). */
+  includeSandbox?: boolean;
+};
+
+/** Fragment `where`: bez uprawnień widać wyłącznie kursy produkcyjne. */
+function sandboxWhere(opts?: SandboxScope): { sandbox?: false } {
+  return opts?.includeSandbox ? {} : { sandbox: false };
+}
 
 /**
  * Czy kursowi brakuje nagrań (publikacja dozwolona, ale UI to sygnalizuje).
@@ -123,6 +141,7 @@ function mapCourse(c: DbCourse): Course {
     noIndex: c.noIndex,
     createdAt: c.createdAt.toISOString(),
     publishedAt: c.publishedAt ? c.publishedAt.toISOString() : null,
+    sandbox: c.sandbox ?? false,
   };
 }
 
@@ -156,10 +175,10 @@ function mapReviews(rows: DbReview[] | undefined): CourseReview[] {
   }));
 }
 
-/** Wszystkie opublikowane kursy (do katalogu). */
-export async function getCourses(): Promise<Course[]> {
+/** Wszystkie opublikowane kursy (do katalogu). Bez `includeSandbox` — tylko produkcyjne. */
+export async function getCourses(opts?: SandboxScope): Promise<Course[]> {
   const rows = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
+    where: { status: "PUBLISHED", ...sandboxWhere(opts) },
     orderBy: { createdAt: "asc" },
     include: includeModules,
   });
@@ -192,10 +211,13 @@ export async function getAdminCourses(): Promise<AdminCourseListItem[]> {
   }));
 }
 
-/** Pojedynczy kurs po slug. */
-export async function getCourseBySlug(slug: string): Promise<Course | null> {
+/** Pojedynczy kurs po slug. Kurs sandbox wymaga `includeSandbox` (inaczej null → 404). */
+export async function getCourseBySlug(
+  slug: string,
+  opts?: SandboxScope,
+): Promise<Course | null> {
   const row = await prisma.course.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, status: "PUBLISHED", ...sandboxWhere(opts) },
     include: { ...includeModules, ...includeReviews },
   });
   if (!row) return null;
@@ -237,9 +259,10 @@ export type PlayerCourse = {
 /** Kurs z pełnymi lekcjami (z wideo) do odtwarzacza VOD. */
 export async function getCourseForPlayer(
   slug: string,
+  opts?: SandboxScope,
 ): Promise<PlayerCourse | null> {
   const c = (await prisma.course.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, status: "PUBLISHED", ...sandboxWhere(opts) },
     include: { ...includeModules, ...includeReviews },
   })) as unknown as
     | (DbCourse & {
@@ -524,9 +547,11 @@ export async function getCourseParticipants(
 }
 
 /** Kategorie wyliczone z bazy (+ „Wszystkie" na początku). */
-export async function getCourseCategories(): Promise<string[]> {
+export async function getCourseCategories(
+  opts?: SandboxScope,
+): Promise<string[]> {
   const rows = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
+    where: { status: "PUBLISHED", ...sandboxWhere(opts) },
     select: { category: true },
     distinct: ["category"],
     orderBy: { category: "asc" },

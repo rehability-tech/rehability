@@ -366,6 +366,9 @@ function AiStudio({ delay = 0 }: { delay?: number }) {
 }
 
 export default async function AdminKursyPage() {
+  // Bez `includeSandbox` — kursy testowe świadomie NIE wchodzą do statystyk
+  // biznesowych (przychód, liczba kursantów, oceny). Pełną listę wraz
+  // z sandboxem widać na /admin/kursy/lista i /admin/sandbox.
   const [courses, salesStats] = await Promise.all([
     getCourses(),
     getCourseAdminStats(),

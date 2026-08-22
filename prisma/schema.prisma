@@ -105,16 +105,28 @@ isSchedulePublished Boolean @default(false)
   status       String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   views        Int      @default(0)
 
-  // ── System rabatowy / piaskownica ─────────────────────────────
-  // Piaskownica: wszystko utworzone lub zmienione przy włączonym trybie
-  // dostaje isSandbox=true i widzi to wyłącznie osoba z dostępem do
-  // piaskownicy. Tryb NIE wyłącza trwających promocji — izoluje tylko to,
-  // co w nim powstanie.
-  sandbox          Boolean   @default(false)
+  // ── SANDBOX ───────────────────────────────────────────────────
+  // Wydarzenie „piaskownicowe": istnieje w bazie i da się je w pełni
+  // przeklikać, ale publiczny katalog, sitemap i rezerwacje widzą je
+  // TYLKO dla admina i kont z `User.sandboxAccess`. Wymiar prostopadły
+  // do `status` — sandboxowe wydarzenie może być PUBLISHED i zachowywać
+  // się jak produkcyjne, nie wychodząc przy tym do klientów.
+  sandbox      Boolean  @default(false)
+  // ──────────────────────────────────────────────────────────────
+
+  // ── PIASKOWNICA RABATÓW ───────────────────────────────────────
+  // UWAGA: to CO INNEGO niż pole `sandbox` powyżej.
+  //   sandbox         → całe wydarzenie jest treścią testową (klient go
+  //                     nie widzi, patrz lib/sandbox/context.ts),
+  //   discountSandbox → wydarzenie działa normalnie, ale promocje tworzone
+  //                     przy włączonym trybie są szkicami widocznymi
+  //                     wyłącznie dla admina i testerów.
+  // Wspólne pole oznaczałoby, że włączenie trybu promocji ukrywa całe
+  // wydarzenie przed klientami — dlatego są rozdzielone.
+  discountSandbox  Boolean   @default(false)
   sandboxEnabledAt DateTime?
-  // Cena i zadatek obowiązujące TYLKO w piaskownicy (złotówki, jak price
-  // i deposit). "Opublikuj i wyłącz" przepisuje je do price/deposit
-  // i czyści te pola.
+  // Cena i zadatek obowiązujące TYLKO w piaskownicy rabatów (złotówki).
+  // „Opublikuj i wyłącz" przepisuje je do price/deposit i czyści.
   sandboxPrice   Decimal?
   sandboxDeposit Decimal?
 
@@ -500,9 +512,9 @@ model User {
   role          Role      @default(USER)
 
   // --- Piaskownica ---
-  // Dostęp do trybu testowego nadawany PER KONTO. Administrator ma go zawsze
-  // z racji roli (patrz viewerCanUseSandbox) — ta flaga służy do nadania
-  // dostępu komuś, kto adminem nie jest (np. osoba testująca promocje).
+  // Dostęp do treści testowych nadawany PER KONTO w /admin/sandbox.
+  // Administrator ma go z urzędu (patrz `canUseSandbox`), ta flaga służy
+  // nadaniu dostępu osobie, która adminem nie jest.
   sandboxAccess    Boolean   @default(false)
   sandboxGrantedAt DateTime?
 
@@ -550,6 +562,9 @@ model Course {
   image        String?  // miniatura (opcjonalnie; VOD bierze z wideo)
   // DRAFT | PUBLISHED | ARCHIVED
   status       String   @default("PUBLISHED")
+  // Kurs „piaskownicowy" — widoczny w katalogu, /panel/vod i checkoucie
+  // wyłącznie dla admina i kont z `User.sandboxAccess`. Patrz `Trip.sandbox`.
+  sandbox      Boolean  @default(false)
   // elastyczne pola treści
   description  Json?   // bloki zakładki „O kursie"
   content      Json?   // bloki zakładki „Zawartość" (opis co kurs zawiera)
@@ -568,11 +583,14 @@ model Course {
   // Używana w panelu do alertów „mało kursantów" dopiero po okresie karencji.
   publishedAt  DateTime?
 
-  // Kurs widoczny wyłącznie dla osób z dostępem do piaskownicy.
-  // Na razie nieużywane przez kod VOD — kolumna istnieje w bazie i czeka
-  // na analogiczny tryb testowy po stronie kursów (system rabatowy używa
-  // własnego przełącznika na Trip).
-  sandbox      Boolean  @default(false)
+
+  // Piaskownica RABATÓW kursu — patrz komentarz przy Trip.discountSandbox.
+  // Nie mylić z  wyżej, które ukrywa cały kurs przed klientem.
+  discountSandbox Boolean @default(false)
+
+  discountCodes  DiscountCode[]
+  sales          Sale[]
+  emailDiscounts EmailDiscount[]
 
   modules       CourseModule[]
   enrollments   Enrollment[]
@@ -581,12 +599,8 @@ model Course {
   favorites     CourseFavorite[]
   purchases     CoursePurchase[]
 
-  // System rabatowy — te same modele co przy wydarzeniach, patrz komentarz
-  // „WŁAŚCICIEL PROMOCJI" niżej w pliku.
-  discountCodes  DiscountCode[]
-  sales          Sale[]
-  emailDiscounts EmailDiscount[]
-
+  // Katalog i biblioteka VOD filtrują po statusie ORAZ po piaskownicy,
+  // więc indeks jest złożony.
   @@index([status, sandbox])
 }
 

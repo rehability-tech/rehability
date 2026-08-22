@@ -11,6 +11,7 @@ import {
   Heart,
   VideoCamera,
   LockSimpleOpen,
+  Flask,
 } from "@phosphor-icons/react/dist/ssr";
 import { formatCourseDuration, type Course } from "../_data/courses";
 import { useFavorites } from "@/app/_components/FavoritesProvider";
@@ -64,8 +65,17 @@ export function CourseCard({
 
           {/* Kategoria + zakładka */}
           <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md text-brand-secondary border border-white/40">
-              {course.category}
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md text-brand-secondary border border-white/40">
+                {course.category}
+              </span>
+              {/* Kurs z piaskownicy — widzą go tylko admin i testerzy */}
+              {course.sandbox && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-yellow text-brand-secondary border border-white/40">
+                  <Flask size={11} weight="fill" />
+                  Sandbox
+                </span>
+              )}
             </span>
             <motion.button
               type="button"

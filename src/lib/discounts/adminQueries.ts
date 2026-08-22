@@ -57,7 +57,7 @@ async function loadProduct(owner: DiscountOwner): Promise<PanelProduct | null> {
         title: true,
         price: true,
         deposit: true,
-        sandbox: true,
+        discountSandbox: true,
         sandboxEnabledAt: true,
         sandboxPrice: true,
         sandboxDeposit: true,
@@ -72,7 +72,7 @@ async function loadProduct(owner: DiscountOwner): Promise<PanelProduct | null> {
       title: trip.title,
       priceGrosze: Math.round(Number(trip.price) * 100),
       depositGrosze: Math.round(Number(trip.deposit) * 100),
-      sandbox: trip.sandbox,
+      sandbox: trip.discountSandbox,
       sandboxEnabledAt: trip.sandboxEnabledAt,
       sandboxPriceGrosze:
         trip.sandboxPrice != null ? Math.round(Number(trip.sandboxPrice) * 100) : null,
@@ -85,7 +85,7 @@ async function loadProduct(owner: DiscountOwner): Promise<PanelProduct | null> {
 
   const course = await prisma.course.findUnique({
     where: { id: owner.courseId },
-    select: { id: true, slug: true, title: true, price: true, sandbox: true },
+    select: { id: true, slug: true, title: true, price: true, discountSandbox: true },
   });
   if (!course) return null;
 
@@ -97,7 +97,7 @@ async function loadProduct(owner: DiscountOwner): Promise<PanelProduct | null> {
     // Course.price to Int w ZŁOTÓWKACH (Trip.price jest Decimal).
     priceGrosze: Math.round((course.price ?? 0) * 100),
     depositGrosze: 0,
-    sandbox: course.sandbox,
+    sandbox: course.discountSandbox,
     sandboxEnabledAt: null,
     sandboxPriceGrosze: null,
     sandboxDepositGrosze: null,
